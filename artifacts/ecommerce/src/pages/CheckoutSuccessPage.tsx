@@ -1,18 +1,22 @@
 /**
  * CheckoutSuccessPage.tsx
- * Halaman konfirmasi setelah pembayaran berhasil.
+ * Halaman konfirmasi pembayaran sukses.
  *
- * Menampilkan:
- * - Nomor pesanan dari query parameter URL
- * - Pesan sukses dan instruksi langkah berikutnya
- * - Tombol ke Riwayat Pesanan (untuk menulis ulasan)
- * - Tombol kembali ke belanja
+ * Tampil setelah user berhasil checkout.
+ * Warna utama: hijau (sukses) dan biru (aksi/navigasi).
  */
 import React, { useEffect } from "react";
 import { Link } from "wouter";
-import { CheckCircle2, ClipboardList, ShoppingBag } from "lucide-react";
+import { CheckCircle2, ClipboardList, ShoppingBag, Package, Truck } from "lucide-react";
 import { useToast } from "../hooks/use-toast";
 import { Button } from "../components/ui/button";
+
+/** Langkah-langkah proses pengiriman (dekoratif/demo) */
+const ORDER_STEPS = [
+  { icon: CheckCircle2, label: "Pembayaran", desc: "Berhasil dikonfirmasi", done: true, color: "text-green-600 bg-green-100" },
+  { icon: Package, label: "Dikemas", desc: "Sedang diproses", done: true, color: "text-blue-600 bg-blue-100" },
+  { icon: Truck, label: "Pengiriman", desc: "Estimasi 2–3 hari", done: false, color: "text-slate-400 bg-slate-100" },
+];
 
 export function CheckoutSuccessPage() {
   const { toast } = useToast();
@@ -21,73 +25,110 @@ export function CheckoutSuccessPage() {
   const searchParams = new URLSearchParams(window.location.search);
   const orderNumber = searchParams.get("order") || "#TKO-00000";
 
-  // Tampilkan toast notifikasi sukses saat halaman pertama kali dimuat
+  // Toast notifikasi saat halaman pertama kali dimuat
   useEffect(() => {
     toast({
-      title: "Sukses!",
-      description: "Pesanan berhasil dibuat! Terima kasih telah berbelanja.",
+      title: "Pembayaran Berhasil!",
+      description: "Pesanan Anda sedang kami proses.",
     });
   }, [toast]);
 
   return (
-    <div className="container mx-auto px-4 py-20 flex flex-col items-center justify-center text-center max-w-lg">
-      {/* Ikon sukses */}
-      <div className="w-20 h-20 bg-green-100 text-green-600 rounded-full flex items-center justify-center mb-6 shadow-sm">
-        <CheckCircle2 className="h-10 w-10" />
-      </div>
+    <div className="min-h-[80vh] flex items-center justify-center px-4 py-12">
+      <div className="w-full max-w-md">
 
-      <h1 className="text-3xl font-bold mb-3">Pembayaran Berhasil!</h1>
-      <p className="text-muted-foreground max-w-md mb-8">
-        Terima kasih telah berbelanja di Toko Online. Pesanan Anda sedang kami
-        proses dan akan segera dikirim.
-      </p>
+        {/* ── Kartu Sukses ─────────────────────────────────────────────── */}
+        <div className="bg-card border rounded-3xl overflow-hidden shadow-lg">
 
-      {/* Nomor pesanan */}
-      <div className="bg-card border rounded-2xl p-6 mb-4 w-full">
-        <p className="text-sm text-muted-foreground mb-1">Nomor Pesanan</p>
-        <p className="text-2xl font-bold tracking-tight text-primary">
-          {orderNumber}
+          {/* Header hijau */}
+          <div className="bg-gradient-to-br from-green-500 to-emerald-600 px-6 py-8 text-center text-white">
+            <div className="w-20 h-20 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-4">
+              <CheckCircle2 className="h-10 w-10 text-white" />
+            </div>
+            <h1 className="text-2xl font-extrabold mb-1">Pembayaran Berhasil!</h1>
+            <p className="text-green-100 text-sm">
+              Terima kasih telah berbelanja di Toko Online
+            </p>
+          </div>
+
+          {/* Nomor pesanan */}
+          <div className="px-6 py-5 border-b bg-muted/20 text-center">
+            <p className="text-xs text-muted-foreground uppercase tracking-widest mb-1">
+              Nomor Pesanan
+            </p>
+            <p className="text-2xl font-bold tracking-tight text-foreground">
+              {orderNumber}
+            </p>
+          </div>
+
+          {/* Status langkah pengiriman */}
+          <div className="px-6 py-5 border-b">
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-4">
+              Status Pesanan
+            </p>
+            <div className="space-y-3">
+              {ORDER_STEPS.map(({ icon: Icon, label, desc, done, color }) => (
+                <div key={label} className="flex items-center gap-3">
+                  <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 ${color}`}>
+                    <Icon className="h-4 w-4" />
+                  </div>
+                  <div className="flex-1">
+                    <p className={`text-sm font-semibold ${done ? "text-foreground" : "text-muted-foreground"}`}>
+                      {label}
+                    </p>
+                    <p className="text-xs text-muted-foreground">{desc}</p>
+                  </div>
+                  {done && (
+                    <span className="text-xs font-medium text-green-600 bg-green-50 px-2 py-0.5 rounded-full">
+                      Selesai
+                    </span>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Info ulasan */}
+          <div className="px-6 py-4 border-b bg-blue-50">
+            <p className="text-sm font-semibold text-blue-800 mb-1">
+              Barang sudah sampai?
+            </p>
+            <p className="text-xs text-blue-700">
+              Kunjungi <strong>Riwayat Pesanan</strong> untuk memberikan ulasan,
+              atau laporkan ketidaksesuaian dengan melampirkan foto/video sebagai bukti.
+            </p>
+          </div>
+
+          {/* Tombol aksi — biru dan hijau */}
+          <div className="px-6 py-5 flex flex-col gap-3">
+            <Link href="/orders">
+              <Button
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+                size="lg"
+                data-testid="button-view-orders"
+              >
+                <ClipboardList className="h-4 w-4 mr-2" />
+                Lihat Riwayat Pesanan
+              </Button>
+            </Link>
+            <Link href="/">
+              <Button
+                variant="outline"
+                size="lg"
+                className="w-full border-green-500 text-green-700 hover:bg-green-50"
+                data-testid="button-back-to-shop"
+              >
+                <ShoppingBag className="h-4 w-4 mr-2" />
+                Kembali Belanja
+              </Button>
+            </Link>
+          </div>
+        </div>
+
+        {/* Catatan kecil di bawah kartu */}
+        <p className="text-center text-xs text-muted-foreground mt-5">
+          Konfirmasi pesanan akan dikirim ke email Anda (mode demo — tidak ada email nyata).
         </p>
-      </div>
-
-      {/* Info ulasan */}
-      <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 mb-8 w-full text-left">
-        <p className="text-sm font-semibold text-amber-800 mb-1">
-          Bagaimana pesanan Anda?
-        </p>
-        <p className="text-xs text-amber-700">
-          Setelah barang tiba, kunjungi Riwayat Pesanan untuk memberikan ulasan
-          dan melaporkan jika ada ketidaksesuaian barang — lengkap dengan foto
-          atau video sebagai bukti.
-        </p>
-      </div>
-
-      {/* Tombol aksi */}
-      <div className="flex flex-col sm:flex-row gap-3 w-full">
-        {/* Tombol ke riwayat pesanan (untuk menulis ulasan) */}
-        <Link href="/orders" className="flex-1">
-          <Button
-            variant="outline"
-            size="lg"
-            className="w-full"
-            data-testid="button-view-orders"
-          >
-            <ClipboardList className="h-4 w-4 mr-2" />
-            Riwayat Pesanan
-          </Button>
-        </Link>
-
-        {/* Tombol kembali belanja */}
-        <Link href="/" className="flex-1">
-          <Button
-            size="lg"
-            className="w-full"
-            data-testid="button-back-to-shop"
-          >
-            <ShoppingBag className="h-4 w-4 mr-2" />
-            Kembali Belanja
-          </Button>
-        </Link>
       </div>
     </div>
   );
