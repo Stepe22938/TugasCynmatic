@@ -140,10 +140,6 @@ export function LoginPage() {
           </form>
         </div>
 
-        {/* Hint admin */}
-        <div className="mt-4 bg-white/70 border border-amber-200 rounded-2xl px-4 py-3 text-center text-xs text-amber-800">
-          <span className="font-bold">Akun Admin:</span> alrizalarkan@gmail.com · Password: Admin123
-        </div>
       </div>
     </div>
   );

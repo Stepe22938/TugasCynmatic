@@ -1,37 +1,30 @@
 /**
  * HomePage.tsx
- * Halaman utama yang menampilkan daftar produk tersedia.
- *
- * Menampilkan:
- * - Banner hero dengan sapaan dan CTA
- * - Grid 4 produk (responsive: 1 kolom di mobile, 2 di tablet, 4 di desktop)
- * - Setiap produk menampilkan rating otomatis dari ulasan pembelian
+ * Halaman utama — menampilkan produk statis + produk seller yang sudah disetujui.
  */
 import React from "react";
 import { ShoppingBag, Star, Truck, Shield } from "lucide-react";
-import { products } from "../data/products";
 import { ProductCard } from "../components/ProductCard";
 import { useAuth } from "../contexts/AuthContext";
+import { useProducts } from "../contexts/ProductsContext";
 
-/** Fitur unggulan yang ditampilkan di bawah hero */
 const PERKS = [
-  { icon: Truck, label: "Gratis Ongkir", desc: "Untuk pembelian pertama" },
-  { icon: Shield, label: "Belanja Aman", desc: "Jaminan uang kembali" },
-  { icon: Star, label: "Produk Terpilih", desc: "Kualitas terjamin" },
+  { icon: Truck,  label: "Gratis Ongkir",   desc: "Untuk pembelian pertama" },
+  { icon: Shield, label: "Belanja Aman",     desc: "Jaminan uang kembali" },
+  { icon: Star,   label: "Produk Terpilih",  desc: "Kualitas terjamin" },
 ];
 
 export function HomePage() {
   const { user } = useAuth();
+  const { allStoreProducts } = useProducts();
 
-  // Ambil nama depan user untuk sapaan personal
   const firstName = user?.name?.split(" ")[0] ?? null;
 
   return (
     <div className="min-h-screen bg-background">
-      {/* ── Hero Banner ─────────────────────────────────────────────────── */}
+      {/* Hero */}
       <section className="bg-gradient-to-br from-primary/10 via-background to-orange-50 border-b">
         <div className="container mx-auto px-4 py-12 flex flex-col md:flex-row items-center gap-8">
-          {/* Teks hero */}
           <div className="flex-1 text-center md:text-left">
             <p className="text-sm font-semibold text-primary uppercase tracking-widest mb-3">
               Toko Online Pilihan
@@ -46,17 +39,11 @@ export function HomePage() {
             <p className="text-muted-foreground text-lg max-w-md mb-6">
               Koleksi pilihan berkualitas dengan harga terjangkau. Belanja mudah, cepat, dan aman.
             </p>
-            {/* Scroll ke produk */}
-            <a
-              href="#products"
-              className="inline-flex items-center gap-2 bg-primary text-primary-foreground px-6 py-3 rounded-full font-semibold shadow-md hover:bg-primary/90 transition-colors"
-            >
-              <ShoppingBag className="h-4 w-4" />
-              Lihat Produk
+            <a href="#products"
+              className="inline-flex items-center gap-2 bg-primary text-primary-foreground px-6 py-3 rounded-full font-semibold shadow-md hover:bg-primary/90 transition-colors">
+              <ShoppingBag className="h-4 w-4" />Lihat Produk
             </a>
           </div>
-
-          {/* Ilustrasi / dekorasi hero */}
           <div className="flex-shrink-0 hidden md:block">
             <div className="w-48 h-48 bg-primary/10 rounded-full flex items-center justify-center">
               <ShoppingBag className="w-24 h-24 text-primary/40" strokeWidth={1} />
@@ -64,7 +51,7 @@ export function HomePage() {
           </div>
         </div>
 
-        {/* Perks strip */}
+        {/* Perks */}
         <div className="container mx-auto px-4 pb-8">
           <div className="grid grid-cols-3 gap-4 max-w-xl mx-auto md:mx-0">
             {PERKS.map(({ icon: Icon, label, desc }) => (
@@ -80,28 +67,22 @@ export function HomePage() {
         </div>
       </section>
 
-      {/* ── Daftar Produk ───────────────────────────────────────────────── */}
+      {/* Produk */}
       <section id="products" className="container mx-auto px-4 py-10">
         <div className="flex items-center justify-between mb-6">
           <div>
             <h2 className="text-2xl font-bold text-foreground">Koleksi Terbaru</h2>
             <p className="text-muted-foreground text-sm mt-1">
-              {products.length} produk tersedia untuk Anda
+              {allStoreProducts.length} produk tersedia untuk Anda
             </p>
           </div>
-          {/* Badge "Baru" dekoratif */}
           <span className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 bg-primary/10 text-primary text-xs font-semibold rounded-full">
             <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
             Produk Terpilih
           </span>
         </div>
-
-        {/* Grid produk — responsif */}
-        <div
-          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5"
-          data-testid="product-grid"
-        >
-          {products.map((product) => (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5" data-testid="product-grid">
+          {allStoreProducts.map((product) => (
             <ProductCard key={product.id} product={product} />
           ))}
         </div>

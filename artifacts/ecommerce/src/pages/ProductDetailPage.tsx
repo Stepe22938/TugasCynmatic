@@ -23,6 +23,7 @@ import {
   Package,
 } from "lucide-react";
 import { getProductById } from "../data/products";
+import { useProducts } from "../contexts/ProductsContext";
 import { useCart } from "../contexts/CartContext";
 import { useOrderHistory } from "../contexts/OrderHistoryContext";
 import { useProductRatings } from "../hooks/useProductRatings";
@@ -138,8 +139,9 @@ export function ProductDetailPage() {
   const params = useParams<{ id: string }>();
   const productId = Number(params.id);
 
-  // Cari produk berdasarkan ID dari URL
-  const product = getProductById(productId);
+  // Cari produk: cek dulu di produk statis, lalu di produk seller yang approved
+  const { allStoreProducts } = useProducts();
+  const product = getProductById(productId) ?? allStoreProducts.find((p) => p.id === productId);
 
   const { dispatch } = useCart();
   const { toast } = useToast();
