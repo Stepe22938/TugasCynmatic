@@ -1,6 +1,6 @@
 /**
  * AuthContext.tsx
- * Manages global user authentication state.
+ * Manages global user authentication state (demo mode).
  * Stores dummy user data based on provider clicked. Persists to localStorage.
  */
 import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
@@ -10,12 +10,12 @@ export interface User {
   name: string;
   email: string;
   avatar: string;
-  provider: "google" | "github" | "facebook";
+  provider: "google";
 }
 
 interface AuthContextType {
   user: User | null;
-  login: (provider: User["provider"]) => void;
+  login: () => void;
   logout: () => void;
   isAuthenticated: boolean;
 }
@@ -29,8 +29,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const localData = localStorage.getItem("toko_auth");
       return localData ? JSON.parse(localData) : null;
-    } catch (error) {
-      console.error("Failed to parse auth state", error);
+    } catch {
       return null;
     }
   });
@@ -44,20 +43,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [user]);
 
-  // Mock login function
-  const login = (provider: User["provider"]) => {
-    // Generate dummy user
+  /**
+   * Dummy Google login — langsung login tanpa OAuth sungguhan.
+   * Menggunakan data akun demo untuk keperluan presentasi/belajar.
+   */
+  const login = () => {
     setUser({
-      name: `User ${provider}`,
-      email: `demo@${provider}.com`,
-      avatar: `https://api.dicebear.com/7.x/initials/svg?seed=User+${provider}`,
-      provider
+      name: "Demo User",
+      email: "demo@gmail.com",
+      avatar: "https://api.dicebear.com/7.x/initials/svg?seed=Demo+User",
+      provider: "google",
     });
   };
 
-  const logout = () => {
-    setUser(null);
-  };
+  const logout = () => setUser(null);
 
   return (
     <AuthContext.Provider value={{ user, login, logout, isAuthenticated: !!user }}>
@@ -66,11 +65,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 }
 
-// Hook
 export function useAuth() {
-  const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error("useAuth must be used within an AuthProvider");
-  }
-  return context;
+  const ctx = useContext(AuthContext);
+  if (!ctx) throw new Error("useAuth must be used within AuthProvider");
+  return ctx;
 }

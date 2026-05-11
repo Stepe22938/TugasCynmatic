@@ -11,7 +11,7 @@ import React from "react";
 import { ShoppingBag, Star, Truck, Shield } from "lucide-react";
 import { products } from "../data/products";
 import { ProductCard } from "../components/ProductCard";
-import { useUser } from "@clerk/react";
+import { useAuth } from "../contexts/AuthContext";
 
 /** Fitur unggulan yang ditampilkan di bawah hero */
 const PERKS = [
@@ -21,10 +21,10 @@ const PERKS = [
 ];
 
 export function HomePage() {
-  const { user } = useUser();
+  const { user } = useAuth();
 
   // Ambil nama depan user untuk sapaan personal
-  const firstName = user?.firstName ?? user?.fullName?.split(" ")[0] ?? null;
+  const firstName = user?.name?.split(" ")[0] ?? null;
 
   return (
     <div className="min-h-screen bg-background">
