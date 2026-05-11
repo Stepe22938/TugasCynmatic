@@ -4,10 +4,12 @@
  *
  * Rute:
  *   /login             → Halaman login (publik)
+ *   /register          → Daftar akun baru (publik)
  *   /                  → Beranda / produk (harus login)
  *   /cart              → Keranjang (harus login)
  *   /orders            → Riwayat pesanan & ulasan (harus login)
  *   /product/:id       → Detail produk (harus login)
+ *   /profile           → Profil pengguna (harus login)
  *   /checkout-success  → Konfirmasi pembayaran (harus login)
  */
 import React, { useEffect } from "react";
@@ -29,6 +31,8 @@ import { CartPage } from "./pages/CartPage";
 import { OrderHistoryPage } from "./pages/OrderHistoryPage";
 import { CheckoutSuccessPage } from "./pages/CheckoutSuccessPage";
 import { ProductDetailPage } from "./pages/ProductDetailPage";
+import { RegisterPage } from "./pages/RegisterPage";
+import { ProfilePage } from "./pages/ProfilePage";
 import NotFound from "@/pages/not-found";
 
 const queryClient = new QueryClient();
@@ -63,15 +67,18 @@ const CartRoute    = () => <ProtectedRoute component={CartPage} />;
 const OrdersRoute  = () => <ProtectedRoute component={OrderHistoryPage} />;
 const SuccessRoute = () => <ProtectedRoute component={CheckoutSuccessPage} />;
 const ProductRoute = () => <ProtectedRoute component={ProductDetailPage} />;
+const ProfileRoute = () => <ProtectedRoute component={ProfilePage} />;
 
 function Router() {
   return (
     <Switch>
-      <Route path="/login" component={LoginPage} />
+      <Route path="/login"    component={LoginPage} />
+      <Route path="/register" component={RegisterPage} />
       <Route path="/"                 component={HomeRoute} />
       <Route path="/cart"             component={CartRoute} />
       <Route path="/orders"           component={OrdersRoute} />
       <Route path="/product/:id"       component={ProductRoute} />
+      <Route path="/profile"          component={ProfileRoute} />
       <Route path="/checkout-success" component={SuccessRoute} />
       <Route component={NotFound} />
     </Switch>

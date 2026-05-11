@@ -2,59 +2,64 @@
  * Navbar.tsx
  * Navigasi utama Toko Online.
  *
- * Menampilkan:
- * - Logo + nama toko (link ke Home)
- * - Link Riwayat Pesanan
- * - Ikon keranjang dengan badge jumlah item
- * - Nama user dan tombol logout
+ * Kiri  : Logo + nama toko
+ * Kanan : Pesanan · Keranjang · Avatar/profil
  */
 import React from "react";
 import { Link, useLocation } from "wouter";
-import { ShoppingCart, LogOut, Package, ClipboardList } from "lucide-react";
+import { ShoppingCart, Package, ClipboardList, ShieldCheck } from "lucide-react";
 import { useCart } from "../contexts/CartContext";
 import { useAuth } from "../contexts/AuthContext";
 import { Button } from "./ui/button";
 
+/** URL avatar inisial dari DiceBear */
+function avatarUrl(name: string) {
+  return `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(name)}&backgroundColor=f97316&fontColor=ffffff&fontSize=40`;
+}
+
 export function Navbar() {
   const { totalItems } = useCart();
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
   const [location] = useLocation();
+
+  const isActive = (path: string) => location === path;
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/80 backdrop-blur-md">
       <div className="container mx-auto px-4 h-16 flex items-center justify-between">
-        {/* Logo */}
+
+        {/* ── Logo ─────────────────────────────────────────────────────── */}
         <Link href="/" className="flex items-center gap-2 text-primary font-bold text-xl">
           <Package className="h-6 w-6" />
           <span className="hidden sm:inline">Toko Online</span>
           <span className="sm:hidden">Toko</span>
         </Link>
 
-        {/* Navigasi kanan */}
+        {/* ── Navigasi kanan ───────────────────────────────────────────── */}
         <div className="flex items-center gap-1 sm:gap-2">
-          {/* Link Riwayat Pesanan */}
+
+          {/* Pesanan */}
           <Link href="/orders">
             <Button
-              variant={location === "/orders" ? "secondary" : "ghost"}
+              variant={isActive("/orders") ? "secondary" : "ghost"}
               size="sm"
               className="hidden sm:flex items-center gap-1.5"
               data-testid="button-nav-orders"
             >
               <ClipboardList className="h-4 w-4" />
-              <span>Pesanan</span>
+              Pesanan
             </Button>
             <Button
-              variant={location === "/orders" ? "secondary" : "ghost"}
+              variant={isActive("/orders") ? "secondary" : "ghost"}
               size="icon"
               className="sm:hidden"
-              data-testid="button-nav-orders-mobile"
               title="Riwayat Pesanan"
             >
               <ClipboardList className="h-5 w-5" />
             </Button>
           </Link>
 
-          {/* Ikon keranjang dengan badge */}
+          {/* Keranjang dengan badge */}
           <Link href="/cart">
             <Button
               variant="ghost"
@@ -75,24 +80,34 @@ export function Navbar() {
             </Button>
           </Link>
 
-          {/* Info user dan logout */}
+          {/* Avatar → link ke profil */}
           {user && (
-            <div className="flex items-center gap-2 ml-1 border-l pl-3">
-              <div className="hidden sm:flex flex-col items-end">
-                <span className="text-sm font-medium leading-tight">{user.name}</span>
-                <span className="text-[10px] text-muted-foreground">via Google</span>
-              </div>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={logout}
-                title="Logout"
-                data-testid="button-logout"
+            <Link href="/profile">
+              <button
+                data-testid="button-nav-profile"
+                title={`Profil — ${user.name}`}
+                className={`relative flex items-center gap-2 ml-1 pl-3 border-l group`}
               >
-                <LogOut className="h-4 w-4 sm:mr-1.5" />
-                <span className="hidden sm:inline">Keluar</span>
-              </Button>
-            </div>
+                {/* Avatar gambar */}
+                <div
+                  className={`w-9 h-9 rounded-xl overflow-hidden ring-2 transition-all ${
+                    isActive("/profile") ? "ring-primary" : "ring-transparent group-hover:ring-primary/50"
+                  }`}
+                >
+                  <img src={avatarUrl(user.name)} alt={user.name} className="w-full h-full object-cover" />
+                </div>
+                {/* Nama + badge admin (desktop saja) */}
+                <div className="hidden sm:flex flex-col items-start leading-tight">
+                  <span className="text-sm font-semibold text-foreground flex items-center gap-1">
+                    {user.name.split(" ")[0]}
+                    {user.role === "admin" && (
+                      <ShieldCheck className="h-3.5 w-3.5 text-primary" />
+                    )}
+                  </span>
+                  <span className="text-[10px] text-muted-foreground">Profil</span>
+                </div>
+              </button>
+            </Link>
           )}
         </div>
       </div>
