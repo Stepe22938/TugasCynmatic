@@ -7,6 +7,7 @@
  *   /                  → Beranda / produk (harus login)
  *   /cart              → Keranjang (harus login)
  *   /orders            → Riwayat pesanan & ulasan (harus login)
+ *   /product/:id       → Detail produk (harus login)
  *   /checkout-success  → Konfirmasi pembayaran (harus login)
  */
 import React, { useEffect } from "react";
@@ -27,6 +28,7 @@ import { HomePage } from "./pages/HomePage";
 import { CartPage } from "./pages/CartPage";
 import { OrderHistoryPage } from "./pages/OrderHistoryPage";
 import { CheckoutSuccessPage } from "./pages/CheckoutSuccessPage";
+import { ProductDetailPage } from "./pages/ProductDetailPage";
 import NotFound from "@/pages/not-found";
 
 const queryClient = new QueryClient();
@@ -60,6 +62,7 @@ const HomeRoute    = () => <ProtectedRoute component={HomePage} />;
 const CartRoute    = () => <ProtectedRoute component={CartPage} />;
 const OrdersRoute  = () => <ProtectedRoute component={OrderHistoryPage} />;
 const SuccessRoute = () => <ProtectedRoute component={CheckoutSuccessPage} />;
+const ProductRoute = () => <ProtectedRoute component={ProductDetailPage} />;
 
 function Router() {
   return (
@@ -68,6 +71,7 @@ function Router() {
       <Route path="/"                 component={HomeRoute} />
       <Route path="/cart"             component={CartRoute} />
       <Route path="/orders"           component={OrdersRoute} />
+      <Route path="/product/:id"       component={ProductRoute} />
       <Route path="/checkout-success" component={SuccessRoute} />
       <Route component={NotFound} />
     </Switch>
