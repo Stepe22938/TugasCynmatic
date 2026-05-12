@@ -1,24 +1,15 @@
 /**
  * ProductsContext.tsx
- * Mengelola produk dinamis yang disubmit oleh seller.
+ * Produk dinamis dari seller + pengaturan auto-approve admin.
  *
- * Alur:
- *   Seller submit → status "pending"
- *   Admin setujui → status "approved" → muncul di toko
- *   Admin tolak   → status "rejected"
- *   Admin/Seller hapus → dihapus permanen
- *
- * Produk statis dari products.ts selalu tersedia (sudah dianggap approved).
+ * Auto-approve: jika aktif, produk seller langsung "approved" tanpa review manual admin.
  */
 import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { products as staticProducts, Product } from "../data/products";
 
-// ─── Types ────────────────────────────────────────────────────────────────────
-
 export type ProductStatus = "pending" | "approved" | "rejected";
 
 export interface SellerProduct {
-  /** ID unik mulai 10000 untuk menghindari tabrakan dengan produk statis (1–4) */
   id: number;
   sellerId: string;
   sellerName: string;
@@ -35,72 +26,63 @@ export interface SellerProduct {
 }
 
 interface ProductsContextType {
-  /** Semua produk seller (semua status) — untuk admin & seller */
   sellerProducts: SellerProduct[];
-  /** Hanya produk seller yang sudah disetujui — dikonversi ke Product */
   approvedSellerProducts: Product[];
-  /** Gabungan: produk statis + produk seller yang approved */
   allStoreProducts: Product[];
-  /** Seller: tambah produk baru (status "pending") */
+  /** Pengaturan auto-approve dari admin */
+  autoApprove: boolean;
+  setAutoApprove: (v: boolean) => void;
   submitProduct: (data: Omit<SellerProduct, "id" | "status" | "createdAt">) => void;
-  /** Admin: setujui produk */
   approveProduct: (id: number) => void;
-  /** Admin: tolak produk */
   rejectProduct: (id: number) => void;
-  /** Admin atau seller (produk sendiri): hapus produk */
   deleteProduct: (id: number) => void;
 }
 
-// ─── Storage ──────────────────────────────────────────────────────────────────
+const PRODUCTS_KEY     = "toko_seller_products";
+const AUTO_APPROVE_KEY = "toko_auto_approve";
 
-const STORAGE_KEY = "toko_seller_products";
-
-function loadProducts(): SellerProduct[] {
-  try { return JSON.parse(localStorage.getItem(STORAGE_KEY) ?? "[]"); }
+function loadSellerProducts(): SellerProduct[] {
+  try { return JSON.parse(localStorage.getItem(PRODUCTS_KEY) ?? "[]"); }
   catch { return []; }
 }
 
-function save(products: SellerProduct[]) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(products));
-}
-
-/** Konversi SellerProduct ke Product agar bisa dipakai ProductCard & ProductDetailPage */
 function toProduct(sp: SellerProduct): Product {
   return {
-    id: sp.id,
-    name: sp.name,
-    description: sp.description,
-    longDescription: sp.longDescription,
-    price: sp.price,
-    image: sp.image,
+    id: sp.id, name: sp.name,
+    description: sp.description, longDescription: sp.longDescription,
+    price: sp.price, image: sp.image,
     images: sp.images.length > 0 ? sp.images : [sp.image],
-    category: sp.category,
-    specs: sp.specs,
+    category: sp.category, specs: sp.specs,
+    sellerId: sp.sellerId, sellerName: sp.sellerName,
   };
 }
-
-// ─── Context ──────────────────────────────────────────────────────────────────
 
 const ProductsContext = createContext<ProductsContextType | undefined>(undefined);
 
 export function ProductsProvider({ children }: { children: ReactNode }) {
-  const [sellerProducts, setSellerProducts] = useState<SellerProduct[]>(loadProducts);
+  const [sellerProducts, setSellerProducts] = useState<SellerProduct[]>(loadSellerProducts);
+  const [autoApprove, setAutoApproveState] = useState<boolean>(() =>
+    localStorage.getItem(AUTO_APPROVE_KEY) === "true"
+  );
 
-  useEffect(() => { save(sellerProducts); }, [sellerProducts]);
+  useEffect(() => { localStorage.setItem(PRODUCTS_KEY, JSON.stringify(sellerProducts)); }, [sellerProducts]);
+
+  const setAutoApprove = (v: boolean) => {
+    setAutoApproveState(v);
+    localStorage.setItem(AUTO_APPROVE_KEY, String(v));
+  };
 
   const approvedSellerProducts: Product[] = sellerProducts
-    .filter((p) => p.status === "approved")
-    .map(toProduct);
+    .filter((p) => p.status === "approved").map(toProduct);
 
   const allStoreProducts: Product[] = [...staticProducts, ...approvedSellerProducts];
 
   const submitProduct = (data: Omit<SellerProduct, "id" | "status" | "createdAt">) => {
-    const existing = loadProducts();
+    const existing = loadSellerProducts();
     const maxId = existing.reduce((m, p) => Math.max(m, p.id), 9999);
     const newProduct: SellerProduct = {
-      ...data,
-      id: maxId + 1,
-      status: "pending",
+      ...data, id: maxId + 1,
+      status: autoApprove ? "approved" : "pending",
       createdAt: new Date().toISOString(),
     };
     setSellerProducts((prev) => [newProduct, ...prev]);
@@ -117,13 +99,9 @@ export function ProductsProvider({ children }: { children: ReactNode }) {
 
   return (
     <ProductsContext.Provider value={{
-      sellerProducts,
-      approvedSellerProducts,
-      allStoreProducts,
-      submitProduct,
-      approveProduct,
-      rejectProduct,
-      deleteProduct,
+      sellerProducts, approvedSellerProducts, allStoreProducts,
+      autoApprove, setAutoApprove,
+      submitProduct, approveProduct, rejectProduct, deleteProduct,
     }}>
       {children}
     </ProductsContext.Provider>

@@ -1,20 +1,22 @@
 /**
  * products.ts
- * Data produk untuk Toko Online.
- * Setiap produk memiliki deskripsi singkat (untuk kartu) dan
- * deskripsi panjang (untuk halaman detail).
+ * Produk statis bawaan — dimiliki oleh Admin Toko (sellerId: "admin-001").
+ * Setiap produk memiliki sellerId & sellerName sehingga konsisten
+ * dengan produk yang disubmit oleh seller.
  */
 
 export interface Product {
   id: number;
   name: string;
-  description: string;       // Singkat — untuk kartu produk
-  longDescription: string;   // Panjang — untuk halaman detail
+  description: string;
+  longDescription: string;
   price: number;
   image: string;
-  images: string[];          // Gambar tambahan untuk galeri detail
+  images: string[];
   category: string;
-  specs: { label: string; value: string }[]; // Spesifikasi produk
+  specs: { label: string; value: string }[];
+  sellerId: string;
+  sellerName: string;
 }
 
 export const products: Product[] = [
@@ -26,8 +28,7 @@ export const products: Product[] = [
       "Sepatu sneakers premium yang dirancang untuk kenyamanan maksimal sepanjang hari. " +
       "Menggunakan bahan mesh breathable yang membuat kaki tetap sejuk, " +
       "sol berbasis EVA yang ringan namun tahan lama, serta desain modern yang cocok " +
-      "untuk segala kesempatan — dari aktivitas santai hingga olahraga ringan. " +
-      "Tersedia dalam berbagai ukuran dan warna pilihan.",
+      "untuk segala kesempatan — dari aktivitas santai hingga olahraga ringan.",
     price: 299000,
     image: "https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=600&h=500&fit=crop",
     images: [
@@ -43,6 +44,8 @@ export const products: Product[] = [
       { label: "Warna", value: "Merah, Putih, Hitam" },
       { label: "Berat", value: "±280 gram / pasang" },
     ],
+    sellerId: "admin-001",
+    sellerName: "Admin Toko",
   },
   {
     id: 2,
@@ -51,8 +54,7 @@ export const products: Product[] = [
     longDescription:
       "Tas ransel canvas premium dengan kapasitas besar yang ideal untuk mahasiswa dan pekerja kantoran. " +
       "Dilengkapi kantong laptop berlapisan busa hingga 15 inci, " +
-      "beberapa kompartemen terorganisir, serta bahan canvas tebal yang tahan air dan goresan. " +
-      "Tali bahu yang lebar dan berpadding memberikan kenyamanan saat dibawa seharian.",
+      "beberapa kompartemen terorganisir, serta bahan canvas tebal yang tahan air dan goresan.",
     price: 189000,
     image: "https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=600&h=500&fit=crop",
     images: [
@@ -68,6 +70,8 @@ export const products: Product[] = [
       { label: "Dimensi", value: "45 × 30 × 15 cm" },
       { label: "Warna", value: "Abu-abu, Navy, Hitam" },
     ],
+    sellerId: "admin-001",
+    sellerName: "Admin Toko",
   },
   {
     id: 3,
@@ -76,9 +80,7 @@ export const products: Product[] = [
     longDescription:
       "Kemeja flanel dengan motif kotak klasik yang tak lekang oleh waktu. " +
       "Dibuat dari bahan flanel 100% cotton brushed yang terasa lembut di kulit " +
-      "dan memberikan kehangatan ekstra di cuaca dingin. " +
-      "Cocok dipakai sebagai outer di atas kaos putih atau langsung sebagai kemeja. " +
-      "Potongan regular fit yang nyaman untuk berbagai tipe tubuh.",
+      "dan memberikan kehangatan ekstra di cuaca dingin. Cocok dipakai sebagai outer maupun kemeja.",
     price: 159000,
     image: "https://images.unsplash.com/photo-1596755094514-f87e34085b2c?w=600&h=500&fit=crop",
     images: [
@@ -94,6 +96,8 @@ export const products: Product[] = [
       { label: "Motif", value: "Kotak Klasik (Plaid)" },
       { label: "Warna", value: "Merah-Hitam, Biru-Putih, Hijau-Hitam" },
     ],
+    sellerId: "admin-001",
+    sellerName: "Admin Toko",
   },
   {
     id: 4,
@@ -103,8 +107,7 @@ export const products: Product[] = [
       "Jam tangan bergaya minimalis dengan dial bersih tanpa angka yang memberikan kesan elegan modern. " +
       "Menggunakan mesin Quartz Jepang yang akurat dan tahan lama, " +
       "tali berbahan kulit sintetis premium yang nyaman di pergelangan tangan, " +
-      "serta kaca mineral anti-goresan. Tahan percikan air hingga 3 ATM. " +
-      "Pilihan sempurna untuk melengkapi penampilan formal maupun kasual.",
+      "serta kaca mineral anti-goresan. Tahan percikan air hingga 3 ATM.",
     price: 459000,
     image: "https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=600&h=500&fit=crop",
     images: [
@@ -120,13 +123,11 @@ export const products: Product[] = [
       { label: "Ketahanan Air", value: "3 ATM" },
       { label: "Diameter Case", value: "40mm" },
     ],
+    sellerId: "admin-001",
+    sellerName: "Admin Toko",
   },
 ];
 
-/**
- * Mencari satu produk berdasarkan ID-nya.
- * Mengembalikan undefined jika tidak ditemukan.
- */
 export function getProductById(id: number): Product | undefined {
   return products.find((p) => p.id === id);
 }
