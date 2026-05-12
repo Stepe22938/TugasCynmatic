@@ -1,17 +1,14 @@
 /**
  * Navbar.tsx
- * Navigasi utama + notification bell.
- *
- * user   → Beranda · Pesanan · Keranjang · Notifikasi · Avatar
- * seller → + Dashboard Seller
- * admin  → + Panel Admin
+ * Navigasi utama + notification bell + LIVE indicator.
  */
 import React, { useState, useRef, useEffect } from "react";
 import { Link, useLocation } from "wouter";
-import { ShoppingCart, Package, ClipboardList, ShieldCheck, Store, Bell, CheckCheck, Trash2 } from "lucide-react";
+import { ShoppingCart, Package, ClipboardList, ShieldCheck, Store, Bell, CheckCheck, Trash2, Radio } from "lucide-react";
 import { useCart } from "../contexts/CartContext";
 import { useAuth } from "../contexts/AuthContext";
 import { useNotifications } from "../contexts/NotificationContext";
+import { useLive } from "../contexts/LiveContext";
 import { Button } from "./ui/button";
 
 function avatarUrl(name: string) {
@@ -39,13 +36,13 @@ export function Navbar() {
   const { totalItems } = useCart();
   const { user } = useAuth();
   const { notifications, unreadCount, markAllRead, markRead, clearAll } = useNotifications();
+  const { session } = useLive();
   const [location] = useLocation();
   const [bellOpen, setBellOpen] = useState(false);
   const bellRef = useRef<HTMLDivElement>(null);
 
   const isActive = (path: string) => location === path;
 
-  // Close dropdown on outside click
   useEffect(() => {
     if (!bellOpen) return;
     const handler = (e: MouseEvent) => {
@@ -75,6 +72,30 @@ export function Navbar() {
 
         {/* Nav kanan */}
         <div className="flex items-center gap-1 sm:gap-2">
+
+          {/* LIVE indicator — shown to everyone when live is active */}
+          <Link href="/live">
+            <button
+              className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                session.isLive
+                  ? "bg-red-600 text-white animate-pulse"
+                  : "border border-muted text-muted-foreground hover:border-primary/50 hover:text-primary"
+              }`}
+              title={session.isLive ? "Live sedang berlangsung!" : "Live Shopping"}
+            >
+              {session.isLive ? (
+                <>
+                  <span className="w-1.5 h-1.5 bg-white rounded-full inline-block" />
+                  LIVE
+                </>
+              ) : (
+                <>
+                  <Radio className="h-3.5 w-3.5" />
+                  <span className="hidden sm:inline">Live</span>
+                </>
+              )}
+            </button>
+          </Link>
 
           {/* Seller dashboard */}
           {user?.role === "seller" && (
@@ -129,7 +150,6 @@ export function Navbar() {
 
             {bellOpen && (
               <div className="absolute right-0 top-full mt-2 w-80 bg-background border rounded-2xl shadow-xl overflow-hidden z-50">
-                {/* Header */}
                 <div className="flex items-center justify-between px-4 py-3 border-b bg-muted/30">
                   <span className="font-bold text-sm">Notifikasi</span>
                   <div className="flex items-center gap-1">
@@ -147,8 +167,6 @@ export function Navbar() {
                     )}
                   </div>
                 </div>
-
-                {/* List */}
                 <div className="max-h-80 overflow-y-auto divide-y">
                   {notifications.length === 0 ? (
                     <div className="px-4 py-8 text-center text-sm text-muted-foreground">
@@ -159,23 +177,15 @@ export function Navbar() {
                     notifications.map((n) => (
                       <button key={n.id} onClick={() => { markRead(n.id); setBellOpen(false); }}
                         className={`w-full text-left px-4 py-3 hover:bg-muted/50 transition-colors flex gap-3 ${!n.read ? "bg-primary/5" : ""}`}>
-                        <span className="text-xl flex-shrink-0 mt-0.5">
-                          {NOTIF_ICON[n.type] ?? "🔔"}
-                        </span>
+                        <span className="text-xl flex-shrink-0 mt-0.5">{NOTIF_ICON[n.type] ?? "🔔"}</span>
                         <div className="flex-1 min-w-0">
                           <p className={`text-sm font-semibold leading-tight ${!n.read ? "text-foreground" : "text-muted-foreground"}`}>
                             {n.title}
                           </p>
-                          <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed line-clamp-2">
-                            {n.message}
-                          </p>
-                          <p className="text-[10px] text-muted-foreground/70 mt-1">
-                            {timeAgo(n.createdAt)}
-                          </p>
+                          <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed line-clamp-2">{n.message}</p>
+                          <p className="text-[10px] text-muted-foreground/70 mt-1">{timeAgo(n.createdAt)}</p>
                         </div>
-                        {!n.read && (
-                          <div className="w-2 h-2 bg-primary rounded-full flex-shrink-0 mt-1.5" />
-                        )}
+                        {!n.read && <div className="w-2 h-2 bg-primary rounded-full flex-shrink-0 mt-1.5" />}
                       </button>
                     ))
                   )}

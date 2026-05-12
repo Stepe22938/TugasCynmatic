@@ -47,6 +47,8 @@ export interface PurchasedOrder {
   reviews: Record<number, Review>;
   shippingInfo?: ShippingInfo;
   paymentMethod?: "dana" | "qris";
+  voucherCode?: string;
+  voucherDiscount?: number;
 }
 
 interface OrderHistoryState { orders: PurchasedOrder[]; }

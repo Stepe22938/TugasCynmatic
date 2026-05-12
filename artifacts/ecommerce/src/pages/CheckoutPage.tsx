@@ -1,15 +1,17 @@
 /**
  * CheckoutPage.tsx
- * Halaman checkout: info pengiriman + pilih metode pembayaran + konfirmasi dummy.
+ * Halaman checkout: info pengiriman + voucher + metode pembayaran + konfirmasi dummy.
  */
 import React, { useState } from "react";
 import { useLocation, Link } from "wouter";
-import { ArrowLeft, User, MapPin, CreditCard, CheckCircle2, Smartphone, QrCode, Loader2, ShoppingBag } from "lucide-react";
+import { ArrowLeft, User, MapPin, CreditCard, CheckCircle2, Smartphone, QrCode,
+         Loader2, ShoppingBag, Tag, X } from "lucide-react";
 import { useCart } from "../contexts/CartContext";
 import { useOrderHistory } from "../contexts/OrderHistoryContext";
 import { useAuth } from "../contexts/AuthContext";
 import { usePaymentSettings } from "../contexts/PaymentSettingsContext";
 import { useNotifications } from "../contexts/NotificationContext";
+import { useVouchers } from "../contexts/VoucherContext";
 import { formatPrice } from "../utils/formatPrice";
 import { Button } from "../components/ui/button";
 import { useToast } from "../hooks/use-toast";
@@ -25,6 +27,7 @@ export function CheckoutPage() {
   const { user } = useAuth();
   const pay = usePaymentSettings();
   const { addNotification } = useNotifications();
+  const { validateVoucher, useVoucher: markVoucherUsed } = useVouchers();
   const [, setLocation] = useLocation();
   const { toast } = useToast();
 
@@ -36,7 +39,14 @@ export function CheckoutPage() {
   const [payMethod, setPayMethod]     = useState<PaymentMethod | null>(pay.enabledMethods[0] ?? null);
   const [confirming, setConfirming]   = useState(false);
 
-  const grandTotal = subtotal + SHIPPING_FEE;
+  // Voucher state
+  const [voucherInput, setVoucherInput]   = useState("");
+  const [appliedVoucher, setAppliedVoucher] = useState<{ code: string; discount: number } | null>(null);
+  const [voucherError, setVoucherError]   = useState("");
+  const [voucherLoading, setVoucherLoading] = useState(false);
+
+  const discount   = appliedVoucher?.discount ?? 0;
+  const grandTotal = subtotal + SHIPPING_FEE - discount;
 
   if (items.length === 0) {
     return (
@@ -47,6 +57,29 @@ export function CheckoutPage() {
       </div>
     );
   }
+
+  const handleApplyVoucher = async () => {
+    const code = voucherInput.trim().toUpperCase();
+    if (!code) return;
+    setVoucherLoading(true);
+    setVoucherError("");
+    await new Promise((r) => setTimeout(r, 400));
+    const result = validateVoucher(code, subtotal);
+    setVoucherLoading(false);
+    if (result.ok) {
+      setAppliedVoucher({ code: result.voucher.code, discount: result.discount });
+      setVoucherError("");
+      toast({ title: "Voucher berhasil!", description: `Hemat ${formatPrice(result.discount)}` });
+    } else {
+      setVoucherError(result.message);
+    }
+  };
+
+  const handleRemoveVoucher = () => {
+    setAppliedVoucher(null);
+    setVoucherInput("");
+    setVoucherError("");
+  };
 
   const handleFormSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -67,6 +100,7 @@ export function CheckoutPage() {
 
   const placeOrder = () => {
     const orderNumber = `#TKO-${Math.floor(Math.random() * 100000).toString().padStart(5, "0")}`;
+    if (appliedVoucher) markVoucherUsed(appliedVoucher.code);
     addOrder({
       id: `${Date.now()}`,
       userId: user?.id ?? "guest",
@@ -84,6 +118,8 @@ export function CheckoutPage() {
         phone: phone.trim(),
       },
       paymentMethod: payMethod ?? "dana",
+      voucherCode: appliedVoucher?.code,
+      voucherDiscount: appliedVoucher?.discount,
     });
     addNotification({
       type: "order_placed",
@@ -232,6 +268,60 @@ export function CheckoutPage() {
                 )}
               </div>
 
+              {/* ── Voucher ─────────────────────────────────────────────── */}
+              <div className="bg-card border rounded-2xl p-5 space-y-3">
+                <div className="flex items-center gap-2">
+                  <Tag className="h-4 w-4 text-primary" />
+                  <h2 className="font-bold text-sm">Kode Voucher</h2>
+                  <span className="text-xs text-muted-foreground">(opsional)</span>
+                </div>
+
+                {appliedVoucher ? (
+                  /* Applied state */
+                  <div className="flex items-center gap-3 p-3 bg-green-50 border border-green-200 rounded-xl">
+                    <CheckCircle2 className="h-5 w-5 text-green-600 flex-shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-bold text-green-800 tracking-wider">{appliedVoucher.code}</p>
+                      <p className="text-xs text-green-700">Hemat {formatPrice(appliedVoucher.discount)}</p>
+                    </div>
+                    <button onClick={handleRemoveVoucher}
+                      className="p-1 text-green-600 hover:text-red-500 transition-colors rounded-lg hover:bg-red-50">
+                      <X className="h-4 w-4" />
+                    </button>
+                  </div>
+                ) : (
+                  /* Input state */
+                  <>
+                    <div className="flex gap-2">
+                      <input
+                        value={voucherInput}
+                        onChange={(e) => { setVoucherInput(e.target.value.toUpperCase()); setVoucherError(""); }}
+                        onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), handleApplyVoucher())}
+                        placeholder="Masukkan kode voucher"
+                        className="flex-1 px-3 py-2 text-sm border border-input rounded-xl bg-background focus:outline-none focus:ring-2 focus:ring-ring font-mono tracking-wider uppercase"
+                      />
+                      <Button type="button" onClick={handleApplyVoucher}
+                        disabled={!voucherInput.trim() || voucherLoading}
+                        variant="outline" className="px-4 border-primary text-primary hover:bg-primary/5 font-semibold text-sm flex-shrink-0">
+                        {voucherLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Pakai"}
+                      </Button>
+                    </div>
+                    {voucherError && (
+                      <p className="text-xs text-red-600 flex items-center gap-1">
+                        <X className="h-3 w-3" />{voucherError}
+                      </p>
+                    )}
+                    <p className="text-[11px] text-muted-foreground">
+                      Contoh: <button type="button" onClick={() => setVoucherInput("TOKO10")} className="font-mono text-primary hover:underline">TOKO10</button>
+                      {" · "}
+                      <button type="button" onClick={() => setVoucherInput("HEMAT50")} className="font-mono text-primary hover:underline">HEMAT50</button>
+                      {" · "}
+                      <button type="button" onClick={() => setVoucherInput("LIVE25")} className="font-mono text-primary hover:underline">LIVE25</button>
+                    </p>
+                  </>
+                )}
+              </div>
+
               <Button type="submit" className="w-full h-12 text-base font-semibold" disabled={pay.enabledMethods.length === 0}>
                 {pay.dummyMode ? "Lanjut ke Pembayaran" : "Bayar Sekarang"}
               </Button>
@@ -335,6 +425,14 @@ export function CheckoutPage() {
                 <span>Ongkos Kirim</span>
                 <span>{formatPrice(SHIPPING_FEE)}</span>
               </div>
+              {appliedVoucher && (
+                <div className="flex justify-between text-green-700 font-semibold">
+                  <span className="flex items-center gap-1">
+                    <Tag className="h-3.5 w-3.5" />{appliedVoucher.code}
+                  </span>
+                  <span>-{formatPrice(appliedVoucher.discount)}</span>
+                </div>
+              )}
             </div>
             <div className="border-t pt-3 flex justify-between items-center">
               <span className="font-bold">Total</span>

@@ -14,6 +14,8 @@ import { ProductsProvider } from "./contexts/ProductsContext";
 import { AISettingsProvider } from "./contexts/AISettingsContext";
 import { NotificationProvider } from "./contexts/NotificationContext";
 import { PaymentSettingsProvider } from "./contexts/PaymentSettingsContext";
+import { VoucherProvider } from "./contexts/VoucherContext";
+import { LiveProvider } from "./contexts/LiveContext";
 
 import { Navbar } from "./components/Navbar";
 import { LoginPage } from "./pages/LoginPage";
@@ -27,6 +29,7 @@ import { ProductDetailPage } from "./pages/ProductDetailPage";
 import { ProfilePage } from "./pages/ProfilePage";
 import { SellerPage } from "./pages/SellerPage";
 import { AdminPage } from "./pages/AdminPage";
+import { LivePage } from "./pages/LivePage";
 import NotFound from "@/pages/not-found";
 
 const queryClient = new QueryClient();
@@ -58,6 +61,18 @@ function RoleRoute({ component: Component, roles }: { component: React.Component
   );
 }
 
+function LiveRoute() {
+  const { isAuthenticated } = useAuth();
+  const [, setLocation] = useLocation();
+  useEffect(() => { if (!isAuthenticated) setLocation("/login"); }, [isAuthenticated, setLocation]);
+  if (!isAuthenticated) return null;
+  return (
+    <div className="flex flex-col min-h-screen bg-gray-950 text-foreground">
+      <main className="flex-1"><LivePage /></main>
+    </div>
+  );
+}
+
 const HomeRoute     = () => <ProtectedRoute component={HomePage} />;
 const CartRoute     = () => <ProtectedRoute component={CartPage} />;
 const CheckoutRoute = () => <ProtectedRoute component={CheckoutPage} />;
@@ -82,6 +97,7 @@ function Router() {
       <Route path="/seller"           component={SellerRoute} />
       <Route path="/admin"            component={AdminRoute} />
       <Route path="/checkout-success" component={SuccessRoute} />
+      <Route path="/live"             component={LiveRoute} />
       <Route component={NotFound} />
     </Switch>
   );
@@ -93,6 +109,8 @@ export default function App() {
       <TooltipProvider>
         <PaymentSettingsProvider>
         <AISettingsProvider>
+        <VoucherProvider>
+        <LiveProvider>
         <AuthProvider>
           <ProductsProvider>
             <CartProvider>
@@ -107,6 +125,8 @@ export default function App() {
             </CartProvider>
           </ProductsProvider>
         </AuthProvider>
+        </LiveProvider>
+        </VoucherProvider>
         </AISettingsProvider>
         </PaymentSettingsProvider>
       </TooltipProvider>

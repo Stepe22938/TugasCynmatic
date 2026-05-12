@@ -1,12 +1,14 @@
 /**
  * HomePage.tsx
- * Halaman utama: search, filter kategori, filter harga, dan sort produk.
+ * Halaman utama: live banner, search, filter kategori, filter harga, dan sort produk.
  */
 import React, { useState, useMemo } from "react";
-import { ShoppingBag, Star, Truck, Shield, Search, X, SlidersHorizontal, ChevronDown } from "lucide-react";
+import { Link } from "wouter";
+import { ShoppingBag, Star, Truck, Shield, Search, X, SlidersHorizontal, ChevronDown, Radio, Eye, Zap } from "lucide-react";
 import { ProductCard } from "../components/ProductCard";
 import { useAuth } from "../contexts/AuthContext";
 import { useProducts } from "../contexts/ProductsContext";
+import { useLive } from "../contexts/LiveContext";
 
 const PERKS = [
   { icon: Truck,  label: "Gratis Ongkir",  desc: "Untuk pembelian pertama" },
@@ -34,6 +36,7 @@ const PRICE_RANGES: { key: PriceRange; label: string; min: number; max: number }
 export function HomePage() {
   const { user } = useAuth();
   const { allStoreProducts } = useProducts();
+  const { session } = useLive();
 
   const [query,          setQuery]          = useState("");
   const [activeCategory, setCategory]       = useState("Semua");
@@ -61,7 +64,7 @@ export function HomePage() {
       case "price_asc":  result = [...result].sort((a, b) => a.price - b.price); break;
       case "price_desc": result = [...result].sort((a, b) => b.price - a.price); break;
       case "name_asc":   result = [...result].sort((a, b) => a.name.localeCompare(b.name, "id")); break;
-      default:           result = [...result].reverse(); break; // newest: reverse insertion order
+      default:           result = [...result].reverse(); break;
     }
 
     return result;
@@ -76,6 +79,36 @@ export function HomePage() {
 
   return (
     <div className="min-h-screen bg-background">
+
+      {/* ── Live Banner — shown when live is active ─────────────────────── */}
+      {session.isLive && (
+        <Link href="/live">
+          <div className="bg-gradient-to-r from-red-600 via-rose-600 to-orange-500 text-white px-4 py-3 cursor-pointer hover:from-red-700 hover:to-orange-600 transition-all">
+            <div className="container mx-auto flex items-center justify-between gap-4">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="flex items-center gap-1.5 bg-white/20 px-2.5 py-1 rounded-full flex-shrink-0">
+                  <span className="w-2 h-2 bg-white rounded-full animate-ping" />
+                  <span className="text-xs font-extrabold tracking-widest">LIVE</span>
+                </div>
+                <div className="min-w-0">
+                  <p className="font-bold text-sm truncate">{session.title}</p>
+                  <p className="text-[11px] text-white/80">oleh {session.hostName} · Klik untuk bergabung</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3 flex-shrink-0">
+                <div className="hidden sm:flex items-center gap-1.5 text-white/90 text-xs">
+                  <Eye className="h-3.5 w-3.5" />
+                  <span className="font-semibold font-mono">1.2rb+ penonton</span>
+                </div>
+                <div className="flex items-center gap-1.5 bg-white text-red-600 text-xs font-bold px-3 py-1.5 rounded-full">
+                  <Zap className="h-3 w-3" />Tonton Sekarang
+                </div>
+              </div>
+            </div>
+          </div>
+        </Link>
+      )}
+
       {/* Hero */}
       <section className="bg-gradient-to-br from-primary/10 via-background to-orange-50 border-b">
         <div className="container mx-auto px-4 py-12 flex flex-col md:flex-row items-center gap-8">
@@ -89,10 +122,22 @@ export function HomePage() {
             <p className="text-muted-foreground text-lg max-w-md mb-6">
               Koleksi pilihan berkualitas dengan harga terjangkau. Belanja mudah, cepat, dan aman.
             </p>
-            <a href="#products"
-              className="inline-flex items-center gap-2 bg-primary text-primary-foreground px-6 py-3 rounded-full font-semibold shadow-md hover:bg-primary/90 transition-colors">
-              <ShoppingBag className="h-4 w-4" />Lihat Produk
-            </a>
+            <div className="flex flex-wrap gap-3 justify-center md:justify-start">
+              <a href="#products"
+                className="inline-flex items-center gap-2 bg-primary text-primary-foreground px-6 py-3 rounded-full font-semibold shadow-md hover:bg-primary/90 transition-colors">
+                <ShoppingBag className="h-4 w-4" />Lihat Produk
+              </a>
+              <Link href="/live">
+                <button className={`inline-flex items-center gap-2 px-6 py-3 rounded-full font-semibold border-2 transition-colors ${
+                  session.isLive
+                    ? "bg-red-600 border-red-600 text-white hover:bg-red-700"
+                    : "border-primary/40 text-primary hover:bg-primary/5"
+                }`}>
+                  <Radio className="h-4 w-4" />
+                  {session.isLive ? "Tonton Live" : "Live Shopping"}
+                </button>
+              </Link>
+            </div>
           </div>
           <div className="flex-shrink-0 hidden md:block">
             <div className="w-48 h-48 bg-primary/10 rounded-full flex items-center justify-center">
