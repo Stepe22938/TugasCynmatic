@@ -1,12 +1,17 @@
 /**
  * SellerPage.tsx
  * Dashboard Seller — bisa diakses role seller MAUPUN admin.
- * Form produk dilengkapi opsi spesifikasi (toggle checkbox).
+ *
+ * Admin: melihat & mengelola "Produk Admin Toko" (dapat dihapus, efek ke website).
+ * Seller: melihat & mengelola produk yang disubmit.
  */
 import React, { useState } from "react";
-import { PlusCircle, Package, Clock, CheckCircle2, XCircle, Trash2, ChevronDown, ChevronUp, Store, Plus, X } from "lucide-react";
+import {
+  PlusCircle, Package, Clock, CheckCircle2, XCircle, Trash2,
+  ChevronDown, ChevronUp, Store, Plus, X, ShieldCheck,
+} from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
-import { useProducts, SellerProduct } from "../contexts/ProductsContext";
+import { useProducts, SellerProduct, AdminProduct } from "../contexts/ProductsContext";
 import { formatPrice } from "../utils/formatPrice";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
@@ -21,7 +26,17 @@ const STATUS_CONFIG: Record<SellerProduct["status"], { label: string; color: str
   rejected: { label: "Ditolak",         color: "bg-red-100 text-red-700",      icon: <XCircle className="h-3 w-3" /> },
 };
 
-function SellerProductCard({ product, onDelete }: { product: SellerProduct; onDelete: (id: number) => void }) {
+// ─── Seller product card ───────────────────────────────────────────────────────
+
+function SellerProductCard({
+  product,
+  onDelete,
+  canAlwaysDelete = false,
+}: {
+  product: SellerProduct;
+  onDelete: (id: number) => void;
+  canAlwaysDelete?: boolean;
+}) {
   const cfg = STATUS_CONFIG[product.status];
   return (
     <div className="flex gap-4 p-4 bg-card border rounded-2xl shadow-sm items-start">
@@ -43,7 +58,7 @@ function SellerProductCard({ product, onDelete }: { product: SellerProduct; onDe
           <p className="text-[10px] text-muted-foreground mt-1">{product.specs.length} spesifikasi ditambahkan</p>
         )}
       </div>
-      {product.status !== "approved" && (
+      {(canAlwaysDelete || product.status !== "approved") && (
         <Button variant="ghost" size="icon" className="h-8 w-8 text-red-500 hover:bg-red-50 flex-shrink-0"
           onClick={() => onDelete(product.id)} title="Hapus produk">
           <Trash2 className="h-4 w-4" />
@@ -53,17 +68,49 @@ function SellerProductCard({ product, onDelete }: { product: SellerProduct; onDe
   );
 }
 
+// ─── Admin product card ────────────────────────────────────────────────────────
+
+function AdminProductCard({ product, onDelete }: { product: AdminProduct; onDelete: (id: number) => void }) {
+  return (
+    <div className="flex gap-4 p-4 bg-card border rounded-2xl shadow-sm items-start">
+      <img src={product.image} alt={product.name}
+        className="w-16 h-16 rounded-xl object-cover flex-shrink-0 bg-muted"
+        onError={(e) => { (e.target as HTMLImageElement).src = "https://placehold.co/64x64?text=?"; }} />
+      <div className="flex-1 min-w-0">
+        <div className="flex items-start justify-between gap-2">
+          <div>
+            <h3 className="font-bold text-sm truncate">{product.name}</h3>
+            <p className="text-xs text-muted-foreground">{product.category} · {formatPrice(product.price)}</p>
+          </div>
+          <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full bg-blue-100 text-blue-700">
+            <ShieldCheck className="h-3 w-3" />Admin Toko
+          </span>
+        </div>
+        <p className="text-xs text-muted-foreground mt-1 line-clamp-1">{product.description}</p>
+        {product.specs.length > 0 && (
+          <p className="text-[10px] text-muted-foreground mt-1">{product.specs.length} spesifikasi</p>
+        )}
+      </div>
+      <Button variant="ghost" size="icon" className="h-8 w-8 text-red-500 hover:bg-red-50 flex-shrink-0"
+        onClick={() => onDelete(product.id)} title="Hapus produk dari toko">
+        <Trash2 className="h-4 w-4" />
+      </Button>
+    </div>
+  );
+}
+
+// ─── Form ─────────────────────────────────────────────────────────────────────
+
 interface FormState {
   name: string; category: string; price: string;
   description: string; longDescription: string; image: string;
 }
 const emptyForm: FormState = { name: "", category: CATEGORIES[0], price: "", description: "", longDescription: "", image: "" };
-
 interface SpecRow { label: string; value: string; }
 
-function AddProductForm({ onSuccess }: { onSuccess: () => void }) {
+function AddProductForm({ onSuccess, isAdmin }: { onSuccess: () => void; isAdmin?: boolean }) {
   const { user } = useAuth();
-  const { submitProduct } = useProducts();
+  const { submitProduct, addAdminProduct } = useProducts();
   const { toast } = useToast();
   const [form, setForm]       = useState<FormState>(emptyForm);
   const [loading, setLoading] = useState(false);
@@ -91,18 +138,26 @@ function AddProductForm({ onSuccess }: { onSuccess: () => void }) {
     if (!validate() || !user) return;
     setLoading(true);
     await new Promise((r) => setTimeout(r, 300));
-
     const finalSpecs = useSpecs ? specs.filter((s) => s.label.trim() && s.value.trim()) : [];
 
-    submitProduct({
-      sellerId: user.id, sellerName: user.name,
-      name: form.name.trim(), description: form.description.trim(),
-      longDescription: form.longDescription.trim(),
-      price: Number(form.price),
-      image: form.image.trim(), images: [form.image.trim()],
-      category: form.category, specs: finalSpecs,
-    });
-    toast({ title: "Produk dikirim!", description: "Menunggu persetujuan admin." });
+    if (isAdmin) {
+      addAdminProduct({
+        name: form.name.trim(), description: form.description.trim(),
+        longDescription: form.longDescription.trim(), price: Number(form.price),
+        image: form.image.trim(), images: [form.image.trim()],
+        category: form.category, specs: finalSpecs,
+      });
+      toast({ title: "Produk ditambahkan!", description: "Langsung tampil di toko." });
+    } else {
+      submitProduct({
+        sellerId: user.id, sellerName: user.name,
+        name: form.name.trim(), description: form.description.trim(),
+        longDescription: form.longDescription.trim(), price: Number(form.price),
+        image: form.image.trim(), images: [form.image.trim()],
+        category: form.category, specs: finalSpecs,
+      });
+      toast({ title: "Produk dikirim!", description: "Menunggu persetujuan admin." });
+    }
     setForm(emptyForm); setErrors({}); setSpecs([{ label: "", value: "" }]); setUseSpecs(false);
     setLoading(false); onSuccess();
   };
@@ -122,7 +177,7 @@ function AddProductForm({ onSuccess }: { onSuccess: () => void }) {
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       {field("name", "Nama Produk",
-        <Input id="name" placeholder="Nama produk kamu" value={form.name} onChange={set("name")} className="h-10" />, errors.name)}
+        <Input id="name" placeholder="Nama produk" value={form.name} onChange={set("name")} className="h-10" />, errors.name)}
 
       <div className="grid grid-cols-2 gap-4">
         {field("category", "Kategori",
@@ -152,7 +207,6 @@ function AddProductForm({ onSuccess }: { onSuccess: () => void }) {
         </div>
       )}
 
-      {/* Spesifikasi (opsional, toggle checkbox) */}
       <div className="border rounded-xl p-4 space-y-3">
         <label className="flex items-center gap-2 cursor-pointer select-none">
           <input type="checkbox" checked={useSpecs} onChange={(e) => setUseSpecs(e.target.checked)}
@@ -160,7 +214,6 @@ function AddProductForm({ onSuccess }: { onSuccess: () => void }) {
           <span className="text-sm font-semibold">Tambah Spesifikasi Produk</span>
           <span className="text-xs text-muted-foreground">(opsional)</span>
         </label>
-
         {useSpecs && (
           <div className="space-y-2">
             {specs.map((spec, i) => (
@@ -187,45 +240,67 @@ function AddProductForm({ onSuccess }: { onSuccess: () => void }) {
       <Button type="submit" className="w-full h-10 font-semibold" disabled={loading}>
         {loading
           ? <span className="flex items-center gap-2"><span className="h-4 w-4 rounded-full border-2 border-white border-t-transparent animate-spin" />Mengirim…</span>
-          : <span className="flex items-center gap-2"><PlusCircle className="h-4 w-4" />Kirim untuk Ditinjau</span>}
+          : isAdmin
+            ? <span className="flex items-center gap-2"><PlusCircle className="h-4 w-4" />Tambah ke Toko</span>
+            : <span className="flex items-center gap-2"><PlusCircle className="h-4 w-4" />Kirim untuk Ditinjau</span>}
       </Button>
     </form>
   );
 }
 
+// ─── Main page ────────────────────────────────────────────────────────────────
+
 export function SellerPage() {
   const { user } = useAuth();
-  const { sellerProducts, deleteProduct } = useProducts();
+  const { sellerProducts, adminProducts, deleteProduct, deleteAdminProduct } = useProducts();
   const { toast } = useToast();
   const [showForm, setShowForm] = useState(false);
 
   if (!user || (user.role !== "seller" && user.role !== "admin")) return null;
 
-  const myProducts = sellerProducts.filter((p) => p.sellerId === user.id);
-  const counts = {
-    pending:  myProducts.filter((p) => p.status === "pending").length,
-    approved: myProducts.filter((p) => p.status === "approved").length,
-    rejected: myProducts.filter((p) => p.status === "rejected").length,
-  };
+  const isAdmin = user.role === "admin";
+
+  // For sellers: only their own submitted products
+  // For admin: their submitted products + admin store products
+  const mySellerProducts = sellerProducts.filter((p) => p.sellerId === user.id);
+
+  const counts = isAdmin
+    ? {
+        pending:  mySellerProducts.filter((p) => p.status === "pending").length,
+        approved: mySellerProducts.filter((p) => p.status === "approved").length + adminProducts.length,
+        rejected: mySellerProducts.filter((p) => p.status === "rejected").length,
+      }
+    : {
+        pending:  mySellerProducts.filter((p) => p.status === "pending").length,
+        approved: mySellerProducts.filter((p) => p.status === "approved").length,
+        rejected: mySellerProducts.filter((p) => p.status === "rejected").length,
+      };
 
   const handleDelete = (id: number) => { deleteProduct(id); toast({ title: "Produk dihapus." }); };
+  const handleDeleteAdmin = (id: number) => {
+    deleteAdminProduct(id);
+    toast({ title: "Produk Admin Toko dihapus.", description: "Produk tidak akan muncul lagi di toko." });
+  };
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-3xl">
       <div className="flex items-center gap-3 mb-6">
         <div className="w-12 h-12 bg-primary/10 rounded-2xl flex items-center justify-center">
-          <Store className="h-6 w-6 text-primary" />
+          {isAdmin ? <ShieldCheck className="h-6 w-6 text-primary" /> : <Store className="h-6 w-6 text-primary" />}
         </div>
         <div>
-          <h1 className="text-2xl font-extrabold">Dashboard Seller</h1>
-          <p className="text-sm text-muted-foreground">Kelola produk yang kamu jual</p>
+          <h1 className="text-2xl font-extrabold">{isAdmin ? "Kelola Produk Admin Toko" : "Dashboard Seller"}</h1>
+          <p className="text-sm text-muted-foreground">
+            {isAdmin ? "Tambah, lihat, dan hapus produk dari toko" : "Kelola produk yang kamu jual"}
+          </p>
         </div>
       </div>
 
+      {/* Stats */}
       <div className="grid grid-cols-3 gap-3 mb-6">
         {[
-          { label: "Menunggu",  count: counts.pending,  color: "text-amber-600", bg: "bg-amber-50 border-amber-200" },
-          { label: "Disetujui", count: counts.approved, color: "text-green-600", bg: "bg-green-50 border-green-200" },
+          { label: isAdmin ? "Menunggu" : "Menunggu",  count: counts.pending,  color: "text-amber-600", bg: "bg-amber-50 border-amber-200" },
+          { label: isAdmin ? "Live di Toko" : "Disetujui", count: counts.approved, color: "text-green-600", bg: "bg-green-50 border-green-200" },
           { label: "Ditolak",   count: counts.rejected, color: "text-red-600",   bg: "bg-red-50 border-red-200" },
         ].map(({ label, count, color, bg }) => (
           <div key={label} className={`rounded-2xl border p-4 text-center ${bg}`}>
@@ -235,6 +310,7 @@ export function SellerPage() {
         ))}
       </div>
 
+      {/* Add product form */}
       <div className="bg-card border rounded-2xl overflow-hidden mb-6 shadow-sm">
         <button className="w-full flex items-center justify-between px-5 py-4 hover:bg-muted/30 transition-colors"
           onClick={() => setShowForm((v) => !v)}>
@@ -246,16 +322,50 @@ export function SellerPage() {
         {showForm && (
           <div className="px-5 pb-6 border-t">
             <p className="text-xs text-muted-foreground mt-4 mb-4">
-              Produk yang kamu kirim akan menunggu persetujuan admin sebelum tampil di toko.
+              {isAdmin
+                ? "Produk langsung tampil di toko tanpa perlu persetujuan."
+                : "Produk yang kamu kirim akan menunggu persetujuan admin sebelum tampil di toko."}
             </p>
-            <AddProductForm onSuccess={() => setShowForm(false)} />
+            <AddProductForm onSuccess={() => setShowForm(false)} isAdmin={isAdmin} />
           </div>
         )}
       </div>
 
+      {/* ── Admin Toko Products ────────────────────────────────────── */}
+      {isAdmin && (
+        <div className="mb-6">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-base font-bold">
+              Produk Admin Toko
+              <span className="ml-2 text-sm font-normal text-muted-foreground">({adminProducts.length} produk)</span>
+            </h2>
+            <span className="text-xs text-muted-foreground bg-blue-50 border border-blue-200 px-2.5 py-1 rounded-full text-blue-700 font-semibold">
+              Live di toko
+            </span>
+          </div>
+          {adminProducts.length === 0 ? (
+            <div className="text-center py-10 bg-muted/30 rounded-2xl border border-dashed">
+              <Package className="h-10 w-10 text-muted-foreground/40 mx-auto mb-3" />
+              <p className="font-semibold text-muted-foreground">Semua produk admin telah dihapus</p>
+              <p className="text-xs text-muted-foreground mt-1">Tambah produk baru menggunakan form di atas.</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {adminProducts.map((p) => (
+                <AdminProductCard key={p.id} product={p} onDelete={handleDeleteAdmin} />
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ── Seller / Admin submitted products ────────────────────── */}
       <div>
-        <h2 className="text-base font-bold mb-3">Produk Saya ({myProducts.length})</h2>
-        {myProducts.length === 0 ? (
+        <h2 className="text-base font-bold mb-3">
+          {isAdmin ? "Produk yang Disubmit Admin" : "Produk Saya"}
+          <span className="ml-2 text-sm font-normal text-muted-foreground">({mySellerProducts.length})</span>
+        </h2>
+        {mySellerProducts.length === 0 ? (
           <div className="text-center py-12 bg-muted/30 rounded-2xl border border-dashed">
             <Package className="h-10 w-10 text-muted-foreground/40 mx-auto mb-3" />
             <p className="font-semibold text-muted-foreground">Belum ada produk</p>
@@ -263,7 +373,9 @@ export function SellerPage() {
           </div>
         ) : (
           <div className="space-y-3">
-            {myProducts.map((p) => <SellerProductCard key={p.id} product={p} onDelete={handleDelete} />)}
+            {mySellerProducts.map((p) => (
+              <SellerProductCard key={p.id} product={p} onDelete={handleDelete} canAlwaysDelete={isAdmin} />
+            ))}
           </div>
         )}
       </div>

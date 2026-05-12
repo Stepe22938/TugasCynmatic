@@ -1,9 +1,9 @@
 /**
  * HomePage.tsx
- * Halaman utama dengan search engine + filter kategori.
+ * Halaman utama: search, filter kategori, filter harga, dan sort produk.
  */
 import React, { useState, useMemo } from "react";
-import { ShoppingBag, Star, Truck, Shield, Search, X } from "lucide-react";
+import { ShoppingBag, Star, Truck, Shield, Search, X, SlidersHorizontal, ChevronDown } from "lucide-react";
 import { ProductCard } from "../components/ProductCard";
 import { useAuth } from "../contexts/AuthContext";
 import { useProducts } from "../contexts/ProductsContext";
@@ -14,30 +14,65 @@ const PERKS = [
   { icon: Star,   label: "Produk Terpilih", desc: "Kualitas terjamin" },
 ];
 
+type SortKey = "newest" | "price_asc" | "price_desc" | "name_asc";
+const SORT_OPTIONS: { key: SortKey; label: string }[] = [
+  { key: "newest",     label: "Terbaru" },
+  { key: "price_asc",  label: "Harga Terendah" },
+  { key: "price_desc", label: "Harga Tertinggi" },
+  { key: "name_asc",   label: "Nama A–Z" },
+];
+
+type PriceRange = "all" | "u100" | "100to300" | "300to500" | "o500";
+const PRICE_RANGES: { key: PriceRange; label: string; min: number; max: number }[] = [
+  { key: "all",      label: "Semua Harga", min: 0,      max: Infinity },
+  { key: "u100",     label: "< 100rb",     min: 0,      max: 100000 },
+  { key: "100to300", label: "100–300rb",   min: 100000, max: 300000 },
+  { key: "300to500", label: "300–500rb",   min: 300000, max: 500000 },
+  { key: "o500",     label: "> 500rb",     min: 500000, max: Infinity },
+];
+
 export function HomePage() {
   const { user } = useAuth();
   const { allStoreProducts } = useProducts();
 
-  const [query, setQuery]       = useState("");
-  const [activeCategory, setCategory] = useState("Semua");
+  const [query,          setQuery]          = useState("");
+  const [activeCategory, setCategory]       = useState("Semua");
+  const [priceRange,     setPriceRange]     = useState<PriceRange>("all");
+  const [sort,           setSort]           = useState<SortKey>("newest");
+  const [showFilters,    setShowFilters]    = useState(false);
 
-  // Kumpulkan kategori unik dari semua produk
   const categories = useMemo(() => {
     const cats = ["Semua", ...Array.from(new Set(allStoreProducts.map((p) => p.category)))];
     return cats;
   }, [allStoreProducts]);
 
-  // Filter produk berdasarkan query dan kategori
   const filtered = useMemo(() => {
     const q = query.toLowerCase().trim();
-    return allStoreProducts.filter((p) => {
-      const matchCat = activeCategory === "Semua" || p.category === activeCategory;
-      const matchQ   = !q || p.name.toLowerCase().includes(q) || p.description.toLowerCase().includes(q) || p.category.toLowerCase().includes(q);
-      return matchCat && matchQ;
+    const pr = PRICE_RANGES.find((r) => r.key === priceRange)!;
+
+    let result = allStoreProducts.filter((p) => {
+      const matchCat   = activeCategory === "Semua" || p.category === activeCategory;
+      const matchQ     = !q || p.name.toLowerCase().includes(q) || p.description.toLowerCase().includes(q) || p.category.toLowerCase().includes(q);
+      const matchPrice = p.price >= pr.min && p.price < pr.max;
+      return matchCat && matchQ && matchPrice;
     });
-  }, [allStoreProducts, query, activeCategory]);
+
+    switch (sort) {
+      case "price_asc":  result = [...result].sort((a, b) => a.price - b.price); break;
+      case "price_desc": result = [...result].sort((a, b) => b.price - a.price); break;
+      case "name_asc":   result = [...result].sort((a, b) => a.name.localeCompare(b.name, "id")); break;
+      default:           result = [...result].reverse(); break; // newest: reverse insertion order
+    }
+
+    return result;
+  }, [allStoreProducts, query, activeCategory, priceRange, sort]);
 
   const firstName = user?.name?.split(" ")[0] ?? null;
+  const isFiltering = query || activeCategory !== "Semua" || priceRange !== "all" || sort !== "newest";
+
+  const clearAll = () => {
+    setQuery(""); setCategory("Semua"); setPriceRange("all"); setSort("newest");
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -81,50 +116,149 @@ export function HomePage() {
         </div>
       </section>
 
-      {/* Produk + Search */}
+      {/* Produk + Filter */}
       <section id="products" className="container mx-auto px-4 py-10">
-        {/* Search bar */}
-        <div className="relative mb-5 max-w-xl">
-          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
-          <input
-            type="text"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Cari produk, kategori…"
-            data-testid="input-search"
-            className="w-full h-11 pl-10 pr-10 border border-input rounded-xl bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 transition"
-          />
-          {query && (
-            <button onClick={() => setQuery("")}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
-              <X className="h-4 w-4" />
-            </button>
-          )}
+
+        {/* ── Search + Filter toggle row ─────────────────────────────── */}
+        <div className="flex gap-3 mb-4">
+          <div className="relative flex-1 max-w-xl">
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+            <input
+              type="text"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Cari produk, kategori…"
+              data-testid="input-search"
+              className="w-full h-11 pl-10 pr-10 border border-input rounded-xl bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 transition"
+            />
+            {query && (
+              <button onClick={() => setQuery("")}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+                <X className="h-4 w-4" />
+              </button>
+            )}
+          </div>
+
+          {/* Filter toggle button */}
+          <button
+            onClick={() => setShowFilters((v) => !v)}
+            className={`flex items-center gap-2 h-11 px-4 rounded-xl border text-sm font-semibold transition-all ${
+              showFilters || priceRange !== "all"
+                ? "bg-primary text-primary-foreground border-primary"
+                : "bg-background border-input text-muted-foreground hover:border-primary/50"
+            }`}>
+            <SlidersHorizontal className="h-4 w-4" />
+            <span className="hidden sm:inline">Filter</span>
+            {priceRange !== "all" && (
+              <span className="w-5 h-5 rounded-full bg-white/30 text-[10px] font-bold flex items-center justify-center">1</span>
+            )}
+          </button>
+
+          {/* Sort dropdown */}
+          <div className="relative">
+            <select
+              value={sort}
+              onChange={(e) => setSort(e.target.value as SortKey)}
+              className="h-11 pl-4 pr-8 rounded-xl border border-input bg-background text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-primary/50 appearance-none cursor-pointer text-foreground"
+            >
+              {SORT_OPTIONS.map((s) => <option key={s.key} value={s.key}>{s.label}</option>)}
+            </select>
+            <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+          </div>
         </div>
 
-        {/* Filter kategori */}
-        <div className="flex gap-2 flex-wrap mb-6">
-          {categories.map((cat) => (
-            <button key={cat} onClick={() => setCategory(cat)}
-              className={`px-3.5 py-1.5 rounded-full text-xs font-semibold border transition-all ${
-                activeCategory === cat
-                  ? "bg-primary text-primary-foreground border-primary"
-                  : "bg-background text-muted-foreground border-border hover:border-primary/50"
-              }`}>
-              {cat}
-            </button>
-          ))}
-        </div>
+        {/* ── Expanded filter panel ──────────────────────────────────── */}
+        {showFilters && (
+          <div className="bg-card border rounded-2xl p-4 mb-4 space-y-4 shadow-sm">
+            {/* Kategori */}
+            <div>
+              <p className="text-xs font-bold text-muted-foreground uppercase tracking-wide mb-2">Kategori</p>
+              <div className="flex gap-2 flex-wrap">
+                {categories.map((cat) => (
+                  <button key={cat} onClick={() => setCategory(cat)}
+                    className={`px-3.5 py-1.5 rounded-full text-xs font-semibold border transition-all ${
+                      activeCategory === cat
+                        ? "bg-primary text-primary-foreground border-primary"
+                        : "bg-background text-muted-foreground border-border hover:border-primary/50"
+                    }`}>
+                    {cat}
+                  </button>
+                ))}
+              </div>
+            </div>
 
-        {/* Header jumlah produk */}
+            {/* Range Harga */}
+            <div>
+              <p className="text-xs font-bold text-muted-foreground uppercase tracking-wide mb-2">Rentang Harga</p>
+              <div className="flex gap-2 flex-wrap">
+                {PRICE_RANGES.map((pr) => (
+                  <button key={pr.key} onClick={() => setPriceRange(pr.key)}
+                    className={`px-3.5 py-1.5 rounded-full text-xs font-semibold border transition-all ${
+                      priceRange === pr.key
+                        ? "bg-primary text-primary-foreground border-primary"
+                        : "bg-background text-muted-foreground border-border hover:border-primary/50"
+                    }`}>
+                    {pr.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ── Category pills (always visible when filter panel is closed) */}
+        {!showFilters && (
+          <div className="flex gap-2 flex-wrap mb-4">
+            {categories.map((cat) => (
+              <button key={cat} onClick={() => setCategory(cat)}
+                className={`px-3.5 py-1.5 rounded-full text-xs font-semibold border transition-all ${
+                  activeCategory === cat
+                    ? "bg-primary text-primary-foreground border-primary"
+                    : "bg-background text-muted-foreground border-border hover:border-primary/50"
+                }`}>
+                {cat}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {/* ── Active filter chips ────────────────────────────────────── */}
+        {isFiltering && (
+          <div className="flex items-center gap-2 flex-wrap mb-4">
+            <span className="text-xs text-muted-foreground font-medium">Filter aktif:</span>
+            {activeCategory !== "Semua" && (
+              <span className="inline-flex items-center gap-1 bg-primary/10 text-primary text-xs font-semibold px-2.5 py-1 rounded-full">
+                {activeCategory}
+                <button onClick={() => setCategory("Semua")} className="ml-0.5 hover:text-primary/70"><X className="h-3 w-3" /></button>
+              </span>
+            )}
+            {priceRange !== "all" && (
+              <span className="inline-flex items-center gap-1 bg-primary/10 text-primary text-xs font-semibold px-2.5 py-1 rounded-full">
+                {PRICE_RANGES.find((r) => r.key === priceRange)?.label}
+                <button onClick={() => setPriceRange("all")} className="ml-0.5 hover:text-primary/70"><X className="h-3 w-3" /></button>
+              </span>
+            )}
+            {query && (
+              <span className="inline-flex items-center gap-1 bg-primary/10 text-primary text-xs font-semibold px-2.5 py-1 rounded-full">
+                "{query}"
+                <button onClick={() => setQuery("")} className="ml-0.5 hover:text-primary/70"><X className="h-3 w-3" /></button>
+              </span>
+            )}
+            <button onClick={clearAll} className="text-xs text-muted-foreground hover:text-foreground underline underline-offset-2 ml-1">
+              Reset semua
+            </button>
+          </div>
+        )}
+
+        {/* ── Header ─────────────────────────────────────────────────── */}
         <div className="flex items-center justify-between mb-6">
           <div>
             <h2 className="text-2xl font-bold text-foreground">Koleksi Terbaru</h2>
             <p className="text-muted-foreground text-sm mt-1">
-              {filtered.length} produk{query || activeCategory !== "Semua" ? ` ditemukan` : " tersedia"}
+              {filtered.length} produk{isFiltering ? " ditemukan" : " tersedia"}
             </p>
           </div>
-          {!query && activeCategory === "Semua" && (
+          {!isFiltering && (
             <span className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 bg-primary/10 text-primary text-xs font-semibold rounded-full">
               <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
               Produk Terpilih
@@ -132,12 +266,15 @@ export function HomePage() {
           )}
         </div>
 
-        {/* Grid produk */}
+        {/* ── Grid produk ────────────────────────────────────────────── */}
         {filtered.length === 0 ? (
           <div className="text-center py-20 text-muted-foreground">
             <Search className="h-10 w-10 mx-auto mb-3 opacity-30" />
             <p className="font-semibold">Produk tidak ditemukan</p>
-            <p className="text-sm mt-1">Coba kata kunci lain atau ubah filter kategori.</p>
+            <p className="text-sm mt-1">Coba kata kunci lain atau ubah filter.</p>
+            <button onClick={clearAll} className="mt-4 text-sm text-primary underline underline-offset-2">
+              Reset semua filter
+            </button>
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5" data-testid="product-grid">
