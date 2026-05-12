@@ -12,12 +12,15 @@ import { CartProvider } from "./contexts/CartContext";
 import { OrderHistoryProvider } from "./contexts/OrderHistoryContext";
 import { ProductsProvider } from "./contexts/ProductsContext";
 import { AISettingsProvider } from "./contexts/AISettingsContext";
+import { NotificationProvider } from "./contexts/NotificationContext";
+import { PaymentSettingsProvider } from "./contexts/PaymentSettingsContext";
 
 import { Navbar } from "./components/Navbar";
 import { LoginPage } from "./pages/LoginPage";
 import { RegisterPage } from "./pages/RegisterPage";
 import { HomePage } from "./pages/HomePage";
 import { CartPage } from "./pages/CartPage";
+import { CheckoutPage } from "./pages/CheckoutPage";
 import { OrderHistoryPage } from "./pages/OrderHistoryPage";
 import { CheckoutSuccessPage } from "./pages/CheckoutSuccessPage";
 import { ProductDetailPage } from "./pages/ProductDetailPage";
@@ -40,7 +43,6 @@ function ProtectedRoute({ component: Component }: { component: React.ComponentTy
   );
 }
 
-/** Route yang memerlukan salah satu dari beberapa role yang diizinkan */
 function RoleRoute({ component: Component, roles }: { component: React.ComponentType; roles: string[] }) {
   const { user, isAuthenticated } = useAuth();
   const [, setLocation] = useLocation();
@@ -56,15 +58,15 @@ function RoleRoute({ component: Component, roles }: { component: React.Component
   );
 }
 
-const HomeRoute    = () => <ProtectedRoute component={HomePage} />;
-const CartRoute    = () => <ProtectedRoute component={CartPage} />;
-const OrdersRoute  = () => <ProtectedRoute component={OrderHistoryPage} />;
-const SuccessRoute = () => <ProtectedRoute component={CheckoutSuccessPage} />;
-const ProductRoute = () => <ProtectedRoute component={ProductDetailPage} />;
-const ProfileRoute = () => <ProtectedRoute component={ProfilePage} />;
-// Seller page: seller DAN admin boleh masuk
-const SellerRoute  = () => <RoleRoute component={SellerPage}  roles={["seller", "admin"]} />;
-const AdminRoute   = () => <RoleRoute component={AdminPage}   roles={["admin"]} />;
+const HomeRoute     = () => <ProtectedRoute component={HomePage} />;
+const CartRoute     = () => <ProtectedRoute component={CartPage} />;
+const CheckoutRoute = () => <ProtectedRoute component={CheckoutPage} />;
+const OrdersRoute   = () => <ProtectedRoute component={OrderHistoryPage} />;
+const SuccessRoute  = () => <ProtectedRoute component={CheckoutSuccessPage} />;
+const ProductRoute  = () => <ProtectedRoute component={ProductDetailPage} />;
+const ProfileRoute  = () => <ProtectedRoute component={ProfilePage} />;
+const SellerRoute   = () => <RoleRoute component={SellerPage}  roles={["seller", "admin"]} />;
+const AdminRoute    = () => <RoleRoute component={AdminPage}   roles={["admin"]} />;
 
 function Router() {
   return (
@@ -73,6 +75,7 @@ function Router() {
       <Route path="/register"         component={RegisterPage} />
       <Route path="/"                 component={HomeRoute} />
       <Route path="/cart"             component={CartRoute} />
+      <Route path="/checkout"         component={CheckoutRoute} />
       <Route path="/orders"           component={OrdersRoute} />
       <Route path="/product/:id"      component={ProductRoute} />
       <Route path="/profile"          component={ProfileRoute} />
@@ -88,20 +91,24 @@ export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
+        <PaymentSettingsProvider>
         <AISettingsProvider>
         <AuthProvider>
           <ProductsProvider>
             <CartProvider>
               <OrderHistoryProvider>
-                <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
-                  <Router />
-                </WouterRouter>
-                <Toaster />
+                <NotificationProvider>
+                  <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
+                    <Router />
+                  </WouterRouter>
+                  <Toaster />
+                </NotificationProvider>
               </OrderHistoryProvider>
             </CartProvider>
           </ProductsProvider>
         </AuthProvider>
         </AISettingsProvider>
+        </PaymentSettingsProvider>
       </TooltipProvider>
     </QueryClientProvider>
   );

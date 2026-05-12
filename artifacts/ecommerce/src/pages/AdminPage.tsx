@@ -6,10 +6,12 @@ import React, { useState } from "react";
 import {
   ShieldCheck, Package, Users, CheckCircle2, XCircle, Trash2, Clock,
   ChevronDown, ToggleLeft, ToggleRight, Bot, Eye, EyeOff, KeyRound,
+  CreditCard, Smartphone, QrCode,
 } from "lucide-react";
 import { useAuth, User, UserRole } from "../contexts/AuthContext";
 import { useProducts, SellerProduct } from "../contexts/ProductsContext";
 import { useAISettings, AIProvider } from "../contexts/AISettingsContext";
+import { usePaymentSettings } from "../contexts/PaymentSettingsContext";
 import { formatPrice } from "../utils/formatPrice";
 import { Button } from "../components/ui/button";
 import { useToast } from "../hooks/use-toast";
@@ -180,6 +182,7 @@ export function AdminPage() {
   const { user, getAllUsers, updateUserRole } = useAuth();
   const { sellerProducts, autoApprove, setAutoApprove, approveProduct, rejectProduct, deleteProduct } = useProducts();
   const ai = useAISettings();
+  const pay = usePaymentSettings();
   const { toast } = useToast();
   const [tab, setTab]     = useState<Tab>("products");
   const [filter, setFilter] = useState<SellerProduct["status"] | "all">("all");
@@ -291,6 +294,93 @@ export function AdminPage() {
             </div>
             <div className={`mt-3 text-xs font-semibold px-3 py-1.5 rounded-lg inline-block ${autoApprove ? "bg-green-100 text-green-700" : "bg-muted text-muted-foreground"}`}>
               {autoApprove ? "Aktif — produk langsung masuk toko" : "Nonaktif — produk perlu disetujui manual"}
+            </div>
+          </div>
+
+          {/* Payment Gateway Settings */}
+          <div className="bg-card border rounded-2xl p-5 shadow-sm space-y-4">
+            <div className="flex items-center gap-2">
+              <CreditCard className="h-5 w-5 text-primary" />
+              <h3 className="font-bold">Pengaturan Payment Gateway</h3>
+            </div>
+            <p className="text-xs text-muted-foreground -mt-1">
+              Aktifkan atau nonaktifkan metode pembayaran yang tersedia di halaman checkout.
+            </p>
+
+            {/* DANA toggle */}
+            <div className="border rounded-xl p-4 space-y-2">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 bg-blue-500 rounded-xl flex items-center justify-center flex-shrink-0">
+                    <Smartphone className="h-4 w-4 text-white" />
+                  </div>
+                  <div>
+                    <p className="font-bold text-sm">DANA</p>
+                    <p className="text-xs text-muted-foreground">Dompet digital DANA</p>
+                  </div>
+                </div>
+                <button onClick={() => { pay.update({ danaEnabled: !pay.danaEnabled }); toast({ title: `DANA ${!pay.danaEnabled ? "diaktifkan" : "dinonaktifkan"}.` }); }}>
+                  {pay.danaEnabled
+                    ? <ToggleRight className="h-9 w-9 text-blue-500" />
+                    : <ToggleLeft  className="h-9 w-9 text-muted-foreground" />}
+                </button>
+              </div>
+              {pay.danaEnabled && (
+                <div className="space-y-1 pt-1">
+                  <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Nomor DANA (untuk mode demo)</label>
+                  <input
+                    value={pay.danaNumber}
+                    onChange={(e) => pay.update({ danaNumber: e.target.value })}
+                    placeholder="0812-xxxx-xxxx"
+                    className="w-full px-3 py-2 text-sm border border-input rounded-xl bg-background focus:outline-none focus:ring-2 focus:ring-ring font-mono"
+                  />
+                </div>
+              )}
+            </div>
+
+            {/* QRIS toggle */}
+            <div className="border rounded-xl p-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 bg-orange-500 rounded-xl flex items-center justify-center flex-shrink-0">
+                    <QrCode className="h-4 w-4 text-white" />
+                  </div>
+                  <div>
+                    <p className="font-bold text-sm">QRIS</p>
+                    <p className="text-xs text-muted-foreground">Scan QR dari semua e-wallet</p>
+                  </div>
+                </div>
+                <button onClick={() => { pay.update({ qrisEnabled: !pay.qrisEnabled }); toast({ title: `QRIS ${!pay.qrisEnabled ? "diaktifkan" : "dinonaktifkan"}.` }); }}>
+                  {pay.qrisEnabled
+                    ? <ToggleRight className="h-9 w-9 text-orange-500" />
+                    : <ToggleLeft  className="h-9 w-9 text-muted-foreground" />}
+                </button>
+              </div>
+            </div>
+
+            {/* Dummy Mode toggle */}
+            <div className="border rounded-xl p-4 bg-amber-50/50">
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <p className="font-bold text-sm">Mode Demo (Dummy Payment)</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Jika aktif, checkout menampilkan simulasi pembayaran tanpa transaksi nyata.
+                  </p>
+                </div>
+                <button onClick={() => { pay.update({ dummyMode: !pay.dummyMode }); toast({ title: `Mode demo ${!pay.dummyMode ? "diaktifkan" : "dinonaktifkan"}.` }); }}>
+                  {pay.dummyMode
+                    ? <ToggleRight className="h-9 w-9 text-amber-500" />
+                    : <ToggleLeft  className="h-9 w-9 text-muted-foreground" />}
+                </button>
+              </div>
+              <div className={`mt-2 text-xs font-semibold px-3 py-1.5 rounded-lg inline-block ${pay.dummyMode ? "bg-amber-100 text-amber-700" : "bg-muted text-muted-foreground"}`}>
+                {pay.dummyMode ? "⚠ Mode Demo aktif — tidak ada pembayaran nyata" : "Mode Produksi — gunakan gateway sungguhan"}
+              </div>
+            </div>
+
+            {/* Status summary */}
+            <div className="text-xs text-muted-foreground bg-muted/30 rounded-xl px-3 py-2">
+              Metode aktif: {[pay.danaEnabled && "DANA", pay.qrisEnabled && "QRIS"].filter(Boolean).join(", ") || "—"}
             </div>
           </div>
 

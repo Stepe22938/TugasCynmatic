@@ -3,7 +3,7 @@
  * Riwayat pesanan per-user + global reviews store.
  *
  * Pesanan disimpan per-user: `toko_orders_<userId>`
- * Reviews semua user disimpan global: `toko_all_reviews` (untuk tampilan publik di halaman produk)
+ * Reviews semua user disimpan global: `toko_all_reviews`
  */
 import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { CartItem } from "./CartContext";
@@ -20,7 +20,6 @@ export interface MediaFile {
 export interface Review {
   productId: number;
   orderId: string;
-  /** Nama user yang menulis review */
   userName: string;
   rating: number;
   status: "sesuai" | "tidak_sesuai";
@@ -29,9 +28,15 @@ export interface Review {
   createdAt: string;
 }
 
+export interface ShippingInfo {
+  firstName: string;
+  lastName: string;
+  address: string;
+  phone?: string;
+}
+
 export interface PurchasedOrder {
   id: string;
-  /** ID user pemilik pesanan — untuk isolasi riwayat per akun */
   userId: string;
   orderNumber: string;
   date: string;
@@ -40,6 +45,8 @@ export interface PurchasedOrder {
   shippingFee: number;
   grandTotal: number;
   reviews: Record<number, Review>;
+  shippingInfo?: ShippingInfo;
+  paymentMethod?: "dana" | "qris";
 }
 
 interface OrderHistoryState { orders: PurchasedOrder[]; }
@@ -49,7 +56,6 @@ interface OrderHistoryContextType {
   addOrder: (order: PurchasedOrder) => void;
   addReview: (orderId: string, review: Review) => void;
   getOrder: (orderId: string) => PurchasedOrder | undefined;
-  /** Semua review untuk produk tertentu dari semua user */
   getProductReviews: (productId: number) => Review[];
 }
 
@@ -75,10 +81,8 @@ function saveAllReviews(reviews: Review[]) {
   localStorage.setItem(ALL_REVIEWS_KEY, JSON.stringify(reviews));
 }
 
-/** Perbarui (atau tambah) satu review di global store */
 function upsertGlobalReview(review: Review) {
   const all = loadAllReviews();
-  // hapus versi lama (orderId + productId sama), tambah yang baru
   const filtered = all.filter((r) => !(r.orderId === review.orderId && r.productId === review.productId));
   saveAllReviews([...filtered, review]);
 }
@@ -92,12 +96,10 @@ export function OrderHistoryProvider({ children }: { children: ReactNode }) {
 
   const [orders, setOrders] = useState<PurchasedOrder[]>(() => loadOrders(user?.id));
 
-  // Reload ketika user ganti (login/logout)
   useEffect(() => {
     setOrders(loadOrders(user?.id));
   }, [user?.id]);
 
-  // Persist pesanan user ke storage
   useEffect(() => {
     localStorage.setItem(storageKey(user?.id), JSON.stringify(orders));
   }, [orders, user?.id]);
@@ -106,7 +108,6 @@ export function OrderHistoryProvider({ children }: { children: ReactNode }) {
     setOrders((prev) => [order, ...prev]);
 
   const addReview = (orderId: string, review: Review) => {
-    // Update di riwayat pesanan user
     setOrders((prev) =>
       prev.map((o) =>
         o.id === orderId
@@ -114,7 +115,6 @@ export function OrderHistoryProvider({ children }: { children: ReactNode }) {
           : o
       )
     );
-    // Simpan juga ke global reviews store (semua user)
     upsertGlobalReview(review);
   };
 
@@ -125,10 +125,8 @@ export function OrderHistoryProvider({ children }: { children: ReactNode }) {
       .filter((r) => r.productId === productId)
       .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
-  const state: OrderHistoryState = { orders };
-
   return (
-    <OrderHistoryContext.Provider value={{ state, addOrder, addReview, getOrder, getProductReviews }}>
+    <OrderHistoryContext.Provider value={{ state: { orders }, addOrder, addReview, getOrder, getProductReviews }}>
       {children}
     </OrderHistoryContext.Provider>
   );
@@ -136,6 +134,6 @@ export function OrderHistoryProvider({ children }: { children: ReactNode }) {
 
 export function useOrderHistory() {
   const ctx = useContext(OrderHistoryContext);
-  if (!ctx) throw new Error("useOrderHistory must be used within OrderHistoryProvider");
+  if (!ctx) throw new Error("useOrderHistory must be within OrderHistoryProvider");
   return ctx;
 }

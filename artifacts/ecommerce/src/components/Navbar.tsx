@@ -1,28 +1,66 @@
 /**
  * Navbar.tsx
- * Navigasi utama — link yang muncul disesuaikan dengan role user.
+ * Navigasi utama + notification bell.
  *
- * user   → Beranda · Pesanan · Keranjang · Avatar (Profil)
+ * user   → Beranda · Pesanan · Keranjang · Notifikasi · Avatar
  * seller → + Dashboard Seller
- * admin  → + Panel Admin (menggantikan Seller)
+ * admin  → + Panel Admin
  */
-import React from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { Link, useLocation } from "wouter";
-import { ShoppingCart, Package, ClipboardList, ShieldCheck, Store } from "lucide-react";
+import { ShoppingCart, Package, ClipboardList, ShieldCheck, Store, Bell, CheckCheck, Trash2 } from "lucide-react";
 import { useCart } from "../contexts/CartContext";
 import { useAuth } from "../contexts/AuthContext";
+import { useNotifications } from "../contexts/NotificationContext";
 import { Button } from "./ui/button";
 
 function avatarUrl(name: string) {
   return `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(name)}&backgroundColor=f97316&fontColor=ffffff&fontSize=40`;
 }
 
+function timeAgo(iso: string): string {
+  const diff = Date.now() - new Date(iso).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return "baru saja";
+  if (mins < 60) return `${mins} mnt lalu`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs} jam lalu`;
+  return `${Math.floor(hrs / 24)} hari lalu`;
+}
+
+const NOTIF_ICON: Record<string, string> = {
+  order_placed: "🛍️",
+  order_received: "📦",
+  product_approved: "✅",
+  product_rejected: "❌",
+};
+
 export function Navbar() {
   const { totalItems } = useCart();
   const { user } = useAuth();
+  const { notifications, unreadCount, markAllRead, markRead, clearAll } = useNotifications();
   const [location] = useLocation();
+  const [bellOpen, setBellOpen] = useState(false);
+  const bellRef = useRef<HTMLDivElement>(null);
 
   const isActive = (path: string) => location === path;
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    if (!bellOpen) return;
+    const handler = (e: MouseEvent) => {
+      if (bellRef.current && !bellRef.current.contains(e.target as Node)) {
+        setBellOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [bellOpen]);
+
+  const handleBellClick = () => {
+    setBellOpen((v) => !v);
+    if (!bellOpen && unreadCount > 0) markAllRead();
+  };
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/80 backdrop-blur-md">
@@ -38,7 +76,7 @@ export function Navbar() {
         {/* Nav kanan */}
         <div className="flex items-center gap-1 sm:gap-2">
 
-          {/* Seller dashboard — hanya role seller */}
+          {/* Seller dashboard */}
           {user?.role === "seller" && (
             <Link href="/seller">
               <Button variant={isActive("/seller") ? "secondary" : "ghost"} size="sm"
@@ -52,7 +90,7 @@ export function Navbar() {
             </Link>
           )}
 
-          {/* Panel Admin — hanya role admin */}
+          {/* Panel Admin */}
           {user?.role === "admin" && (
             <Link href="/admin">
               <Button variant={isActive("/admin") ? "secondary" : "ghost"} size="sm"
@@ -77,6 +115,74 @@ export function Navbar() {
               <ClipboardList className="h-5 w-5" />
             </Button>
           </Link>
+
+          {/* Notification Bell */}
+          <div ref={bellRef} className="relative">
+            <Button variant="ghost" size="icon" className="relative" onClick={handleBellClick} title="Notifikasi">
+              <Bell className="h-5 w-5" />
+              {unreadCount > 0 && (
+                <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white">
+                  {unreadCount > 9 ? "9+" : unreadCount}
+                </span>
+              )}
+            </Button>
+
+            {bellOpen && (
+              <div className="absolute right-0 top-full mt-2 w-80 bg-background border rounded-2xl shadow-xl overflow-hidden z-50">
+                {/* Header */}
+                <div className="flex items-center justify-between px-4 py-3 border-b bg-muted/30">
+                  <span className="font-bold text-sm">Notifikasi</span>
+                  <div className="flex items-center gap-1">
+                    {notifications.length > 0 && (
+                      <>
+                        <button onClick={markAllRead} title="Tandai semua dibaca"
+                          className="p-1.5 text-muted-foreground hover:text-foreground rounded-lg hover:bg-muted transition-colors">
+                          <CheckCheck className="h-4 w-4" />
+                        </button>
+                        <button onClick={clearAll} title="Hapus semua"
+                          className="p-1.5 text-muted-foreground hover:text-red-500 rounded-lg hover:bg-muted transition-colors">
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </>
+                    )}
+                  </div>
+                </div>
+
+                {/* List */}
+                <div className="max-h-80 overflow-y-auto divide-y">
+                  {notifications.length === 0 ? (
+                    <div className="px-4 py-8 text-center text-sm text-muted-foreground">
+                      <Bell className="h-8 w-8 mx-auto mb-2 opacity-30" />
+                      Belum ada notifikasi
+                    </div>
+                  ) : (
+                    notifications.map((n) => (
+                      <button key={n.id} onClick={() => { markRead(n.id); setBellOpen(false); }}
+                        className={`w-full text-left px-4 py-3 hover:bg-muted/50 transition-colors flex gap-3 ${!n.read ? "bg-primary/5" : ""}`}>
+                        <span className="text-xl flex-shrink-0 mt-0.5">
+                          {NOTIF_ICON[n.type] ?? "🔔"}
+                        </span>
+                        <div className="flex-1 min-w-0">
+                          <p className={`text-sm font-semibold leading-tight ${!n.read ? "text-foreground" : "text-muted-foreground"}`}>
+                            {n.title}
+                          </p>
+                          <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed line-clamp-2">
+                            {n.message}
+                          </p>
+                          <p className="text-[10px] text-muted-foreground/70 mt-1">
+                            {timeAgo(n.createdAt)}
+                          </p>
+                        </div>
+                        {!n.read && (
+                          <div className="w-2 h-2 bg-primary rounded-full flex-shrink-0 mt-1.5" />
+                        )}
+                      </button>
+                    ))
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
 
           {/* Keranjang */}
           <Link href="/cart">

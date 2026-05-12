@@ -1,14 +1,11 @@
 /**
  * CartPage.tsx
- * Keranjang belanja — checkout menyimpan userId ke pesanan
- * agar riwayat terpisah per akun.
+ * Keranjang belanja — "Bayar Sekarang" mengarah ke /checkout.
  */
 import React from "react";
 import { useLocation, Link } from "wouter";
 import { Trash2, Plus, Minus, ArrowLeft, ShoppingBag } from "lucide-react";
 import { useCart } from "../contexts/CartContext";
-import { useOrderHistory } from "../contexts/OrderHistoryContext";
-import { useAuth } from "../contexts/AuthContext";
 import { formatPrice } from "../utils/formatPrice";
 import { useToast } from "../hooks/use-toast";
 import { Button } from "../components/ui/button";
@@ -17,8 +14,6 @@ const SHIPPING_FEE = 15000;
 
 export function CartPage() {
   const { state: { items }, dispatch, subtotal } = useCart();
-  const { addOrder } = useOrderHistory();
-  const { user } = useAuth();
   const [, setLocation] = useLocation();
   const { toast } = useToast();
 
@@ -28,28 +23,6 @@ export function CartPage() {
   const handleRemove = (id: number) => {
     dispatch({ type: "REMOVE_ITEM", payload: { id } });
     toast({ description: "Item berhasil dihapus dari keranjang" });
-  };
-
-  const handleCheckout = () => {
-    if (items.length === 0) return;
-
-    const orderNumber = `#TKO-${Math.floor(Math.random() * 100000).toString().padStart(5, "0")}`;
-    const grandTotal = subtotal + SHIPPING_FEE;
-
-    addOrder({
-      id: `${Date.now()}`,
-      userId: user?.id ?? "guest",
-      orderNumber,
-      date: new Date().toISOString(),
-      items: [...items],
-      subtotal,
-      shippingFee: SHIPPING_FEE,
-      grandTotal,
-      reviews: {},
-    });
-
-    dispatch({ type: "CLEAR_CART" });
-    setLocation(`/checkout-success?order=${encodeURIComponent(orderNumber)}`);
   };
 
   const grandTotal = subtotal + (items.length > 0 ? SHIPPING_FEE : 0);
@@ -130,9 +103,9 @@ export function CartPage() {
                 </span>
               </div>
             </div>
-            <Button className="w-full h-12 text-base font-semibold" onClick={handleCheckout}
+            <Button className="w-full h-12 text-base font-semibold" onClick={() => setLocation("/checkout")}
               data-testid="button-checkout">
-              Bayar Sekarang
+              Lanjut ke Checkout
             </Button>
           </div>
         </div>
