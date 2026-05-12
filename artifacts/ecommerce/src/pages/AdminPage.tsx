@@ -185,8 +185,9 @@ export function AdminPage() {
   const [filter, setFilter] = useState<SellerProduct["status"] | "all">("all");
   const [users, setUsers]   = useState<User[]>(() => getAllUsers());
 
-  const [draftOpenai,     setDraftOpenai]     = useState(ai.openaiKey);
-  const [draftOpenrouter, setDraftOpenrouter] = useState(ai.openrouterKey);
+  const [draftOpenai,        setDraftOpenai]        = useState(ai.openaiKey);
+  const [draftOpenrouter,    setDraftOpenrouter]    = useState(ai.openrouterKey);
+  const [draftOpenrouterModel, setDraftOpenrouterModel] = useState(ai.openrouterModel);
 
   if (!user || user.role !== "admin") return null;
 
@@ -209,7 +210,8 @@ export function AdminPage() {
   const handleSaveKeys = () => {
     ai.setOpenaiKey(draftOpenai.trim());
     ai.setOpenrouterKey(draftOpenrouter.trim());
-    toast({ title: "API key disimpan." });
+    ai.setOpenrouterModel(draftOpenrouterModel.trim());
+    toast({ title: "Pengaturan AI disimpan." });
   };
 
   return (
@@ -316,8 +318,45 @@ export function AdminPage() {
                 onChange={setDraftOpenrouter}
                 placeholder="sk-or-..."
               />
+              {/* OpenRouter model selector */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                  OpenRouter Model
+                </label>
+                <input
+                  type="text"
+                  value={draftOpenrouterModel}
+                  onChange={(e) => setDraftOpenrouterModel(e.target.value)}
+                  placeholder="openai/gpt-4o-mini"
+                  className="w-full px-3 py-2 text-sm border border-input rounded-xl bg-background focus:outline-none focus:ring-2 focus:ring-ring font-mono"
+                />
+                <p className="text-[11px] text-muted-foreground">
+                  Format: <code className="bg-muted px-1 rounded">provider/model-name</code> — contoh:{" "}
+                  <button
+                    type="button"
+                    className="text-primary hover:underline font-mono"
+                    onClick={() => setDraftOpenrouterModel("openai/gpt-4o-mini")}
+                  >openai/gpt-4o-mini</button>
+                  {", "}
+                  <button
+                    type="button"
+                    className="text-primary hover:underline font-mono"
+                    onClick={() => setDraftOpenrouterModel("google/gemini-flash-1.5")}
+                  >google/gemini-flash-1.5</button>
+                  {", "}
+                  <button
+                    type="button"
+                    className="text-primary hover:underline font-mono"
+                    onClick={() => setDraftOpenrouterModel("meta-llama/llama-3.1-8b-instruct:free")}
+                  >meta-llama/llama-3.1-8b-instruct:free</button>
+                  . Lihat daftar lengkap di{" "}
+                  <a href="https://openrouter.ai/models" target="_blank" rel="noreferrer" className="text-primary hover:underline">
+                    openrouter.ai/models
+                  </a>.
+                </p>
+              </div>
               <Button size="sm" onClick={handleSaveKeys} className="w-full sm:w-auto">
-                Simpan API Key
+                Simpan Pengaturan
               </Button>
             </div>
 

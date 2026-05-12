@@ -10,13 +10,14 @@ import OpenAI from "openai";
 const router = Router();
 
 router.post("/ai/check-product", async (req, res) => {
-  const { name, description, price, category, provider, apiKey } = req.body as {
+  const { name, description, price, category, provider, apiKey, model: bodyModel } = req.body as {
     name?: string;
     description?: string;
     price?: number;
     category?: string;
     provider?: "openai" | "openrouter";
     apiKey?: string;
+    model?: string;
   };
 
   if (!name || !description) {
@@ -44,9 +45,8 @@ router.post("/ai/check-product", async (req, res) => {
   }
 
   const model =
-    resolvedProvider === "openrouter"
-      ? "openai/gpt-4o-mini"
-      : "gpt-4o-mini";
+    bodyModel?.trim() ||
+    (resolvedProvider === "openrouter" ? "openai/gpt-4o-mini" : "gpt-4o-mini");
 
   const prompt = `Kamu adalah asisten AI yang menilai keaslian produk e-commerce Indonesia.
 Analisis produk berikut dan tentukan kemungkinan keasliannya:

@@ -34,7 +34,7 @@ export function AIProductChecker({ productName, description, price, category }: 
   const [loading, setLoading] = useState(false);
   const [result,  setResult]  = useState<AIResult | null>(null);
   const [error,   setError]   = useState<string | null>(null);
-  const { isAIEnabled, activeProvider, openaiKey, openrouterKey } = useAISettings();
+  const { isAIEnabled, activeProvider, openaiKey, openrouterKey, openrouterModel } = useAISettings();
   const [, setLocation] = useLocation();
 
   const handleCheck = async () => {
@@ -43,10 +43,11 @@ export function AIProductChecker({ productName, description, price, category }: 
     try {
       const base = import.meta.env.BASE_URL?.replace(/\/$/, "") ?? "";
       const apiKey = activeProvider === "openai" ? openaiKey : openrouterKey;
+      const model  = activeProvider === "openrouter" && openrouterModel ? openrouterModel : undefined;
       const res = await fetch(`${base}/api/ai/check-product`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: productName, description, price, category, provider: activeProvider, apiKey }),
+        body: JSON.stringify({ name: productName, description, price, category, provider: activeProvider, apiKey, model }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Terjadi kesalahan.");
