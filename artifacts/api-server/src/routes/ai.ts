@@ -83,10 +83,16 @@ Hanya balas dengan JSON, tidak ada teks lain.`;
   } catch (err) {
     req.log?.error(err, "AI check failed");
     const message = err instanceof Error ? err.message : "Unknown error";
-    if (message.includes("401") || message.includes("Incorrect API key") || message.includes("invalid_api_key")) {
-      res.status(401).json({ error: "API key tidak valid. Periksa kembali API key di pengaturan admin." });
+    const status  = (err as { status?: number }).status ?? 0;
+
+    if (status === 401 || message.includes("Incorrect API key") || message.includes("invalid_api_key")) {
+      res.status(401).json({ error: "API key tidak valid. Periksa kembali API key di Pengaturan AI pada panel admin." });
+    } else if (status === 402 || message.toLowerCase().includes("insufficient credits") || message.toLowerCase().includes("credit")) {
+      res.status(402).json({ error: "Kredit API habis atau tidak cukup. Tambah kredit di akun OpenRouter / OpenAI kamu, lalu coba lagi." });
+    } else if (status === 429 || message.includes("rate limit") || message.includes("Rate limit")) {
+      res.status(429).json({ error: "Terlalu banyak permintaan. Tunggu beberapa saat lalu coba lagi." });
     } else {
-      res.status(500).json({ error: "Gagal menghubungi layanan AI. Coba lagi nanti." });
+      res.status(500).json({ error: `Gagal menghubungi layanan AI: ${message}` });
     }
   }
 });
