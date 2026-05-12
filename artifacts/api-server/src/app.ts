@@ -9,6 +9,7 @@ import {
   getClerkProxyHost,
 } from "./middlewares/clerkProxyMiddleware";
 import router from "./routes";
+import aiRouter from "./routes/ai";
 import { logger } from "./lib/logger";
 
 const app: Express = express();
@@ -38,6 +39,9 @@ app.use(CLERK_PROXY_PATH, clerkProxyMiddleware());
 app.use(cors({ credentials: true, origin: true }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// AI routes are public — mount BEFORE clerkMiddleware so they don't require auth
+app.use("/api", aiRouter);
 
 // Resolve publishable key dari hostname request (mendukung custom domain)
 app.use(
