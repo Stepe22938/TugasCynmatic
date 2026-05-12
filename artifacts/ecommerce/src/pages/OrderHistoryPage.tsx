@@ -1,15 +1,16 @@
 /**
  * OrderHistoryPage.tsx
  * Riwayat pesanan per-user — hanya tampilkan pesanan milik user yang sedang login.
- * Review menampilkan nama penulis.
+ * Setiap pesanan bisa dicetak struk-nya.
  */
 import React, { useState } from "react";
 import { Link } from "wouter";
 import { Package, Star, CheckCircle2, AlertCircle, ArrowLeft,
-         ShoppingBag, MessageSquarePlus, Video } from "lucide-react";
-import { useOrderHistory, Review } from "../contexts/OrderHistoryContext";
+         ShoppingBag, MessageSquarePlus, Video, Receipt } from "lucide-react";
+import { useOrderHistory, Review, PurchasedOrder } from "../contexts/OrderHistoryContext";
 import { useAuth } from "../contexts/AuthContext";
 import { ReviewForm } from "../components/ReviewForm";
+import { ReceiptModal } from "../components/ReceiptModal";
 import { formatPrice } from "../utils/formatPrice";
 import { Button } from "../components/ui/button";
 import { useToast } from "../hooks/use-toast";
@@ -38,6 +39,8 @@ export function OrderHistoryPage() {
     product: { id: number; name: string; image: string };
     existingReview?: Review;
   } | null>(null);
+
+  const [receiptOrder, setReceiptOrder] = useState<PurchasedOrder | null>(null);
 
   const handleReviewSubmit = (review: Review) => {
     addReview(review.orderId, review);
@@ -71,21 +74,47 @@ export function OrderHistoryPage() {
       <div className="space-y-6" data-testid="list-orders">
         {state.orders.map((order) => (
           <div key={order.id} className="border rounded-2xl overflow-hidden bg-card" data-testid={`card-order-${order.id}`}>
+
             {/* Header */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 px-5 py-4 border-b bg-muted/30">
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
                 <Package className="h-4 w-4 text-primary" />
                 <span className="font-bold text-primary">{order.orderNumber}</span>
                 <span className="hidden sm:inline text-muted-foreground">•</span>
                 <span className="text-sm text-muted-foreground">{formatDate(order.date)}</span>
               </div>
-              <div className="flex items-center gap-2">
-                <CheckCircle2 className="h-4 w-4 text-green-600" />
-                <span className="text-sm font-medium text-green-600">Pembayaran Sukses</span>
+              <div className="flex items-center gap-2 flex-wrap">
+                <div className="flex items-center gap-1.5">
+                  <CheckCircle2 className="h-4 w-4 text-green-600" />
+                  <span className="text-sm font-medium text-green-600">Pembayaran Sukses</span>
+                </div>
+                {/* Tombol struk */}
+                <button
+                  onClick={() => setReceiptOrder(order)}
+                  className="flex items-center gap-1 text-xs font-semibold text-orange-600 bg-orange-50 border border-orange-200 px-2.5 py-1 rounded-lg hover:bg-orange-100 transition-colors"
+                  title="Lihat & Cetak Struk"
+                >
+                  <Receipt className="h-3.5 w-3.5" />
+                  Struk
+                </button>
               </div>
             </div>
 
-            {/* Item */}
+            {/* Info pengiriman jika ada */}
+            {order.shippingInfo && (
+              <div className="px-5 py-3 border-b bg-muted/10 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
+                <span>📦 <strong>Penerima:</strong> {order.shippingInfo.firstName} {order.shippingInfo.lastName}</span>
+                {order.shippingInfo.phone && <span>📱 {order.shippingInfo.phone}</span>}
+                <span>📍 {order.shippingInfo.address}</span>
+                {order.paymentMethod && (
+                  <span className="font-semibold text-orange-600 uppercase">
+                    💳 {order.paymentMethod === "dana" ? "DANA" : "QRIS"}
+                  </span>
+                )}
+              </div>
+            )}
+
+            {/* Items */}
             <div className="divide-y">
               {order.items.map((item) => {
                 const review = order.reviews[item.id];
@@ -114,10 +143,8 @@ export function OrderHistoryPage() {
                       </div>
                     </div>
 
-                    {/* Ringkasan review jika sudah ada */}
                     {review && (
                       <div className="mt-3 p-3 rounded-xl bg-muted/40 border" data-testid={`review-summary-${item.id}`}>
-                        {/* Nama user + rating + status */}
                         <div className="flex flex-wrap items-center gap-3 mb-2">
                           {review.userName && (
                             <span className="text-xs font-semibold text-foreground">{review.userName}</span>
@@ -164,6 +191,7 @@ export function OrderHistoryPage() {
         ))}
       </div>
 
+      {/* Review modal */}
       {reviewTarget && (
         <ReviewForm
           orderId={reviewTarget.orderId}
@@ -173,6 +201,11 @@ export function OrderHistoryPage() {
           onSubmit={handleReviewSubmit}
           onClose={() => setReviewTarget(null)}
         />
+      )}
+
+      {/* Receipt modal */}
+      {receiptOrder && (
+        <ReceiptModal order={receiptOrder} onClose={() => setReceiptOrder(null)} />
       )}
     </div>
   );
