@@ -11,6 +11,7 @@ import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import { CartProvider } from "./contexts/CartContext";
 import { OrderHistoryProvider } from "./contexts/OrderHistoryContext";
 import { ProductsProvider } from "./contexts/ProductsContext";
+import { AISettingsProvider } from "./contexts/AISettingsContext";
 
 import { Navbar } from "./components/Navbar";
 import { LoginPage } from "./pages/LoginPage";
@@ -87,6 +88,7 @@ export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
+        <AISettingsProvider>
         <AuthProvider>
           <ProductsProvider>
             <CartProvider>
@@ -99,6 +101,7 @@ export default function App() {
             </CartProvider>
           </ProductsProvider>
         </AuthProvider>
+        </AISettingsProvider>
       </TooltipProvider>
     </QueryClientProvider>
   );

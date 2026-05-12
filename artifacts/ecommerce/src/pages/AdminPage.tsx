@@ -1,11 +1,15 @@
 /**
  * AdminPage.tsx
- * Panel Admin: kelola produk seller, kelola pengguna, pengaturan auto-approve.
+ * Panel Admin: kelola produk seller, kelola pengguna, pengaturan.
  */
 import React, { useState } from "react";
-import { ShieldCheck, Package, Users, CheckCircle2, XCircle, Trash2, Clock, ChevronDown, ToggleLeft, ToggleRight } from "lucide-react";
+import {
+  ShieldCheck, Package, Users, CheckCircle2, XCircle, Trash2, Clock,
+  ChevronDown, ToggleLeft, ToggleRight, Bot, Eye, EyeOff, KeyRound,
+} from "lucide-react";
 import { useAuth, User, UserRole } from "../contexts/AuthContext";
 import { useProducts, SellerProduct } from "../contexts/ProductsContext";
+import { useAISettings, AIProvider } from "../contexts/AISettingsContext";
 import { formatPrice } from "../utils/formatPrice";
 import { Button } from "../components/ui/button";
 import { useToast } from "../hooks/use-toast";
@@ -104,15 +108,85 @@ function UserRow({ user, currentUser, onRoleChange }: { user: User; currentUser:
   );
 }
 
+function APIKeyInput({
+  label, value, onChange, placeholder,
+}: { label: string; value: string; onChange: (v: string) => void; placeholder?: string }) {
+  const [show, setShow] = useState(false);
+  return (
+    <div className="space-y-1.5">
+      <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">{label}</label>
+      <div className="flex items-center gap-2">
+        <div className="relative flex-1">
+          <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+          <input
+            type={show ? "text" : "password"}
+            value={value}
+            onChange={(e) => onChange(e.target.value)}
+            placeholder={placeholder ?? "sk-..."}
+            className="w-full pl-8 pr-4 py-2 text-sm border border-input rounded-xl bg-background focus:outline-none focus:ring-2 focus:ring-ring font-mono"
+          />
+        </div>
+        <button
+          type="button"
+          onClick={() => setShow((v) => !v)}
+          className="p-2 text-muted-foreground hover:text-foreground transition-colors"
+        >
+          {show ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function ProviderToggle({
+  id, label, description, badge, active, hasKey, onActivate, onDeactivate,
+}: {
+  id: AIProvider; label: string; description: string; badge: string;
+  active: boolean; hasKey: boolean;
+  onActivate: () => void; onDeactivate: () => void;
+}) {
+  return (
+    <div className={`border rounded-xl p-4 transition-all ${active ? "border-primary bg-primary/5" : "border-border"}`}>
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex-1">
+          <div className="flex items-center gap-2 mb-0.5">
+            <span className="font-bold text-sm">{label}</span>
+            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${badge}`}>{id === "openai" ? "ChatGPT" : "OpenRouter"}</span>
+            {active && <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-green-100 text-green-700">Aktif</span>}
+          </div>
+          <p className="text-xs text-muted-foreground">{description}</p>
+          {!hasKey && (
+            <p className="text-[11px] text-amber-600 mt-1 font-medium">⚠ API key belum diisi</p>
+          )}
+        </div>
+        <button
+          onClick={active ? onDeactivate : onActivate}
+          disabled={!hasKey && !active}
+          className="flex-shrink-0 disabled:opacity-40 disabled:cursor-not-allowed"
+          title={!hasKey && !active ? "Isi API key terlebih dahulu" : undefined}
+        >
+          {active
+            ? <ToggleRight className="h-10 w-10 text-green-500" />
+            : <ToggleLeft className="h-10 w-10 text-muted-foreground" />}
+        </button>
+      </div>
+    </div>
+  );
+}
+
 type Tab = "products" | "users" | "settings";
 
 export function AdminPage() {
   const { user, getAllUsers, updateUserRole } = useAuth();
   const { sellerProducts, autoApprove, setAutoApprove, approveProduct, rejectProduct, deleteProduct } = useProducts();
+  const ai = useAISettings();
   const { toast } = useToast();
-  const [tab, setTab]   = useState<Tab>("products");
+  const [tab, setTab]     = useState<Tab>("products");
   const [filter, setFilter] = useState<SellerProduct["status"] | "all">("all");
   const [users, setUsers]   = useState<User[]>(() => getAllUsers());
+
+  const [draftOpenai,     setDraftOpenai]     = useState(ai.openaiKey);
+  const [draftOpenrouter, setDraftOpenrouter] = useState(ai.openrouterKey);
 
   if (!user || user.role !== "admin") return null;
 
@@ -132,9 +206,14 @@ export function AdminPage() {
     toast({ title: `Role diubah menjadi ${ROLE_LABEL[role]}.` });
   };
 
+  const handleSaveKeys = () => {
+    ai.setOpenaiKey(draftOpenai.trim());
+    ai.setOpenrouterKey(draftOpenrouter.trim());
+    toast({ title: "API key disimpan." });
+  };
+
   return (
     <div className="container mx-auto px-4 py-8 max-w-4xl">
-      {/* Header */}
       <div className="flex items-center gap-3 mb-6">
         <div className="w-12 h-12 bg-orange-100 rounded-2xl flex items-center justify-center">
           <ShieldCheck className="h-6 w-6 text-primary" />
@@ -145,12 +224,11 @@ export function AdminPage() {
         </div>
       </div>
 
-      {/* Tab switcher */}
       <div className="flex gap-2 mb-6 bg-muted/40 p-1 rounded-xl w-fit flex-wrap">
         {([
-          { id: "products", icon: Package, label: `Produk (${counts.all})` },
-          { id: "users",    icon: Users,   label: `Pengguna (${users.length})` },
-          { id: "settings", icon: ToggleRight, label: "Pengaturan" },
+          { id: "products", icon: Package,     label: `Produk (${counts.all})` },
+          { id: "users",    icon: Users,        label: `Pengguna (${users.length})` },
+          { id: "settings", icon: ToggleRight,  label: "Pengaturan" },
         ] as { id: Tab; icon: React.ElementType; label: string }[]).map(({ id, icon: Icon, label }) => (
           <button key={id} onClick={() => setTab(id)}
             className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
@@ -161,7 +239,7 @@ export function AdminPage() {
         ))}
       </div>
 
-      {/* ── Tab Produk ───────────────────────────────────────────────────── */}
+      {/* ── Tab Produk ─────────────────────────────────────────────────── */}
       {tab === "products" && (
         <div>
           <div className="flex gap-2 mb-4 flex-wrap">
@@ -180,7 +258,7 @@ export function AdminPage() {
         </div>
       )}
 
-      {/* ── Tab Pengguna ─────────────────────────────────────────────────── */}
+      {/* ── Tab Pengguna ──────────────────────────────────────────────── */}
       {tab === "users" && (
         <div className="bg-card border rounded-2xl overflow-hidden shadow-sm">
           {users.length === 0
@@ -189,10 +267,11 @@ export function AdminPage() {
         </div>
       )}
 
-      {/* ── Tab Pengaturan ───────────────────────────────────────────────── */}
+      {/* ── Tab Pengaturan ────────────────────────────────────────────── */}
       {tab === "settings" && (
         <div className="space-y-4">
-          {/* Auto-approve toggle */}
+
+          {/* Auto-approve */}
           <div className="bg-card border rounded-2xl p-5 shadow-sm">
             <div className="flex items-center justify-between gap-4">
               <div>
@@ -205,11 +284,73 @@ export function AdminPage() {
                 className="flex-shrink-0">
                 {autoApprove
                   ? <ToggleRight className="h-10 w-10 text-green-500" />
-                  : <ToggleLeft className="h-10 w-10 text-muted-foreground" />}
+                  : <ToggleLeft  className="h-10 w-10 text-muted-foreground" />}
               </button>
             </div>
             <div className={`mt-3 text-xs font-semibold px-3 py-1.5 rounded-lg inline-block ${autoApprove ? "bg-green-100 text-green-700" : "bg-muted text-muted-foreground"}`}>
               {autoApprove ? "Aktif — produk langsung masuk toko" : "Nonaktif — produk perlu disetujui manual"}
+            </div>
+          </div>
+
+          {/* AI Settings */}
+          <div className="bg-card border rounded-2xl p-5 shadow-sm space-y-5">
+            <div className="flex items-center gap-2">
+              <Bot className="h-5 w-5 text-primary" />
+              <h3 className="font-bold">Pengaturan AI Analisis Produk</h3>
+            </div>
+            <p className="text-xs text-muted-foreground -mt-2">
+              Masukkan API key dan pilih provider yang ingin digunakan. Hanya satu provider yang bisa aktif sekaligus.
+            </p>
+
+            {/* API Key inputs */}
+            <div className="space-y-4 p-4 bg-muted/30 rounded-xl border">
+              <APIKeyInput
+                label="ChatGPT (OpenAI) API Key"
+                value={draftOpenai}
+                onChange={setDraftOpenai}
+                placeholder="sk-..."
+              />
+              <APIKeyInput
+                label="OpenRouter API Key"
+                value={draftOpenrouter}
+                onChange={setDraftOpenrouter}
+                placeholder="sk-or-..."
+              />
+              <Button size="sm" onClick={handleSaveKeys} className="w-full sm:w-auto">
+                Simpan API Key
+              </Button>
+            </div>
+
+            {/* Provider toggles */}
+            <div className="space-y-3">
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Pilih Provider Aktif</p>
+              <ProviderToggle
+                id="openai"
+                label="ChatGPT"
+                description="Gunakan model GPT-4o-mini dari OpenAI. Butuh API key dari platform.openai.com."
+                badge="bg-emerald-100 text-emerald-700"
+                active={ai.activeProvider === "openai"}
+                hasKey={Boolean(ai.openaiKey)}
+                onActivate={() => { ai.setActiveProvider("openai"); toast({ title: "ChatGPT diaktifkan." }); }}
+                onDeactivate={() => { ai.setActiveProvider(null); toast({ title: "AI dinonaktifkan." }); }}
+              />
+              <ProviderToggle
+                id="openrouter"
+                label="OpenRouter"
+                description="Akses berbagai model AI (GPT, Claude, Gemini, dll.) lewat satu API. Daftar di openrouter.ai."
+                badge="bg-violet-100 text-violet-700"
+                active={ai.activeProvider === "openrouter"}
+                hasKey={Boolean(ai.openrouterKey)}
+                onActivate={() => { ai.setActiveProvider("openrouter"); toast({ title: "OpenRouter diaktifkan." }); }}
+                onDeactivate={() => { ai.setActiveProvider(null); toast({ title: "AI dinonaktifkan." }); }}
+              />
+            </div>
+
+            {/* Status indicator */}
+            <div className={`text-xs font-semibold px-3 py-2 rounded-lg ${ai.isAIEnabled ? "bg-green-100 text-green-700" : "bg-muted text-muted-foreground"}`}>
+              {ai.isAIEnabled
+                ? `✓ AI aktif — menggunakan ${ai.activeProvider === "openai" ? "ChatGPT (OpenAI)" : "OpenRouter"}`
+                : "AI tidak aktif — fitur analisis produk dinonaktifkan"}
             </div>
           </div>
         </div>

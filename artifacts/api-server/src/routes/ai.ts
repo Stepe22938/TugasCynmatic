@@ -1,7 +1,7 @@
 /**
  * ai.ts — AI Product Authenticity Checker
  * POST /api/ai/check-product
- * Body: { name, description, price, category }
+ * Body: { name, description, price, category, provider, apiKey }
  * Returns: { verdict, confidence, reasoning, tips }
  */
 import { Router } from "express";
@@ -10,8 +10,13 @@ import OpenAI from "openai";
 const router = Router();
 
 router.post("/ai/check-product", async (req, res) => {
-  const { name, description, price, category } = req.body as {
-    name?: string; description?: string; price?: number; category?: string;
+  const { name, description, price, category, provider, apiKey } = req.body as {
+    name?: string;
+    description?: string;
+    price?: number;
+    category?: string;
+    provider?: "openai" | "openrouter";
+    apiKey?: string;
   };
 
   if (!name || !description) {
@@ -19,16 +24,31 @@ router.post("/ai/check-product", async (req, res) => {
     return;
   }
 
-  const apiKey = process.env.OPENAI_API_KEY;
-  if (!apiKey) {
-    res.status(503).json({ error: "AI service tidak tersedia. OPENAI_API_KEY belum dikonfigurasi." });
+  const resolvedProvider = provider ?? "openai";
+  const resolvedKey = apiKey || (resolvedProvider === "openai" ? process.env.OPENAI_API_KEY : process.env.OPENROUTER_API_KEY);
+
+  if (!resolvedKey) {
+    res.status(503).json({
+      error: "API key belum dikonfigurasi. Silakan masukkan API key di Pengaturan AI pada panel admin.",
+    });
     return;
   }
 
-  try {
-    const client = new OpenAI({ apiKey });
+  const clientOptions: ConstructorParameters<typeof OpenAI>[0] = { apiKey: resolvedKey };
+  if (resolvedProvider === "openrouter") {
+    clientOptions.baseURL = "https://openrouter.ai/api/v1";
+    clientOptions.defaultHeaders = {
+      "HTTP-Referer": "https://toko-online.replit.app",
+      "X-Title": "Toko Online AI Checker",
+    };
+  }
 
-    const prompt = `Kamu adalah asisten AI yang menilai keaslian produk e-commerce Indonesia.
+  const model =
+    resolvedProvider === "openrouter"
+      ? "openai/gpt-4o-mini"
+      : "gpt-4o-mini";
+
+  const prompt = `Kamu adalah asisten AI yang menilai keaslian produk e-commerce Indonesia.
 Analisis produk berikut dan tentukan kemungkinan keasliannya:
 
 Nama Produk: ${name}
@@ -46,21 +66,28 @@ Berikan penilaian dalam format JSON:
 
 Hanya balas dengan JSON, tidak ada teks lain.`;
 
+  try {
+    const client = new OpenAI(clientOptions);
+
     const completion = await client.chat.completions.create({
-      model: "gpt-4o-mini",
+      model,
       messages: [{ role: "user", content: prompt }],
       max_tokens: 300,
       temperature: 0.3,
     });
 
     const raw = completion.choices[0]?.message?.content?.trim() ?? "{}";
-    // Strip markdown code fences if present
     const json = raw.replace(/^```(?:json)?\n?/, "").replace(/\n?```$/, "").trim();
     const result = JSON.parse(json);
     res.json(result);
   } catch (err) {
     req.log?.error(err, "AI check failed");
-    res.status(500).json({ error: "Gagal menghubungi layanan AI. Coba lagi nanti." });
+    const message = err instanceof Error ? err.message : "Unknown error";
+    if (message.includes("401") || message.includes("Incorrect API key") || message.includes("invalid_api_key")) {
+      res.status(401).json({ error: "API key tidak valid. Periksa kembali API key di pengaturan admin." });
+    } else {
+      res.status(500).json({ error: "Gagal menghubungi layanan AI. Coba lagi nanti." });
+    }
   }
 });
 
