@@ -14,6 +14,7 @@ interface Props {
   category: string;
 }
 
+
 interface AIResult {
   verdict: "asli" | "mencurigakan" | "palsu";
   confidence: number;

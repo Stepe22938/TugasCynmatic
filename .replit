@@ -28,5 +28,14 @@ localPort = 8081
 externalPort = 8081
 
 [[ports]]
+localPort = 8082
+externalPort = 3000
+
+[[ports]]
 localPort = 18857
 externalPort = 80
+
+[userenv]
+
+[userenv.shared]
+OPENAI_API_KEY = "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"
