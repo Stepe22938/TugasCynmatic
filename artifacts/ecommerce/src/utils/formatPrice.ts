@@ -9,5 +9,9 @@
  * @returns {string} Formatted IDR price string
  */
 export function formatPrice(price: number): string {
+  const absPrice = Math.abs(price);
+  if (absPrice >= 1e15) {
+    return (price < 0 ? "-" : "") + "Rp " + price.toExponential(2).replace("e+", " x 10^");
+  }
   return "Rp " + price.toLocaleString("id-ID");
 }

@@ -14,6 +14,8 @@ import { useAuth } from "../contexts/AuthContext";
 import { useProducts, SellerProduct, AdminProduct } from "../contexts/ProductsContext";
 import { useOrderHistory, PurchasedOrder, OrderStatus } from "../contexts/OrderHistoryContext";
 import { useLive, GIFT_TYPES } from "../contexts/LiveContext";
+import { useAuction } from "../contexts/AuctionContext";
+import { Gavel } from "lucide-react";
 import { formatPrice } from "../utils/formatPrice";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
@@ -527,14 +529,43 @@ type Tab = "products" | "orders" | "live";
 
 export function SellerPage() {
   const { user } = useAuth();
+  const { auctions, createAuction, endAuction, deleteAuction } = useAuction();
   const { sellerProducts, adminProducts, deleteProduct, deleteAdminProduct } = useProducts();
   const { getAllOrders, updateOrderStatus } = useOrderHistory();
   const { session } = useLive();
-  const { toast } = useToast();
-  const [tab, setTab]       = useState<Tab>("products");
+  const [tab, setTab] = useState<"products" | "orders" | "live" | "auction">("products");
   const [showForm, setShowForm] = useState(false);
   const [chatOrder, setChatOrder] = useState<PurchasedOrder | null>(null);
   const [orderFilter, setOrderFilter] = useState<OrderStatus | "all">("all");
+  const { toast } = useToast();
+
+  const myAuctions = auctions.filter(a => a.sellerId === user?.id);
+
+  // Form states for Auction
+  const [showAuctionForm, setShowAuctionForm] = useState(false);
+  const [auctionData, setAuctionData] = useState({
+    title: "", description: "", imageUrl: "",
+    startPrice: "", minStep: "", duration: "1" // hours
+  });
+
+  const handleCreateAuction = () => {
+    if (!auctionData.title || !auctionData.startPrice) {
+      toast({ variant: "destructive", title: "Error", description: "Lengkapi data lelang" });
+      return;
+    }
+    const endTime = new Date(Date.now() + Number(auctionData.duration) * 60 * 60 * 1000).toISOString();
+    createAuction({
+      title: auctionData.title,
+      description: auctionData.description,
+      imageUrl: auctionData.imageUrl || "https://placehold.co/400x300?text=Barang+Lelang",
+      startPrice: Number(auctionData.startPrice),
+      minStep: Number(auctionData.minStep) || 1000,
+      endTime
+    });
+    setShowAuctionForm(false);
+    setAuctionData({ title: "", description: "", imageUrl: "", startPrice: "", minStep: "", duration: "1" });
+    toast({ title: "Lelang Dibuat!", description: "Barangmu kini bisa di-bid oleh user lain." });
+  };
 
   if (!user || (user.role !== "seller" && user.role !== "admin")) return null;
   const isAdmin = user.role === "admin";
@@ -561,10 +592,11 @@ export function SellerPage() {
   const handleProcess     = (id: string) => { updateOrderStatus(id, "processing"); toast({ title: "Pesanan diproses.", description: "Pembeli mendapat notifikasi." }); };
   const handleShip        = (id: string) => { updateOrderStatus(id, "shipped"); toast({ title: "Dikirim ke kurir!", description: "Kurir akan segera mengambil paket." }); };
 
-  const TABS: { id: Tab; label: string; badge?: number }[] = [
+  const TABS: { id: "products" | "orders" | "live" | "auction"; label: string; badge?: number }[] = [
     { id: "products", label: "Produk" },
     { id: "orders",   label: "Pesanan", badge: orderCounts.placed + orderCounts.problem },
     { id: "live",     label: "Live" },
+    { id: "auction",  label: "Lelang" },
   ];
 
   return (
@@ -683,6 +715,123 @@ export function SellerPage() {
       {tab === "live" && <LiveTab user={user} isAdmin={isAdmin} />}
 
       {chatOrder && <ChatModal order={chatOrder} onClose={() => setChatOrder(null)} />}
+
+      {/* ── Tab: Lelang ──────────────────────────────────────────────── */}
+      {tab === "auction" && (
+        <div className="space-y-6">
+          <div className="flex items-center justify-between">
+             <h2 className="text-xl font-black">Manajemen Lelang</h2>
+             <div className="flex gap-2">
+               {myAuctions.length > 0 && (
+                 <Button 
+                   variant="outline" 
+                   className="border-red-200 text-red-600 hover:bg-red-50 rounded-xl"
+                   onClick={() => {
+                     if (confirm("Hapus semua data lelang kamu?")) {
+                       myAuctions.forEach(a => deleteAuction(a.id));
+                     }
+                   }}
+                 >
+                   Hapus Semua
+                 </Button>
+               )}
+               <Button onClick={() => setShowAuctionForm(true)} className="gap-2 rounded-xl bg-amber-600 hover:bg-amber-700">
+                 <Plus className="h-4 w-4" /> Buat Lelang Baru
+               </Button>
+             </div>
+          </div>
+
+          {showAuctionForm && (
+            <div className="bg-amber-50 border-2 border-amber-200 rounded-3xl p-6 animate-in slide-in-from-top-4">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="font-black text-amber-900">Formulir Lelang Baru</h3>
+                <button onClick={() => setShowAuctionForm(false)} className="text-amber-700"><X className="h-5 w-5" /></button>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Nama Barang</Label>
+                  <Input value={auctionData.title} onChange={e => setAuctionData({...auctionData, title: e.target.value})} placeholder="Contoh: Sepatu Limited Edition" />
+                </div>
+                <div className="space-y-2">
+                  <Label>URL Gambar</Label>
+                  <Input value={auctionData.imageUrl} onChange={e => setAuctionData({...auctionData, imageUrl: e.target.value})} placeholder="https://..." />
+                </div>
+                <div className="space-y-2 md:col-span-2">
+                  <Label>Deskripsi</Label>
+                  <Input value={auctionData.description} onChange={e => setAuctionData({...auctionData, description: e.target.value})} placeholder="Jelaskan kondisi barang..." />
+                </div>
+                <div className="space-y-2">
+                  <Label>Harga Awal (Rp)</Label>
+                  <Input type="number" value={auctionData.startPrice} onChange={e => setAuctionData({...auctionData, startPrice: e.target.value})} />
+                </div>
+                <div className="space-y-2">
+                  <Label>Kelipatan Bid Minimal (Rp)</Label>
+                  <Input type="number" value={auctionData.minStep} onChange={e => setAuctionData({...auctionData, minStep: e.target.value})} />
+                </div>
+                <div className="space-y-2">
+                  <Label>Durasi Lelang (Jam)</Label>
+                  <select 
+                    className="w-full p-2 bg-white border-2 rounded-xl text-sm"
+                    value={auctionData.duration}
+                    onChange={e => setAuctionData({...auctionData, duration: e.target.value})}
+                  >
+                    <option value="0.1">6 Menit (Tes)</option>
+                    <option value="1">1 Jam</option>
+                    <option value="6">6 Jam</option>
+                    <option value="24">24 Jam (1 Hari)</option>
+                    <option value="72">72 Jam (3 Hari)</option>
+                  </select>
+                </div>
+                <div className="md:col-span-2 pt-2">
+                  <Button onClick={handleCreateAuction} className="w-full bg-amber-600 hover:bg-amber-700 font-black h-12 rounded-xl">
+                    AKTIFKAN LELANG SEKARANG
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <div className="grid grid-cols-1 gap-4">
+            {myAuctions.length === 0 ? (
+              <div className="text-center py-20 bg-gray-50 rounded-3xl border border-dashed border-gray-200">
+                <Gavel className="h-12 w-12 text-gray-200 mx-auto mb-4" />
+                <p className="text-gray-400 font-bold">Kamu belum membuat lelang.</p>
+              </div>
+            ) : (
+              myAuctions.map(a => (
+                <div key={a.id} className="bg-white p-5 rounded-3xl border border-gray-100 shadow-sm flex items-center justify-between">
+                  <div className="flex items-center gap-4">
+                    <img src={a.imageUrl} className="w-16 h-16 rounded-2xl object-cover" />
+                    <div>
+                      <h4 className="font-bold text-gray-900">{a.title}</h4>
+                      <div className="flex gap-2 items-center mt-1">
+                        <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase ${a.status === "active" ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-600"}`}>
+                          {a.status}
+                        </span>
+                        <span className="text-[10px] text-muted-foreground">{a.bids.length} Bidder</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="text-right flex flex-col items-end gap-1">
+                    <p className="text-[10px] text-muted-foreground font-bold uppercase">Harga Tertinggi</p>
+                    <p className="text-lg font-black text-amber-600">{formatPrice(a.currentPrice)}</p>
+                    <div className="flex gap-2">
+                      {a.status === "active" && (
+                        <Button size="sm" variant="outline" className="h-7 text-[10px] border-amber-200 text-amber-700 hover:bg-amber-50" onClick={() => endAuction(a.id)}>
+                          Akhiri Paksa
+                        </Button>
+                      )}
+                      <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-red-500 hover:text-red-600 hover:bg-red-50" onClick={() => deleteAuction(a.id)}>
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

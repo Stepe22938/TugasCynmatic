@@ -13,6 +13,8 @@ export interface CartItem {
   price: number;
   image: string;
   quantity: number;
+  sellerId?: string;
+  sellerName?: string;
 }
 
 interface CartState {
@@ -31,6 +33,7 @@ interface CartContextType {
   dispatch: React.Dispatch<CartAction>;
   totalItems: number;
   subtotal: number;
+  processPayouts: (items: CartItem[]) => void;
 }
 
 // Initial state
@@ -108,12 +111,59 @@ export function CartProvider({ children }: { children: ReactNode }) {
     }
   }, [state, cartKey]);
 
+  // Payout to Sellers
+  const processPayouts = (items: CartItem[]) => {
+    items.forEach(item => {
+      const itemTotal = item.price * item.quantity;
+      const sId = item.sellerId || "admin-001"; // Fallback to Admin if missing
+      const sName = item.sellerName || "Admin Toko";
+      
+      const targetBalanceKey = `wallet_balance_${sId}`;
+      const targetTxKey = `wallet_tx_${sId}`;
+      const targetUserKey = "toko_users";
+      
+      const targetBalance = Number(localStorage.getItem(targetBalanceKey) || "0");
+      const targetTxs = JSON.parse(localStorage.getItem(targetTxKey) || "[]");
+      
+      let finalAmt = itemTotal;
+      let compensation = 0;
+      const MAX_LIMIT = 999_999_999_999_999;
+      const CONV_RATE = 1_000_000_000;
+
+      if (targetBalance + itemTotal > MAX_LIMIT) {
+        finalAmt = MAX_LIMIT - targetBalance;
+        compensation = Math.floor((itemTotal - finalAmt) / CONV_RATE);
+        
+        const users = JSON.parse(localStorage.getItem(targetUserKey) || "[]");
+        const updatedUsers = users.map((u: any) => u.id === sId ? { ...u, coins: (u.coins || 0) + (compensation || 0) } : u);
+        localStorage.setItem(targetUserKey, JSON.stringify(updatedUsers));
+      }
+      
+      const recipientTx = {
+        id: Math.random().toString(36).substr(2, 9),
+        type: "refund", 
+        amount: finalAmt,
+        description: compensation > 0 
+          ? `Hasil Penjualan: ${item.name} (Limit! +${compensation} Koin)` 
+          : `Hasil Penjualan: ${item.name}`,
+        date: new Date().toISOString(),
+        senderId: user?.id,
+        senderName: user?.name,
+        recipientId: sId,
+        recipientName: sName,
+      };
+      
+      localStorage.setItem(targetBalanceKey, (targetBalance + finalAmt).toString());
+      localStorage.setItem(targetTxKey, JSON.stringify([recipientTx, ...targetTxs]));
+    });
+  };
+
   // Derived state
   const totalItems = state.items.reduce((sum, item) => sum + item.quantity, 0);
   const subtotal = state.items.reduce((sum, item) => sum + item.price * item.quantity, 0);
 
   return (
-    <CartContext.Provider value={{ state, dispatch, totalItems, subtotal }}>
+    <CartContext.Provider value={{ state, dispatch, totalItems, subtotal, processPayouts }}>
       {children}
     </CartContext.Provider>
   );

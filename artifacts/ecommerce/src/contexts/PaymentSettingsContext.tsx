@@ -7,13 +7,14 @@ import React, { createContext, useContext, useState, useCallback } from "react";
 export interface PaymentSettings {
   danaEnabled: boolean;
   qrisEnabled: boolean;
+  mydompetEnabled: boolean;
   dummyMode: boolean;
   danaNumber: string;
 }
 
 interface PaymentSettingsContextValue extends PaymentSettings {
   update: (patch: Partial<PaymentSettings>) => void;
-  enabledMethods: Array<"dana" | "qris">;
+  enabledMethods: Array<"dana" | "qris" | "mydompet">;
 }
 
 const STORAGE_KEY = "payment_settings_v1";
@@ -29,6 +30,7 @@ function load(): PaymentSettings {
 const defaultSettings: PaymentSettings = {
   danaEnabled: true,
   qrisEnabled: true,
+  mydompetEnabled: true,
   dummyMode: true,
   danaNumber: "0812-3456-7890",
 };
@@ -46,9 +48,10 @@ export function PaymentSettingsProvider({ children }: { children: React.ReactNod
     });
   }, []);
 
-  const enabledMethods: Array<"dana" | "qris"> = [
+  const enabledMethods: Array<"dana" | "qris" | "mydompet"> = [
     ...(settings.danaEnabled ? (["dana"] as const) : []),
     ...(settings.qrisEnabled ? (["qris"] as const) : []),
+    ...(settings.mydompetEnabled ? (["mydompet"] as const) : []),
   ];
 
   return (

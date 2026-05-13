@@ -48,7 +48,14 @@ export function ProductCard({ product }: ProductCardProps) {
     e.stopPropagation();
     dispatch({
       type: "ADD_ITEM",
-      payload: { id: product.id, name: product.name, price: product.price, image: product.image },
+      payload: { 
+        id: product.id, 
+        name: product.name, 
+        price: product.price, 
+        image: product.image,
+        sellerId: product.sellerId,
+        sellerName: product.sellerName
+      },
     });
     toast({ title: "Berhasil ditambahkan", description: `${product.name} masuk ke keranjang!` });
   };

@@ -15,14 +15,16 @@ import { useVouchers } from "../contexts/VoucherContext";
 import { formatPrice } from "../utils/formatPrice";
 import { Button } from "../components/ui/button";
 import { useToast } from "../hooks/use-toast";
+import { useWallet } from "../contexts/WalletContext";
+import { Wallet } from "lucide-react";
 
 const SHIPPING_FEE = 15000;
 
-type PaymentMethod = "dana" | "qris";
+type PaymentMethod = "dana" | "qris" | "mydompet";
 type Step = "form" | "payment";
 
 export function CheckoutPage() {
-  const { state: { items }, dispatch, subtotal } = useCart();
+  const { state: { items }, dispatch, subtotal, processPayouts } = useCart();
   const { addOrder } = useOrderHistory();
   const { user, addCoins } = useAuth();
   const pay = usePaymentSettings();
@@ -30,6 +32,7 @@ export function CheckoutPage() {
   const { validateVoucher, useVoucher: markVoucherUsed } = useVouchers();
   const [, setLocation] = useLocation();
   const { toast } = useToast();
+  const { balance, spend } = useWallet();
 
   const [step, setStep]               = useState<Step>("form");
   const [firstName, setFirstName]     = useState("");
@@ -106,6 +109,22 @@ export function CheckoutPage() {
   const placeOrder = () => {
     const orderNumber = `#TKO-${Math.floor(Math.random() * 100000).toString().padStart(5, "0")}`;
     if (appliedVoucher) markVoucherUsed(appliedVoucher.code);
+    // REAL PAYMENT LOGIC: MyDompet
+    if (payMethod === "mydompet") {
+      const success = spend(grandTotal, `Pembelian ${orderNumber}`, "payment");
+      if (!success) {
+        toast({
+          variant: "destructive",
+          title: "Saldo Kurang!",
+          description: "Saldo MyDompet kamu tidak cukup untuk pesanan ini."
+        });
+        return; 
+      }
+
+      // Payout to Sellers (Helper from CartContext handles sellerId logic)
+      processPayouts(items);
+    }
+
     addOrder({
       id: `${Date.now()}`,
       userId: user?.id ?? "guest",
@@ -153,7 +172,7 @@ export function CheckoutPage() {
 
   const handleConfirmPayment = async () => {
     setConfirming(true);
-    await new Promise((r) => setTimeout(r, 1500));
+    await new Promise((r) => setTimeout(r, 1000));
     setConfirming(false);
     placeOrder();
   };
@@ -277,6 +296,20 @@ export function CheckoutPage() {
                           <p className="text-xs text-muted-foreground">Scan QR dari semua e-wallet</p>
                         </div>
                         {payMethod === "qris" && <CheckCircle2 className="h-5 w-5 text-primary ml-auto" />}
+                      </label>
+                    )}
+                    {pay.enabledMethods.includes("mydompet") && (
+                      <label className={`flex items-center gap-3 p-3 rounded-xl border-2 cursor-pointer transition-all ${payMethod === "mydompet" ? "border-primary bg-primary/5" : "border-border hover:border-primary/40"}`}>
+                        <input type="radio" name="payment" value="mydompet" checked={payMethod === "mydompet"}
+                          onChange={() => setPayMethod("mydompet")} className="sr-only" />
+                        <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center flex-shrink-0">
+                          <Wallet className="h-5 w-5 text-white" />
+                        </div>
+                        <div>
+                          <p className="font-bold text-sm">MyDompet</p>
+                          <p className="text-xs text-muted-foreground">Saldo: {formatPrice(balance)}</p>
+                        </div>
+                        {payMethod === "mydompet" && <CheckCircle2 className="h-5 w-5 text-primary ml-auto" />}
                       </label>
                     )}
                   </div>

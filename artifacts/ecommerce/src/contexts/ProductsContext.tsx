@@ -69,21 +69,21 @@ function loadSellerProducts(): SellerProduct[] {
 }
 
 function loadAdminProducts(): AdminProduct[] {
-  // Seed from staticProducts on first run
-  const seeded = localStorage.getItem(ADMIN_SEEDED_KEY);
-  if (!seeded) {
-    const seededProducts: AdminProduct[] = staticProducts.map((p) => ({
-      ...p,
-      sellerId: "admin-001" as const,
-      sellerName: "Admin Toko" as const,
-      createdAt: new Date().toISOString(),
-    }));
-    localStorage.setItem(ADMIN_PRODUCTS_KEY, JSON.stringify(seededProducts));
-    localStorage.setItem(ADMIN_SEEDED_KEY, "true");
-    return seededProducts;
+  const saved = localStorage.getItem(ADMIN_PRODUCTS_KEY);
+  if (saved && saved !== "[]") {
+    try { return JSON.parse(saved); } catch { }
   }
-  try { return JSON.parse(localStorage.getItem(ADMIN_PRODUCTS_KEY) ?? "[]"); }
-  catch { return []; }
+  
+  // Seed if missing or empty
+  const seededProducts: AdminProduct[] = staticProducts.map((p) => ({
+    ...p,
+    sellerId: "admin-001" as const,
+    sellerName: "Admin Toko" as const,
+    createdAt: new Date().toISOString(),
+  }));
+  localStorage.setItem(ADMIN_PRODUCTS_KEY, JSON.stringify(seededProducts));
+  localStorage.setItem(ADMIN_SEEDED_KEY, "true");
+  return seededProducts;
 }
 
 function adminToProduct(ap: AdminProduct): Product {

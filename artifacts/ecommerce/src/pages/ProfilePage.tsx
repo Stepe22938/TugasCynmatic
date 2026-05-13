@@ -6,7 +6,7 @@
 import React, { useState, useEffect } from "react";
 import { useLocation, Link } from "wouter";
 import { User, Mail, Calendar, ShoppingBag, Edit2, Check, X, LogOut,
-         ShieldCheck, Package, Store, Coins, Truck, Send, Globe, Wifi, Ticket, Users, Palette, Sparkles } from "lucide-react";
+         ShieldCheck, Package, Store, Coins, Truck, Send, Globe, Wifi, Ticket, Users, Palette, Sparkles, Gamepad2, Gavel, Wallet } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { useOrderHistory } from "../contexts/OrderHistoryContext";
 import { useTickets } from "../contexts/TicketContext";
@@ -121,6 +121,42 @@ export function ProfilePage() {
             </div>
           </div>
         </Link>
+        {/* MiniGames */}
+        <Link href="/minigames">
+          <div className="flex items-center gap-3 p-4 bg-indigo-50 border border-indigo-200 rounded-2xl hover:bg-indigo-100 transition-colors cursor-pointer h-full">
+            <div className="w-10 h-10 bg-indigo-100 rounded-xl flex items-center justify-center flex-shrink-0">
+              <Gamepad2 className="h-5 w-5 text-indigo-600" />
+            </div>
+            <div>
+              <p className="font-bold text-sm text-indigo-800">MiniGames</p>
+              <p className="text-xs text-indigo-600">Main & dapatkan koin!</p>
+            </div>
+          </div>
+        </Link>
+        {/* MyDompet */}
+        <Link href="/mydompet">
+          <div className="flex items-center gap-3 p-4 bg-blue-50 border border-blue-200 rounded-2xl hover:bg-blue-100 transition-colors cursor-pointer h-full">
+            <div className="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center flex-shrink-0">
+              <Wallet className="h-5 w-5 text-blue-600" />
+            </div>
+            <div>
+              <p className="font-bold text-sm text-blue-800">MyDompet</p>
+              <p className="text-xs text-blue-600">Saldo & Transaksi</p>
+            </div>
+          </div>
+        </Link>
+        {/* Pusat Lelang */}
+        <Link href="/auction">
+          <div className="flex items-center gap-3 p-4 bg-amber-50 border border-amber-200 rounded-2xl hover:bg-amber-100 transition-colors cursor-pointer h-full">
+            <div className="w-10 h-10 bg-amber-100 rounded-xl flex items-center justify-center flex-shrink-0">
+              <Gavel className="h-5 w-5 text-amber-600" />
+            </div>
+            <div>
+              <p className="font-bold text-sm text-amber-800">Pusat Lelang</p>
+              <p className="text-xs text-amber-600">Bid barang impian</p>
+            </div>
+          </div>
+        </Link>
         {/* Tiket Bantuan */}
         <Link href="/tickets">
           <div className="flex items-center gap-3 p-4 bg-teal-50 border border-teal-200 rounded-2xl hover:bg-teal-100 transition-colors cursor-pointer h-full">
@@ -183,7 +219,7 @@ export function ProfilePage() {
           { icon: ShoppingBag, label: "Pesanan",     value: totalOrders.toString(),   color: "text-primary" },
           { icon: Package,     label: "Item Dibeli",  value: totalItems.toString(),    color: "text-blue-600" },
           { icon: ShoppingBag, label: "Total Belanja",value: formatPrice(totalSpend),  color: "text-green-600" },
-          { icon: Coins,       label: "Koin Saya",value: `${(user.coins || 0).toLocaleString("id-ID")} 🪙`, color: "text-amber-600" },
+          { icon: Coins,       label: "Koin Saya",    value: user.coins ? (user.coins >= 1000000 ? (user.coins / 1000000).toFixed(1) + "jt" : user.coins.toLocaleString()) : "0", color: "text-amber-600" },
         ].map(({ icon: Icon, label, value, color }) => (
           <div key={label} className="bg-card border rounded-2xl p-4 text-center shadow-sm">
             <Icon className={`h-5 w-5 ${color} mx-auto mb-1`} />
@@ -196,7 +232,9 @@ export function ProfilePage() {
       <div className="bg-amber-50 border border-amber-200 rounded-2xl px-4 py-3 flex items-center gap-3">
         <span className="text-2xl">🪙</span>
         <div className="flex-1">
-          <p className="text-sm font-bold text-amber-800">Koin Saya: {(user.coins || 0).toLocaleString("id-ID")} koin</p>
+          <p className="text-sm font-bold text-amber-800">
+            Koin Saya: {user.coins ? (user.coins >= 1000000 ? (user.coins / 1000000).toFixed(1) + "jt" : user.coins.toLocaleString()) : "0"} koin
+          </p>
           <p className="text-xs text-amber-700">Dapatkan koin dari aktivitas atau dikelola oleh admin.</p>
         </div>
         <Link href="/exchange">

@@ -18,6 +18,8 @@ import { VoucherProvider } from "./contexts/VoucherContext";
 import { LiveProvider } from "./contexts/LiveContext";
 import { TicketProvider } from "./contexts/TicketContext";
 import { ExchangeSettingsProvider } from "./contexts/ExchangeSettingsContext";
+import { AuctionProvider } from "./contexts/AuctionContext";
+import { WalletProvider } from "./contexts/WalletContext";
 
 import { Navbar } from "./components/Navbar";
 import { LoginPage } from "./pages/LoginPage";
@@ -38,6 +40,9 @@ import { TicketPage } from "./pages/TicketPage";
 import { ExchangePage } from "./pages/ExchangePage";
 import { FriendsPage } from "./pages/FriendsPage";
 import { ProfileCustomizePage } from "./pages/ProfileCustomizePage";
+import { MiniGamesPage } from "./pages/MiniGamesPage";
+import { AuctionPage } from "./pages/AuctionPage";
+import { MyDompetPage } from "./pages/MyDompetPage";
 import NotFound from "@/pages/not-found";
 
 const queryClient = new QueryClient();
@@ -96,6 +101,9 @@ const TicketChatRoute = () => <ProtectedRoute component={TicketPage} />;
 const ExchangeRoute   = () => <ProtectedRoute component={ExchangePage} />;
 const FriendsRoute    = () => <ProtectedRoute component={FriendsPage} />;
 const CustomizeRoute  = () => <ProtectedRoute component={ProfileCustomizePage} />;
+const MiniGamesRoute  = () => <ProtectedRoute component={MiniGamesPage} />;
+const AuctionRoute    = () => <ProtectedRoute component={AuctionPage} />;
+const MyDompetRoute   = () => <ProtectedRoute component={MyDompetPage} />;
 
 function Router() {
   return (
@@ -116,6 +124,9 @@ function Router() {
       <Route path="/exchange"         component={ExchangeRoute} />
       <Route path="/friends"          component={FriendsRoute} />
       <Route path="/customize"        component={CustomizeRoute} />
+      <Route path="/minigames"        component={MiniGamesRoute} />
+      <Route path="/auction"          component={AuctionRoute} />
+      <Route path="/mydompet"         component={MyDompetRoute} />
       <Route path="/checkout-success" component={SuccessRoute} />
       <Route path="/live"             component={LiveRoute} />
       <Route component={NotFound} />
@@ -133,20 +144,24 @@ export default function App() {
         <ExchangeSettingsProvider>
         <LiveProvider>
         <AuthProvider>
-          <ProductsProvider>
-            <CartProvider>
-              <OrderHistoryProvider>
-                <NotificationProvider>
-                  <TicketProvider>
-                    <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
-                      <Router />
-                    </WouterRouter>
-                    <Toaster />
-                  </TicketProvider>
-                </NotificationProvider>
-              </OrderHistoryProvider>
-            </CartProvider>
-          </ProductsProvider>
+          <WalletProvider>
+            <AuctionProvider>
+              <ProductsProvider>
+                <CartProvider>
+                  <OrderHistoryProvider>
+                    <NotificationProvider>
+                      <TicketProvider>
+                        <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
+                          <Router />
+                        </WouterRouter>
+                        <Toaster />
+                      </TicketProvider>
+                    </NotificationProvider>
+                  </OrderHistoryProvider>
+                </CartProvider>
+              </ProductsProvider>
+            </AuctionProvider>
+          </WalletProvider>
         </AuthProvider>
         </LiveProvider>
         </ExchangeSettingsProvider>

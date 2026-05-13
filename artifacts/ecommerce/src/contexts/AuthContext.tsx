@@ -69,7 +69,30 @@ const USERS_KEY   = "toko_users";
 const SESSION_KEY = "toko_session_id";
 
 function getStoredUsers(): StoredUser[] {
-  try { return JSON.parse(localStorage.getItem(USERS_KEY) ?? "[]"); }
+  try { 
+    const raw = localStorage.getItem(USERS_KEY) ?? "[]";
+    const users: StoredUser[] = JSON.parse(raw);
+    const MAX_COINS = 999999999;
+    
+    let changed = false;
+    const capped = users.map(u => {
+      if (u.id === "admin-001" && u.coins > 10000) {
+        changed = true;
+        return { ...u, coins: 10000 };
+      }
+      if (u.coins && u.coins > MAX_COINS) {
+        changed = true;
+        return { ...u, coins: MAX_COINS };
+      }
+      return u;
+    });
+
+    if (changed) {
+      localStorage.setItem(USERS_KEY, JSON.stringify(capped));
+    }
+
+    return capped;
+  }
   catch { return []; }
 }
 
@@ -276,10 +299,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const addCoins = (userId: string | "all", amount: number) => {
     // If not admin, the user can only add to themselves (e.g. from checkout)
     if (userId !== "all" && user?.id !== userId && user?.role !== "admin") return;
+    const MAX_COINS = 999999999; // 999 Juta Koin
     const users = getStoredUsers();
-    saveUsers(users.map((u) => (userId === "all" || u.id === userId) ? { ...u, coins: (u.coins || 0) + amount } : u));
+    saveUsers(users.map((u) => {
+      if (userId === "all" || u.id === userId) {
+        const newCoins = (u.coins || 0) + amount;
+        return { ...u, coins: Math.min(newCoins, MAX_COINS) };
+      }
+      return u;
+    }));
     if (userId === "all" || user?.id === userId) {
-      setUser((prev) => prev ? { ...prev, coins: (prev.coins || 0) + amount } : null);
+      setUser((prev) => prev ? { ...prev, coins: Math.min((prev.coins || 0) + amount, MAX_COINS) } : null);
     }
   };
 

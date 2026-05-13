@@ -147,7 +147,17 @@ export function ProductDetailPage() {
   }
 
   const handleAddToCart = () => {
-    dispatch({ type: "ADD_ITEM", payload: { id: product.id, name: product.name, price: product.price, image: product.image } });
+    dispatch({ 
+      type: "ADD_ITEM", 
+      payload: { 
+        id: product.id, 
+        name: product.name, 
+        price: product.price, 
+        image: product.image,
+        sellerId: product.sellerId,
+        sellerName: product.sellerName
+      } 
+    });
     toast({ title: "Berhasil!", description: `${product.name} ditambahkan ke keranjang.` });
   };
 
