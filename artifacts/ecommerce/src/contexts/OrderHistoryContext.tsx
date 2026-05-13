@@ -1,15 +1,32 @@
 /**
  * OrderHistoryContext.tsx
- * Riwayat pesanan per-user + global reviews store.
- *
- * Pesanan disimpan per-user: `toko_orders_<userId>`
- * Reviews semua user disimpan global: `toko_all_reviews`
+ * Global order store — semua pesanan disimpan di satu key.
+ * Seller & kurir bisa lihat semua pesanan.
+ * Buyer hanya lihat pesanan miliknya.
  */
 import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { CartItem } from "./CartContext";
 import { useAuth } from "./AuthContext";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
+
+export type OrderStatus =
+  | "placed"       // Pesanan masuk
+  | "processing"   // Seller sedang memproses
+  | "shipped"      // Dikirim ke kurir
+  | "in_delivery"  // Kurir sedang mengantar
+  | "delivered"    // Sudah sampai
+  | "completed"    // Buyer konfirmasi terima
+  | "problem";     // Buyer lapor masalah
+
+export interface OrderMessage {
+  id: string;
+  senderId: string;
+  senderName: string;
+  senderRole: string;
+  text: string;
+  createdAt: string;
+}
 
 export interface MediaFile {
   name: string;
@@ -38,6 +55,7 @@ export interface ShippingInfo {
 export interface PurchasedOrder {
   id: string;
   userId: string;
+  userName?: string;
   orderNumber: string;
   date: string;
   items: CartItem[];
@@ -49,29 +67,36 @@ export interface PurchasedOrder {
   paymentMethod?: "dana" | "qris";
   voucherCode?: string;
   voucherDiscount?: number;
+  status: OrderStatus;
+  messages: OrderMessage[];
+  problemReport?: string;
+  courierNote?: string;
 }
 
-interface OrderHistoryState { orders: PurchasedOrder[]; }
-
 interface OrderHistoryContextType {
-  state: OrderHistoryState;
+  state: { orders: PurchasedOrder[] };
   addOrder: (order: PurchasedOrder) => void;
   addReview: (orderId: string, review: Review) => void;
   getOrder: (orderId: string) => PurchasedOrder | undefined;
   getProductReviews: (productId: number) => Review[];
+  updateOrderStatus: (orderId: string, status: OrderStatus, note?: string) => void;
+  addMessage: (orderId: string, msg: Omit<OrderMessage, "id" | "createdAt">) => void;
+  getAllOrders: () => PurchasedOrder[];
+  reportProblem: (orderId: string, report: string) => void;
 }
 
-// ─── Storage Helpers ──────────────────────────────────────────────────────────
+// ─── Storage ─────────────────────────────────────────────────────────────────
 
+const ALL_ORDERS_KEY  = "toko_all_orders_v2";
 const ALL_REVIEWS_KEY = "toko_all_reviews";
 
-function storageKey(userId?: string) {
-  return `toko_orders_${userId ?? "guest"}`;
+function loadAllOrders(): PurchasedOrder[] {
+  try { return JSON.parse(localStorage.getItem(ALL_ORDERS_KEY) ?? "[]"); }
+  catch { return []; }
 }
 
-function loadOrders(userId?: string): PurchasedOrder[] {
-  try { return JSON.parse(localStorage.getItem(storageKey(userId)) ?? "[]"); }
-  catch { return []; }
+function saveAllOrders(orders: PurchasedOrder[]) {
+  localStorage.setItem(ALL_ORDERS_KEY, JSON.stringify(orders));
 }
 
 function loadAllReviews(): Review[] {
@@ -89,22 +114,18 @@ function upsertGlobalReview(review: Review) {
   saveAllReviews([...filtered, review]);
 }
 
-// ─── Context ──────────────────────────────────────────────────────────────────
+// ─── Context ─────────────────────────────────────────────────────────────────
 
 const OrderHistoryContext = createContext<OrderHistoryContextType | undefined>(undefined);
 
 export function OrderHistoryProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
+  const [orders, setOrders] = useState<PurchasedOrder[]>(loadAllOrders);
 
-  const [orders, setOrders] = useState<PurchasedOrder[]>(() => loadOrders(user?.id));
-
+  // Sync to localStorage on every change
   useEffect(() => {
-    setOrders(loadOrders(user?.id));
-  }, [user?.id]);
-
-  useEffect(() => {
-    localStorage.setItem(storageKey(user?.id), JSON.stringify(orders));
-  }, [orders, user?.id]);
+    saveAllOrders(orders);
+  }, [orders]);
 
   const addOrder = (order: PurchasedOrder) =>
     setOrders((prev) => [order, ...prev]);
@@ -112,9 +133,7 @@ export function OrderHistoryProvider({ children }: { children: ReactNode }) {
   const addReview = (orderId: string, review: Review) => {
     setOrders((prev) =>
       prev.map((o) =>
-        o.id === orderId
-          ? { ...o, reviews: { ...o.reviews, [review.productId]: review } }
-          : o
+        o.id === orderId ? { ...o, reviews: { ...o.reviews, [review.productId]: review } } : o
       )
     );
     upsertGlobalReview(review);
@@ -127,8 +146,51 @@ export function OrderHistoryProvider({ children }: { children: ReactNode }) {
       .filter((r) => r.productId === productId)
       .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
+  const updateOrderStatus = (orderId: string, status: OrderStatus, note?: string) => {
+    setOrders((prev) =>
+      prev.map((o) => {
+        if (o.id !== orderId) return o;
+        const update: Partial<PurchasedOrder> = { status };
+        if (note && status === "in_delivery") update.courierNote = note;
+        return { ...o, ...update };
+      })
+    );
+  };
+
+  const addMessage = (orderId: string, msg: Omit<OrderMessage, "id" | "createdAt">) => {
+    const message: OrderMessage = {
+      ...msg,
+      id: `msg-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+      createdAt: new Date().toISOString(),
+    };
+    setOrders((prev) =>
+      prev.map((o) =>
+        o.id === orderId ? { ...o, messages: [...(o.messages ?? []), message] } : o
+      )
+    );
+  };
+
+  const getAllOrders = () => orders;
+
+  const reportProblem = (orderId: string, report: string) => {
+    setOrders((prev) =>
+      prev.map((o) =>
+        o.id === orderId ? { ...o, status: "problem", problemReport: report } : o
+      )
+    );
+  };
+
+  // Buyer's own orders
+  const myOrders = user
+    ? orders.filter((o) => o.userId === user.id)
+    : [];
+
   return (
-    <OrderHistoryContext.Provider value={{ state: { orders }, addOrder, addReview, getOrder, getProductReviews }}>
+    <OrderHistoryContext.Provider value={{
+      state: { orders: myOrders },
+      addOrder, addReview, getOrder, getProductReviews,
+      updateOrderStatus, addMessage, getAllOrders, reportProblem,
+    }}>
       {children}
     </OrderHistoryContext.Provider>
   );

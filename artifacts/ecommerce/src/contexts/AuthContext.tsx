@@ -2,18 +2,16 @@
  * AuthContext.tsx
  * Sistem autentikasi lokal berbasis localStorage.
  *
- * Tiga role:
- *   "user"   — pembeli biasa, hanya bisa belanja
- *   "seller" — dapat akses halaman seller untuk menambah produk
- *   "admin"  — kelola produk (setujui/tolak/hapus) dan kelola role user
+ * Role:
+ *   "user"   — pembeli biasa
+ *   "seller" — penjual, akses halaman seller
+ *   "admin"  — kelola produk, kelola user
+ *   "kurir"  — kurir, akses halaman pengiriman
  */
 import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
 
-// ─── Types ────────────────────────────────────────────────────────────────────
+export type UserRole = "user" | "seller" | "admin" | "kurir";
 
-export type UserRole = "user" | "seller" | "admin";
-
-/** Akun tersimpan di localStorage (termasuk password — hanya untuk demo lokal) */
 export interface StoredUser {
   id: string;
   name: string;
@@ -23,7 +21,6 @@ export interface StoredUser {
   createdAt: string;
 }
 
-/** Data user yang tersedia ke komponen (password tidak diekspos) */
 export interface User {
   id: string;
   name: string;
@@ -39,13 +36,9 @@ interface AuthContextType {
   login: (email: string, password: string) => { ok: boolean; error?: string };
   logout: () => void;
   updateName: (newName: string) => void;
-  /** Admin only: ambil semua user */
   getAllUsers: () => User[];
-  /** Admin only: ubah role user lain */
   updateUserRole: (userId: string, role: UserRole) => void;
 }
-
-// ─── Storage Helpers ──────────────────────────────────────────────────────────
 
 const USERS_KEY   = "toko_users";
 const SESSION_KEY = "toko_session_id";
@@ -69,28 +62,41 @@ function findUserById(id: string): User | null {
   return found ? toPublic(found) : null;
 }
 
-/** Seed akun admin jika belum ada */
-function seedAdminIfNeeded() {
+function seedSystemAccounts() {
   const users = getStoredUsers();
-  const adminEmail = "alrizalarkan@gmail.com";
-  if (users.some((u) => u.email === adminEmail)) return;
-  const admin: StoredUser = {
-    id: "admin-001",
-    name: "Admin Toko",
-    email: adminEmail,
-    password: "Admin123",
-    role: "admin",
-    createdAt: new Date().toISOString(),
-  };
-  saveUsers([admin, ...users]);
+  const seeds: StoredUser[] = [
+    {
+      id: "admin-001",
+      name: "Admin Toko",
+      email: "alrizalarkan@gmail.com",
+      password: "Admin123",
+      role: "admin",
+      createdAt: new Date().toISOString(),
+    },
+    {
+      id: "kurir-001",
+      name: "Kurir Express",
+      email: "kurir@toko.com",
+      password: "Kurir123",
+      role: "kurir",
+      createdAt: new Date().toISOString(),
+    },
+  ];
+  let changed = false;
+  const merged = [...users];
+  for (const seed of seeds) {
+    if (!merged.some((u) => u.id === seed.id)) {
+      merged.push(seed);
+      changed = true;
+    }
+  }
+  if (changed) saveUsers(merged);
 }
-
-// ─── Context ──────────────────────────────────────────────────────────────────
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  useEffect(() => { seedAdminIfNeeded(); }, []);
+  useEffect(() => { seedSystemAccounts(); }, []);
 
   const [user, setUser] = useState<User | null>(() => {
     const id = localStorage.getItem(SESSION_KEY);
@@ -110,11 +116,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const newUser: StoredUser = {
       id: `user-${Date.now()}`,
-      name: trimName,
-      email: trimEmail,
-      password,
-      role: "user",
-      createdAt: new Date().toISOString(),
+      name: trimName, email: trimEmail, password,
+      role: "user", createdAt: new Date().toISOString(),
     };
     saveUsers([...users, newUser]);
     localStorage.setItem(SESSION_KEY, newUser.id);
@@ -125,7 +128,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = (email: string, password: string): { ok: boolean; error?: string } => {
     const trimEmail = email.trim().toLowerCase();
     const found = getStoredUsers().find((u) => u.email === trimEmail);
-    if (!found)              return { ok: false, error: "Email tidak ditemukan." };
+    if (!found)                    return { ok: false, error: "Email tidak ditemukan." };
     if (found.password !== password) return { ok: false, error: "Password salah." };
     localStorage.setItem(SESSION_KEY, found.id);
     setUser(toPublic(found));
@@ -144,13 +147,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser({ ...user, name: newName.trim() });
   };
 
-  const getAllUsers = (): User[] => {
-    return getStoredUsers().map(toPublic);
-  };
+  const getAllUsers = (): User[] => getStoredUsers().map(toPublic);
 
   const updateUserRole = (userId: string, role: UserRole) => {
     if (user?.role !== "admin") return;
-    if (userId === "admin-001") return; // jaga akun admin utama
+    if (userId === "admin-001") return;
     const users = getStoredUsers();
     saveUsers(users.map((u) => u.id === userId ? { ...u, role } : u));
   };

@@ -1,10 +1,11 @@
 /**
  * Navbar.tsx
- * Navigasi utama + notification bell + LIVE indicator.
+ * Navigasi utama + notification bell + LIVE indicator + Kurir link.
  */
 import React, { useState, useRef, useEffect } from "react";
 import { Link, useLocation } from "wouter";
-import { ShoppingCart, Package, ClipboardList, ShieldCheck, Store, Bell, CheckCheck, Trash2, Radio } from "lucide-react";
+import { ShoppingCart, Package, ClipboardList, ShieldCheck, Store, Bell,
+         CheckCheck, Trash2, Radio, Truck } from "lucide-react";
 import { useCart } from "../contexts/CartContext";
 import { useAuth } from "../contexts/AuthContext";
 import { useNotifications } from "../contexts/NotificationContext";
@@ -26,10 +27,8 @@ function timeAgo(iso: string): string {
 }
 
 const NOTIF_ICON: Record<string, string> = {
-  order_placed: "🛍️",
-  order_received: "📦",
-  product_approved: "✅",
-  product_rejected: "❌",
+  order_placed: "🛍️", order_received: "📦",
+  product_approved: "✅", product_rejected: "❌",
 };
 
 export function Navbar() {
@@ -46,9 +45,7 @@ export function Navbar() {
   useEffect(() => {
     if (!bellOpen) return;
     const handler = (e: MouseEvent) => {
-      if (bellRef.current && !bellRef.current.contains(e.target as Node)) {
-        setBellOpen(false);
-      }
+      if (bellRef.current && !bellRef.current.contains(e.target as Node)) setBellOpen(false);
     };
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
@@ -73,29 +70,34 @@ export function Navbar() {
         {/* Nav kanan */}
         <div className="flex items-center gap-1 sm:gap-2">
 
-          {/* LIVE indicator — shown to everyone when live is active */}
+          {/* LIVE button */}
           <Link href="/live">
-            <button
-              className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                session.isLive
-                  ? "bg-red-600 text-white animate-pulse"
-                  : "border border-muted text-muted-foreground hover:border-primary/50 hover:text-primary"
-              }`}
-              title={session.isLive ? "Live sedang berlangsung!" : "Live Shopping"}
-            >
+            <button className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all ${
+              session.isLive
+                ? "bg-red-600 text-white animate-pulse"
+                : "border border-muted text-muted-foreground hover:border-primary/50 hover:text-primary"
+            }`} title={session.isLive ? "Live sedang berlangsung!" : "Live Shopping"}>
               {session.isLive ? (
-                <>
-                  <span className="w-1.5 h-1.5 bg-white rounded-full inline-block" />
-                  LIVE
-                </>
+                <><span className="w-1.5 h-1.5 bg-white rounded-full" />LIVE</>
               ) : (
-                <>
-                  <Radio className="h-3.5 w-3.5" />
-                  <span className="hidden sm:inline">Live</span>
-                </>
+                <><Radio className="h-3.5 w-3.5" /><span className="hidden sm:inline">Live</span></>
               )}
             </button>
           </Link>
+
+          {/* Kurir link */}
+          {(user?.role === "kurir" || user?.role === "admin") && (
+            <Link href="/courier">
+              <Button variant={isActive("/courier") ? "secondary" : "ghost"} size="sm"
+                className="hidden sm:flex items-center gap-1.5">
+                <Truck className="h-4 w-4" />Pengiriman
+              </Button>
+              <Button variant={isActive("/courier") ? "secondary" : "ghost"} size="icon"
+                className="sm:hidden" title="Halaman Kurir">
+                <Truck className="h-5 w-5" />
+              </Button>
+            </Link>
+          )}
 
           {/* Seller dashboard */}
           {user?.role === "seller" && (
@@ -116,7 +118,7 @@ export function Navbar() {
             <Link href="/admin">
               <Button variant={isActive("/admin") ? "secondary" : "ghost"} size="sm"
                 className="hidden sm:flex items-center gap-1.5" data-testid="button-nav-admin">
-                <ShieldCheck className="h-4 w-4" />Panel Admin
+                <ShieldCheck className="h-4 w-4" />Admin
               </Button>
               <Button variant={isActive("/admin") ? "secondary" : "ghost"} size="icon"
                 className="sm:hidden" title="Panel Admin">
@@ -139,7 +141,7 @@ export function Navbar() {
 
           {/* Notification Bell */}
           <div ref={bellRef} className="relative">
-            <Button variant="ghost" size="icon" className="relative" onClick={handleBellClick} title="Notifikasi">
+            <Button variant="ghost" size="icon" className="relative" onClick={handleBellClick}>
               <Bell className="h-5 w-5" />
               {unreadCount > 0 && (
                 <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white">
@@ -147,7 +149,6 @@ export function Navbar() {
                 </span>
               )}
             </Button>
-
             {bellOpen && (
               <div className="absolute right-0 top-full mt-2 w-80 bg-background border rounded-2xl shadow-xl overflow-hidden z-50">
                 <div className="flex items-center justify-between px-4 py-3 border-b bg-muted/30">
@@ -155,12 +156,10 @@ export function Navbar() {
                   <div className="flex items-center gap-1">
                     {notifications.length > 0 && (
                       <>
-                        <button onClick={markAllRead} title="Tandai semua dibaca"
-                          className="p-1.5 text-muted-foreground hover:text-foreground rounded-lg hover:bg-muted transition-colors">
+                        <button onClick={markAllRead} className="p-1.5 text-muted-foreground hover:text-foreground rounded-lg hover:bg-muted transition-colors">
                           <CheckCheck className="h-4 w-4" />
                         </button>
-                        <button onClick={clearAll} title="Hapus semua"
-                          className="p-1.5 text-muted-foreground hover:text-red-500 rounded-lg hover:bg-muted transition-colors">
+                        <button onClick={clearAll} className="p-1.5 text-muted-foreground hover:text-red-500 rounded-lg hover:bg-muted transition-colors">
                           <Trash2 className="h-4 w-4" />
                         </button>
                       </>
@@ -170,8 +169,7 @@ export function Navbar() {
                 <div className="max-h-80 overflow-y-auto divide-y">
                   {notifications.length === 0 ? (
                     <div className="px-4 py-8 text-center text-sm text-muted-foreground">
-                      <Bell className="h-8 w-8 mx-auto mb-2 opacity-30" />
-                      Belum ada notifikasi
+                      <Bell className="h-8 w-8 mx-auto mb-2 opacity-30" />Belum ada notifikasi
                     </div>
                   ) : (
                     notifications.map((n) => (
@@ -179,9 +177,7 @@ export function Navbar() {
                         className={`w-full text-left px-4 py-3 hover:bg-muted/50 transition-colors flex gap-3 ${!n.read ? "bg-primary/5" : ""}`}>
                         <span className="text-xl flex-shrink-0 mt-0.5">{NOTIF_ICON[n.type] ?? "🔔"}</span>
                         <div className="flex-1 min-w-0">
-                          <p className={`text-sm font-semibold leading-tight ${!n.read ? "text-foreground" : "text-muted-foreground"}`}>
-                            {n.title}
-                          </p>
+                          <p className={`text-sm font-semibold leading-tight ${!n.read ? "text-foreground" : "text-muted-foreground"}`}>{n.title}</p>
                           <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed line-clamp-2">{n.message}</p>
                           <p className="text-[10px] text-muted-foreground/70 mt-1">{timeAgo(n.createdAt)}</p>
                         </div>
@@ -196,7 +192,7 @@ export function Navbar() {
 
           {/* Keranjang */}
           <Link href="/cart">
-            <Button variant="ghost" size="icon" className="relative" data-testid="button-cart-icon" title="Keranjang">
+            <Button variant="ghost" size="icon" className="relative" data-testid="button-cart-icon">
               <ShoppingCart className="h-5 w-5" />
               {totalItems > 0 && (
                 <span data-testid="text-cart-count"
@@ -207,7 +203,7 @@ export function Navbar() {
             </Button>
           </Link>
 
-          {/* Avatar → Profil */}
+          {/* Avatar */}
           {user && (
             <Link href="/profile">
               <button data-testid="button-nav-profile" title={`Profil — ${user.name}`}
@@ -222,6 +218,7 @@ export function Navbar() {
                     {user.name.split(" ")[0]}
                     {user.role === "admin"  && <ShieldCheck className="h-3.5 w-3.5 text-primary" />}
                     {user.role === "seller" && <Store className="h-3.5 w-3.5 text-purple-500" />}
+                    {user.role === "kurir"  && <Truck className="h-3.5 w-3.5 text-blue-500" />}
                   </span>
                   <span className="text-[10px] text-muted-foreground capitalize">{user.role}</span>
                 </div>

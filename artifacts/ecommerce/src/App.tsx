@@ -1,5 +1,5 @@
 /**
- * App.tsx — route seller diizinkan untuk admin DAN seller.
+ * App.tsx
  */
 import React, { useEffect } from "react";
 import { Switch, Route, Router as WouterRouter, useLocation } from "wouter";
@@ -30,6 +30,7 @@ import { ProfilePage } from "./pages/ProfilePage";
 import { SellerPage } from "./pages/SellerPage";
 import { AdminPage } from "./pages/AdminPage";
 import { LivePage } from "./pages/LivePage";
+import { CourierPage } from "./pages/CourierPage";
 import NotFound from "@/pages/not-found";
 
 const queryClient = new QueryClient();
@@ -80,8 +81,9 @@ const OrdersRoute   = () => <ProtectedRoute component={OrderHistoryPage} />;
 const SuccessRoute  = () => <ProtectedRoute component={CheckoutSuccessPage} />;
 const ProductRoute  = () => <ProtectedRoute component={ProductDetailPage} />;
 const ProfileRoute  = () => <ProtectedRoute component={ProfilePage} />;
-const SellerRoute   = () => <RoleRoute component={SellerPage}  roles={["seller", "admin"]} />;
-const AdminRoute    = () => <RoleRoute component={AdminPage}   roles={["admin"]} />;
+const SellerRoute   = () => <RoleRoute component={SellerPage}   roles={["seller", "admin"]} />;
+const AdminRoute    = () => <RoleRoute component={AdminPage}    roles={["admin"]} />;
+const CourierRoute  = () => <RoleRoute component={CourierPage}  roles={["kurir", "admin"]} />;
 
 function Router() {
   return (
@@ -96,6 +98,7 @@ function Router() {
       <Route path="/profile"          component={ProfileRoute} />
       <Route path="/seller"           component={SellerRoute} />
       <Route path="/admin"            component={AdminRoute} />
+      <Route path="/courier"          component={CourierRoute} />
       <Route path="/checkout-success" component={SuccessRoute} />
       <Route path="/live"             component={LiveRoute} />
       <Route component={NotFound} />
