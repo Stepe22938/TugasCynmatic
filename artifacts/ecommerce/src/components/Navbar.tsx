@@ -85,19 +85,7 @@ export function Navbar() {
             </button>
           </Link>
 
-          {/* Kurir link */}
-          {(user?.role === "kurir" || user?.role === "admin") && (
-            <Link href="/courier">
-              <Button variant={isActive("/courier") ? "secondary" : "ghost"} size="sm"
-                className="hidden sm:flex items-center gap-1.5">
-                <Truck className="h-4 w-4" />Pengiriman
-              </Button>
-              <Button variant={isActive("/courier") ? "secondary" : "ghost"} size="icon"
-                className="sm:hidden" title="Halaman Kurir">
-                <Truck className="h-5 w-5" />
-              </Button>
-            </Link>
-          )}
+
 
           {/* Seller dashboard */}
           {user?.role === "seller" && (

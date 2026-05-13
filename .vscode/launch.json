@@ -1,0 +1,28 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Launch API Server",
+      "type": "node",
+      "request": "launch",
+      "cwd": "${workspaceFolder}/artifacts/api-server",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["run", "dev"],
+      "console": "integratedTerminal"
+    },
+    {
+      "name": "Launch Ecommerce App",
+      "type": "msedge",
+      "request": "launch",
+      "url": "http://localhost:5173",
+      "webRoot": "${workspaceFolder}/artifacts/ecommerce/src",
+      "preLaunchTask": "npm: dev - artifacts/ecommerce"
+    }
+  ],
+  "compounds": [
+    {
+      "name": "Launch Full Stack",
+      "configurations": ["Launch API Server", "Launch Ecommerce App"]
+    }
+  ]
+}

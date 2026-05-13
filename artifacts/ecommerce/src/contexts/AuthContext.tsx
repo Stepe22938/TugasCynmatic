@@ -14,19 +14,35 @@ export type UserRole = "user" | "seller" | "admin" | "kurir";
 
 export interface StoredUser {
   id: string;
+  systemId?: number;
   name: string;
   email: string;
   password: string;
   role: UserRole;
   createdAt: string;
+  coins: number;
+  isBanned: boolean;
+  bio?: string;
+  theme?: string;
+  friends?: string[];
+  friendRequests?: string[];  // incoming
+  sentRequests?: string[];    // outgoing
 }
 
 export interface User {
   id: string;
+  systemId?: number;
   name: string;
   email: string;
   role: UserRole;
   createdAt: string;
+  coins: number;
+  isBanned: boolean;
+  bio?: string;
+  theme?: string;
+  friends?: string[];
+  friendRequests?: string[];
+  sentRequests?: string[];
 }
 
 interface AuthContextType {
@@ -36,8 +52,17 @@ interface AuthContextType {
   login: (email: string, password: string) => { ok: boolean; error?: string };
   logout: () => void;
   updateName: (newName: string) => void;
+  updateCustomization: (bio: string, theme: string) => void;
+  sendFriendRequest: (targetId: string) => void;
+  acceptFriendRequest: (fromId: string) => void;
+  rejectFriendRequest: (fromId: string) => void;
+  removeFriend: (friendId: string) => void;
   getAllUsers: () => User[];
   updateUserRole: (userId: string, role: UserRole) => void;
+  updateUserCoins: (userId: string, amount: number) => void;
+  addCoins: (userId: string | "all", amount: number) => void;
+  toggleBan: (userId: string) => void;
+  updateIps: (pub: string, loc: string) => void;
 }
 
 const USERS_KEY   = "toko_users";
@@ -67,19 +92,25 @@ function seedSystemAccounts() {
   const seeds: StoredUser[] = [
     {
       id: "admin-001",
+      systemId: 1,
       name: "Admin Toko",
       email: "alrizalarkan@gmail.com",
       password: "Admin123",
       role: "admin",
       createdAt: new Date().toISOString(),
+      coins: 0,
+      isBanned: false,
     },
     {
       id: "kurir-001",
+      systemId: 2,
       name: "Kurir Express",
       email: "kurir@toko.com",
       password: "Kurir123",
       role: "kurir",
       createdAt: new Date().toISOString(),
+      coins: 0,
+      isBanned: false,
     },
   ];
   let changed = false;
@@ -114,10 +145,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (users.some((u) => u.email === trimEmail))
       return { ok: false, error: "Email sudah terdaftar. Silakan login." };
 
+    const newId = `user-${Date.now()}`;
+    const nextSystemId = users.length > 0 ? Math.max(...users.map(u => u.systemId || 0)) + 1 : 1;
     const newUser: StoredUser = {
-      id: `user-${Date.now()}`,
-      name: trimName, email: trimEmail, password,
-      role: "user", createdAt: new Date().toISOString(),
+      id: newId,
+      systemId: nextSystemId,
+      name: trimName,
+      email: trimEmail,
+      password,
+      role: "user",
+      createdAt: new Date().toISOString(),
+      coins: 0,
+      isBanned: false,
     };
     saveUsers([...users, newUser]);
     localStorage.setItem(SESSION_KEY, newUser.id);
@@ -130,6 +169,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const found = getStoredUsers().find((u) => u.email === trimEmail);
     if (!found)                    return { ok: false, error: "Email tidak ditemukan." };
     if (found.password !== password) return { ok: false, error: "Password salah." };
+    if (found.isBanned)              return { ok: false, error: "Akun ini telah diblokir." };
     localStorage.setItem(SESSION_KEY, found.id);
     setUser(toPublic(found));
     return { ok: true };
@@ -147,6 +187,76 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser({ ...user, name: newName.trim() });
   };
 
+  const updateCustomization = (bio: string, theme: string) => {
+    if (!user) return;
+    const users = getStoredUsers();
+    saveUsers(users.map((u) => u.id === user.id ? { ...u, bio, theme } : u));
+    setUser({ ...user, bio, theme });
+  };
+
+  const sendFriendRequest = (targetId: string) => {
+    if (!user || targetId === user.id) return;
+    const users = getStoredUsers();
+    const target = users.find(u => u.id === targetId);
+    if (!target) return;
+    // Already friends or already sent
+    if ((user.friends || []).includes(targetId)) return;
+    if ((user.sentRequests || []).includes(targetId)) return;
+    // Add to my sentRequests and their friendRequests
+    const newSent = [...(user.sentRequests || []), targetId];
+    const targetReqs = [...(target.friendRequests || []), user.id];
+    saveUsers(users.map(u => {
+      if (u.id === user.id) return { ...u, sentRequests: newSent };
+      if (u.id === targetId) return { ...u, friendRequests: targetReqs };
+      return u;
+    }));
+    setUser({ ...user, sentRequests: newSent });
+  };
+
+  const acceptFriendRequest = (fromId: string) => {
+    if (!user) return;
+    const users = getStoredUsers();
+    const from = users.find(u => u.id === fromId);
+    if (!from) return;
+    // Add each other as friends, remove from request lists
+    const myFriends = [...(user.friends || []), fromId];
+    const myReqs = (user.friendRequests || []).filter(id => id !== fromId);
+    const theirFriends = [...(from.friends || []), user.id];
+    const theirSent = (from.sentRequests || []).filter(id => id !== user.id);
+    saveUsers(users.map(u => {
+      if (u.id === user.id) return { ...u, friends: myFriends, friendRequests: myReqs };
+      if (u.id === fromId) return { ...u, friends: theirFriends, sentRequests: theirSent };
+      return u;
+    }));
+    setUser({ ...user, friends: myFriends, friendRequests: myReqs });
+  };
+
+  const rejectFriendRequest = (fromId: string) => {
+    if (!user) return;
+    const users = getStoredUsers();
+    const from = users.find(u => u.id === fromId);
+    const myReqs = (user.friendRequests || []).filter(id => id !== fromId);
+    const theirSent = from ? (from.sentRequests || []).filter(id => id !== user.id) : [];
+    saveUsers(users.map(u => {
+      if (u.id === user.id) return { ...u, friendRequests: myReqs };
+      if (u.id === fromId) return { ...u, sentRequests: theirSent };
+      return u;
+    }));
+    setUser({ ...user, friendRequests: myReqs });
+  };
+
+  const removeFriend = (friendId: string) => {
+    if (!user) return;
+    const users = getStoredUsers();
+    const myFriends = (user.friends || []).filter(id => id !== friendId);
+    saveUsers(users.map(u => {
+      if (u.id === user.id) return { ...u, friends: myFriends };
+      if (u.id === friendId) return { ...u, friends: (u.friends || []).filter(id => id !== user.id) };
+      return u;
+    }));
+    setUser({ ...user, friends: myFriends });
+  };
+
   const getAllUsers = (): User[] => getStoredUsers().map(toPublic);
 
   const updateUserRole = (userId: string, role: UserRole) => {
@@ -156,8 +266,43 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     saveUsers(users.map((u) => u.id === userId ? { ...u, role } : u));
   };
 
+  const updateUserCoins = (userId: string, amount: number) => {
+    if (user?.role !== "admin") return;
+    const users = getStoredUsers();
+    saveUsers(users.map((u) => u.id === userId ? { ...u, coins: amount } : u));
+    if (user.id === userId) setUser((prev) => prev ? { ...prev, coins: amount } : null);
+  };
+
+  const addCoins = (userId: string | "all", amount: number) => {
+    // If not admin, the user can only add to themselves (e.g. from checkout)
+    if (userId !== "all" && user?.id !== userId && user?.role !== "admin") return;
+    const users = getStoredUsers();
+    saveUsers(users.map((u) => (userId === "all" || u.id === userId) ? { ...u, coins: (u.coins || 0) + amount } : u));
+    if (userId === "all" || user?.id === userId) {
+      setUser((prev) => prev ? { ...prev, coins: (prev.coins || 0) + amount } : null);
+    }
+  };
+
+  const toggleBan = (userId: string) => {
+    if (user?.role !== "admin") return;
+    if (userId === "admin-001") return;
+    const users = getStoredUsers();
+    saveUsers(users.map((u) => u.id === userId ? { ...u, isBanned: !u.isBanned } : u));
+  };
+
+  const updateIps = (pub: string, loc: string) => {
+    if (!user) return;
+    const users = getStoredUsers();
+    saveUsers(users.map((u) => u.id === user.id ? { ...u, publicIp: pub, localIp: loc } : u));
+    setUser((prev) => prev ? { ...prev, publicIp: pub, localIp: loc } : null);
+  };
+
   return (
-    <AuthContext.Provider value={{ user, isAuthenticated: !!user, register, login, logout, updateName, getAllUsers, updateUserRole }}>
+    <AuthContext.Provider value={{ 
+      user, isAuthenticated: !!user, register, login, logout, updateName, updateCustomization, 
+      sendFriendRequest, acceptFriendRequest, rejectFriendRequest, removeFriend, 
+      getAllUsers, updateUserRole, updateUserCoins, addCoins, toggleBan, updateIps 
+    }}>
       {children}
     </AuthContext.Provider>
   );

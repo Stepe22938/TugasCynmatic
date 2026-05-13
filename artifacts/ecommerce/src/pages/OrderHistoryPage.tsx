@@ -10,6 +10,7 @@ import { Package, Star, CheckCircle2, AlertCircle, ArrowLeft,
          Truck, MapPin, CheckCheck, Flag, MessageSquare, X } from "lucide-react";
 import { useOrderHistory, Review, PurchasedOrder, OrderStatus } from "../contexts/OrderHistoryContext";
 import { useAuth } from "../contexts/AuthContext";
+import { useTickets } from "../contexts/TicketContext";
 import { ReviewForm } from "../components/ReviewForm";
 import { ReceiptModal } from "../components/ReceiptModal";
 import { formatPrice } from "../utils/formatPrice";
@@ -189,6 +190,7 @@ function ReportModal({ order, onClose, onReport }: { order: PurchasedOrder; onCl
 export function OrderHistoryPage() {
   const { state, addReview, updateOrderStatus, reportProblem } = useOrderHistory();
   const { user } = useAuth();
+  const { createTicket } = useTickets();
   const { toast } = useToast();
 
   const [reviewTarget, setReviewTarget] = useState<{
@@ -214,8 +216,9 @@ export function OrderHistoryPage() {
 
   const handleReport = (orderId: string, report: string) => {
     reportProblem(orderId, report);
+    createTicket("order_problem", report, orderId);
     setReportOrder(null);
-    toast({ title: "Laporan terkirim", description: "Penjual akan segera menghubungi kamu.", variant: "destructive" });
+    toast({ title: "Laporan terkirim", description: "Admin dan Penjual akan segera menindaklanjuti.", variant: "destructive" });
   };
 
   if (state.orders.length === 0) {

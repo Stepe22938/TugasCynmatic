@@ -3,10 +3,11 @@
  * Panel Admin: produk, pengguna, voucher, live, pengaturan.
  */
 import React, { useState } from "react";
+import { Link } from "wouter";
 import {
   ShieldCheck, Package, Users, CheckCircle2, XCircle, Trash2, Clock,
   ChevronDown, ToggleLeft, ToggleRight, Bot, Eye, EyeOff, KeyRound,
-  CreditCard, Smartphone, QrCode, Tag, Radio, Plus, X, Search,
+  CreditCard, Smartphone, QrCode, Tag, Radio, Plus, X, Search, Coins, Ban, Globe, ArrowRight
 } from "lucide-react";
 import { useAuth, User, UserRole } from "../contexts/AuthContext";
 import { useProducts, SellerProduct } from "../contexts/ProductsContext";
@@ -14,6 +15,8 @@ import { useAISettings, AIProvider } from "../contexts/AISettingsContext";
 import { usePaymentSettings } from "../contexts/PaymentSettingsContext";
 import { useVouchers, Voucher, VoucherType } from "../contexts/VoucherContext";
 import { useLive } from "../contexts/LiveContext";
+import { useTickets } from "../contexts/TicketContext";
+import { useExchangeSettings } from "../contexts/ExchangeSettingsContext";
 import { formatPrice } from "../utils/formatPrice";
 import { Button } from "../components/ui/button";
 import { useToast } from "../hooks/use-toast";
@@ -24,9 +27,9 @@ const STATUS_BADGE: Record<SellerProduct["status"], string> = {
 const STATUS_LABEL: Record<SellerProduct["status"], string> = {
   pending: "Menunggu", approved: "Disetujui", rejected: "Ditolak",
 };
-const ROLE_LABEL: Record<UserRole, string> = { user: "User", seller: "Seller", admin: "Admin" };
+const ROLE_LABEL: Record<UserRole, string> = { user: "User", seller: "Seller", admin: "Admin", kurir: "Kurir" };
 const ROLE_COLOR: Record<UserRole, string> = {
-  user: "bg-blue-100 text-blue-700", seller: "bg-purple-100 text-purple-700", admin: "bg-orange-100 text-orange-700",
+  user: "bg-blue-100 text-blue-700", seller: "bg-purple-100 text-purple-700", admin: "bg-orange-100 text-orange-700", kurir: "bg-green-100 text-green-700",
 };
 
 function ProductRow({ product, onApprove, onReject, onDelete }: {
@@ -83,31 +86,50 @@ function ProductRow({ product, onApprove, onReject, onDelete }: {
   );
 }
 
-function UserRow({ user, currentUser, onRoleChange }: { user: User; currentUser: User; onRoleChange: (id: string, role: UserRole) => void }) {
+function UserRow({ user, currentUser, onRoleChange, onBanToggle }: { 
+  user: User; currentUser: User; 
+  onRoleChange: (id: string, role: UserRole) => void;
+  onBanToggle: (id: string) => void;
+}) {
   const isCurrentUser = user.id === currentUser.id;
   const isMainAdmin   = user.id === "admin-001";
   return (
-    <div className="flex items-center gap-4 px-4 py-3 border-b last:border-0">
-      <div className="w-9 h-9 rounded-xl overflow-hidden flex-shrink-0">
-        <img src={`https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(user.name)}&backgroundColor=f97316&fontColor=ffffff&fontSize=40`}
-          alt={user.name} className="w-full h-full object-cover" />
+    <div className={`flex flex-col gap-2 px-4 py-3 border-b last:border-0 ${user.isBanned ? 'bg-red-50/50' : ''}`}>
+      <div className="flex items-center gap-4">
+        <div className="w-9 h-9 rounded-xl overflow-hidden flex-shrink-0">
+          <img src={`https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(user.name)}&backgroundColor=f97316&fontColor=ffffff&fontSize=40`}
+            alt={user.name} className={`w-full h-full object-cover ${user.isBanned ? 'grayscale' : ''}`} />
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className={`text-sm font-semibold leading-tight truncate ${user.isBanned ? 'text-red-700 line-through' : ''}`}>
+            {user.name}{isCurrentUser && <span className="text-xs text-muted-foreground font-normal ml-1">(kamu)</span>}
+            {user.isBanned && <span className="text-[10px] bg-red-100 text-red-700 px-1.5 py-0.5 rounded ml-2 not-line-through">BANNED</span>}
+          </p>
+          <p className="text-xs text-muted-foreground truncate">{user.email}</p>
+        </div>
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-1 bg-amber-50 px-3 py-1 rounded-lg border border-amber-200">
+            <Coins className="h-3.5 w-3.5 text-amber-500" />
+            <span className="text-xs font-bold text-amber-700">{user.coins || 0}</span>
+          </div>
+          {isMainAdmin || isCurrentUser ? (
+            <span className={`text-[11px] font-bold px-2.5 py-1 rounded-full ${ROLE_COLOR[user.role]}`}>{ROLE_LABEL[user.role]}</span>
+          ) : (
+            <select value={user.role} onChange={(e) => onRoleChange(user.id, e.target.value as UserRole)}
+              className="text-xs border border-input rounded-lg px-2 py-1 bg-background focus:outline-none focus:ring-2 focus:ring-ring">
+              <option value="user">User</option>
+              <option value="seller">Seller</option>
+              <option value="kurir">Kurir</option>
+              <option value="admin">Admin</option>
+            </select>
+          )}
+          {!isMainAdmin && !isCurrentUser && (
+            <button onClick={() => onBanToggle(user.id)} className={`p-1.5 rounded-lg transition-colors ${user.isBanned ? 'bg-red-100 text-red-600 hover:bg-red-200' : 'bg-muted text-muted-foreground hover:bg-red-50 hover:text-red-500'}`} title={user.isBanned ? "Unban User" : "Ban User"}>
+              <Ban className="h-4 w-4" />
+            </button>
+          )}
+        </div>
       </div>
-      <div className="flex-1 min-w-0">
-        <p className="text-sm font-semibold leading-tight truncate">
-          {user.name}{isCurrentUser && <span className="text-xs text-muted-foreground font-normal ml-1">(kamu)</span>}
-        </p>
-        <p className="text-xs text-muted-foreground truncate">{user.email}</p>
-      </div>
-      {isMainAdmin || isCurrentUser ? (
-        <span className={`text-[11px] font-bold px-2.5 py-1 rounded-full ${ROLE_COLOR[user.role]}`}>{ROLE_LABEL[user.role]}</span>
-      ) : (
-        <select value={user.role} onChange={(e) => onRoleChange(user.id, e.target.value as UserRole)}
-          className="text-xs border border-input rounded-lg px-2 py-1 bg-background focus:outline-none focus:ring-2 focus:ring-ring">
-          <option value="user">User</option>
-          <option value="seller">Seller</option>
-          <option value="admin">Admin</option>
-        </select>
-      )}
     </div>
   );
 }
@@ -194,15 +216,17 @@ function VoucherRow({ voucher, onToggle, onDelete }: { voucher: Voucher; onToggl
   );
 }
 
-type Tab = "products" | "users" | "vouchers" | "live" | "settings";
+type Tab = "products" | "users" | "coins" | "tickets" | "vouchers" | "ip_list" | "live" | "settings";
 
 export function AdminPage() {
-  const { user, getAllUsers, updateUserRole } = useAuth();
+  const { user, getAllUsers, updateUserRole, addCoins, toggleBan } = useAuth();
   const { sellerProducts, allStoreProducts, autoApprove, setAutoApprove, approveProduct, rejectProduct, deleteProduct } = useProducts();
   const ai  = useAISettings();
   const pay = usePaymentSettings();
   const { vouchers, addVoucher, toggleVoucher, deleteVoucher } = useVouchers();
   const { session, startLive, stopLive, updateSession, toggleProduct: toggleLiveProduct } = useLive();
+  const { tickets, updateTicket } = useTickets();
+  const { options: exchangeOptions, addOption: addExchangeOption, deleteOption: deleteExchangeOption } = useExchangeSettings();
   const { toast } = useToast();
 
   const [tab, setTab]         = useState<Tab>("products");
@@ -223,10 +247,18 @@ export function AdminPage() {
   const [vMaxUses,  setVMaxUses]  = useState("");
   const [vDesc,     setVDesc]     = useState("");
 
+  const [bulkCoinAmount, setBulkCoinAmount] = useState("");
+  const [targetUserId, setTargetUserId]     = useState("");
+  const [singleCoinAmount, setSingleCoinAmount] = useState("");
+
+  const [excCoins, setExcCoins] = useState("");
+  const [excValue, setExcValue] = useState("");
+  const [excTitle, setExcTitle] = useState("");
+
   // Live search
   const [liveSearch, setLiveSearch] = useState("");
 
-  if (!user || user.role !== "admin") return null;
+  if (!user || user.role !== "admin") return <div className="text-center py-20 font-semibold">Akses Ditolak</div>;
 
   const visible = filter === "all" ? sellerProducts : sellerProducts.filter((p) => p.status === filter);
   const counts  = {
@@ -239,9 +271,14 @@ export function AdminPage() {
   const handleApprove = (id: number) => { approveProduct(id); toast({ title: "Produk disetujui." }); };
   const handleReject  = (id: number) => { rejectProduct(id);  toast({ title: "Produk ditolak." }); };
   const handleDelete  = (id: number) => { deleteProduct(id);  toast({ title: "Produk dihapus." }); };
-  const handleRoleChange = (uid: string, role: UserRole) => {
-    updateUserRole(uid, role); setUsers(getAllUsers());
-    toast({ title: `Role diubah menjadi ${ROLE_LABEL[role]}.` });
+  const handleRoleChange = (userId: string, newRole: UserRole) => {
+    updateUserRole(userId, newRole);
+    setUsers(users.map(u => u.id === userId ? { ...u, role: newRole } : u));
+    toast({ title: "Peran Diperbarui" });
+  };
+  const handleBanToggle = (uid: string) => {
+    toggleBan(uid); setUsers(getAllUsers());
+    toast({ title: "Status blokir pengguna diperbarui." });
   };
   const handleSaveKeys = () => {
     ai.setOpenaiKey(draftOpenai.trim());
@@ -273,6 +310,35 @@ export function AdminPage() {
     setVCode(""); setVType("percentage"); setVValue(""); setVMinPurch(""); setVMaxDisc(""); setVMaxUses(""); setVDesc("");
   };
 
+  const handleGiveBulkCoins = () => {
+    const amount = parseInt(bulkCoinAmount);
+    if (!amount || amount <= 0) return toast({ title: "Jumlah tidak valid", variant: "destructive" });
+    addCoins("all", amount);
+    setUsers(users.map(u => ({ ...u, coins: (u.coins || 0) + amount })));
+    setBulkCoinAmount("");
+    toast({ title: "Berhasil", description: `Memberikan ${amount} koin ke semua pengguna.` });
+  };
+
+  const handleGiveSingleCoin = () => {
+    if (!targetUserId) return toast({ title: "Pilih pengguna", variant: "destructive" });
+    const amount = parseInt(singleCoinAmount);
+    if (!amount || amount <= 0) return toast({ title: "Jumlah tidak valid", variant: "destructive" });
+    addCoins(targetUserId, amount);
+    setUsers(users.map(u => u.id === targetUserId ? { ...u, coins: (u.coins || 0) + amount } : u));
+    setTargetUserId("");
+    setSingleCoinAmount("");
+    toast({ title: "Berhasil", description: `Memberikan ${amount} koin ke pengguna.` });
+  };
+
+  const handleAddExchangeOption = () => {
+    const coins = parseInt(excCoins);
+    const value = parseInt(excValue);
+    if (!coins || !value || !excTitle.trim()) return toast({ title: "Isi data dengan benar", variant: "destructive" });
+    addExchangeOption({ coins, value, title: excTitle.trim() });
+    setExcCoins(""); setExcValue(""); setExcTitle("");
+    toast({ title: "Opsi Tukar Koin Ditambahkan" });
+  };
+
   const filteredStoreProducts = allStoreProducts.filter((p) =>
     !liveSearch || p.name.toLowerCase().includes(liveSearch.toLowerCase())
   );
@@ -280,6 +346,9 @@ export function AdminPage() {
   const TABS: { id: Tab; icon: React.ElementType; label: string }[] = [
     { id: "products", icon: Package,     label: `Produk (${counts.all})` },
     { id: "users",    icon: Users,        label: `Pengguna (${users.length})` },
+    { id: "coins",    icon: Coins,        label: "Koin" },
+    { id: "ip_list",  icon: Globe,        label: "IP List" },
+    { id: "tickets",  icon: ShieldCheck,  label: `Tiket Bantuan (${tickets.filter(t => t.status === "open").length})` },
     { id: "vouchers", icon: Tag,          label: `Voucher (${vouchers.length})` },
     { id: "live",     icon: Radio,        label: "Live" },
     { id: "settings", icon: ToggleRight,  label: "Pengaturan" },
@@ -337,7 +406,203 @@ export function AdminPage() {
         <div className="bg-card border rounded-2xl overflow-hidden shadow-sm">
           {users.length === 0
             ? <div className="text-center py-12 text-muted-foreground">Belum ada pengguna.</div>
-            : <div className="divide-y">{users.map((u) => <UserRow key={u.id} user={u} currentUser={user} onRoleChange={handleRoleChange} />)}</div>}
+            : <div className="divide-y">{users.map((u) => <UserRow key={u.id} user={u} currentUser={user} onRoleChange={handleRoleChange} onBanToggle={handleBanToggle} />)}</div>}
+        </div>
+      )}
+
+      {/* ── Tab Koin ──────────────────────────────────────────────── */}
+      {tab === "coins" && (
+        <div className="space-y-6">
+          <div className="bg-gradient-to-br from-amber-50 to-orange-50 border border-amber-200 rounded-2xl p-6">
+            <h3 className="font-bold text-amber-800 text-lg mb-2">Pemberian Koin Global</h3>
+            <p className="text-sm text-amber-700 mb-4">Berikan koin dalam jumlah tertentu ke SEMUA pengguna yang terdaftar.</p>
+            <div className="flex gap-3 max-w-md">
+              <input 
+                type="number" 
+                value={bulkCoinAmount} 
+                onChange={e => setBulkCoinAmount(e.target.value)} 
+                placeholder="Jumlah Koin" 
+                className="flex-1 px-4 py-2 rounded-lg border border-amber-300 focus:outline-none focus:ring-2 focus:ring-amber-500"
+              />
+              <Button onClick={handleGiveBulkCoins} className="bg-amber-600 hover:bg-amber-700 text-white">Give Coin All</Button>
+            </div>
+          </div>
+
+          <div className="bg-card border border-border rounded-2xl p-6">
+            <h3 className="font-bold text-foreground text-lg mb-2">Pemberian Koin Spesifik</h3>
+            <p className="text-sm text-muted-foreground mb-4">Berikan koin hanya kepada satu pengguna pilihan.</p>
+            <div className="flex flex-col sm:flex-row gap-3 max-w-2xl">
+              <select 
+                value={targetUserId} 
+                onChange={e => setTargetUserId(e.target.value)}
+                className="flex-[2] px-4 py-2 rounded-lg border border-input focus:outline-none focus:ring-2 focus:ring-ring bg-background text-sm"
+              >
+                <option value="">-- Pilih Pengguna --</option>
+                {users.map(u => (
+                  <option key={u.id} value={u.id}>{u.name} ({u.email})</option>
+                ))}
+              </select>
+              <input 
+                type="number" 
+                value={singleCoinAmount} 
+                onChange={e => setSingleCoinAmount(e.target.value)} 
+                placeholder="Jumlah Koin" 
+                className="flex-1 px-4 py-2 rounded-lg border border-input focus:outline-none focus:ring-2 focus:ring-ring"
+              />
+              <Button onClick={handleGiveSingleCoin} className="flex-1">Berikan Koin</Button>
+            </div>
+          </div>
+
+          <div className="bg-card border border-border rounded-2xl p-6">
+            <h3 className="font-bold text-foreground text-lg mb-2">Manajemen Opsi Tukar Koin</h3>
+            <p className="text-sm text-muted-foreground mb-4">Atur daftar hadiah atau diskon yang bisa didapatkan user dengan menukarkan koin mereka.</p>
+            
+            <div className="flex flex-col gap-3 max-w-3xl mb-6">
+              <div className="flex gap-2 items-center">
+                <input 
+                  type="number" 
+                  value={excCoins} 
+                  onChange={e => setExcCoins(e.target.value)} 
+                  placeholder="Harga Koin (cth: 5000)" 
+                  className="w-1/4 px-3 py-2 text-sm rounded-lg border border-input focus:outline-none focus:ring-2 focus:ring-ring"
+                />
+                <input 
+                  type="number" 
+                  value={excValue} 
+                  onChange={e => setExcValue(e.target.value)} 
+                  placeholder="Nilai Diskon (Rp)" 
+                  className="w-1/4 px-3 py-2 text-sm rounded-lg border border-input focus:outline-none focus:ring-2 focus:ring-ring"
+                />
+                <input 
+                  type="text" 
+                  value={excTitle} 
+                  onChange={e => setExcTitle(e.target.value)} 
+                  placeholder="Judul (cth: Potongan Rp5.000)" 
+                  className="flex-1 px-3 py-2 text-sm rounded-lg border border-input focus:outline-none focus:ring-2 focus:ring-ring"
+                />
+                <Button onClick={handleAddExchangeOption} size="sm">Tambah</Button>
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              {exchangeOptions.map((opt) => (
+                <div key={opt.id} className="flex items-center justify-between p-3 border rounded-xl bg-muted/20">
+                  <div className="flex items-center gap-4">
+                    <div className="flex flex-col">
+                      <span className="font-bold text-sm text-amber-700">{opt.coins.toLocaleString("id-ID")} Koin</span>
+                    </div>
+                    <ArrowRight className="h-4 w-4 text-muted-foreground" />
+                    <div className="flex flex-col">
+                      <span className="font-bold text-sm">{opt.title}</span>
+                      <span className="text-xs text-muted-foreground">Nilai: Rp{opt.value.toLocaleString("id-ID")}</span>
+                    </div>
+                  </div>
+                  <Button size="icon" variant="ghost" className="text-red-500 hover:text-red-600 hover:bg-red-50 h-8 w-8" onClick={() => deleteExchangeOption(opt.id)}>
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              ))}
+              {exchangeOptions.length === 0 && <div className="text-sm text-muted-foreground text-center py-4">Belum ada opsi tukar koin.</div>}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Tab IP List ──────────────────────────────────────────────── */}
+      {tab === "ip_list" && (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="font-bold">Daftar IP Pengguna</h3>
+              <p className="text-xs text-muted-foreground mt-0.5">Pemantauan Alamat IP (Public & Local)</p>
+            </div>
+          </div>
+          <div className="bg-card border rounded-2xl overflow-hidden shadow-sm">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-sm whitespace-nowrap">
+                <thead className="bg-muted/40 border-b text-xs text-muted-foreground">
+                  <tr>
+                    <th className="px-4 py-3 font-semibold">Pengguna</th>
+                    <th className="px-4 py-3 font-semibold">Peran</th>
+                    <th className="px-4 py-3 font-semibold">IP Publik</th>
+                    <th className="px-4 py-3 font-semibold">IP Lokal</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y">
+                  {users.map((u) => (
+                    <tr key={u.id} className="hover:bg-muted/10 transition-colors">
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-2">
+                          <img src={`https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(u.name)}&backgroundColor=f97316&fontColor=ffffff&fontSize=40`} alt="" className="w-6 h-6 rounded-md" />
+                          <div>
+                            <p className="font-semibold">{u.name}</p>
+                            <p className="text-[10px] text-muted-foreground">{u.email}</p>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${ROLE_COLOR[u.role]}`}>{ROLE_LABEL[u.role]}</span>
+                      </td>
+                      <td className="px-4 py-3 font-mono text-xs">{u.publicIp || <span className="text-muted-foreground italic">Belum tercatat</span>}</td>
+                      <td className="px-4 py-3 font-mono text-[10px]">{u.localIp || <span className="text-muted-foreground italic">Belum tercatat</span>}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Tab Tiket ──────────────────────────────────────────────── */}
+      {tab === "tickets" && (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="font-bold">Tiket Bantuan & Laporan</h3>
+              <p className="text-xs text-muted-foreground mt-0.5">{tickets.length} tiket total</p>
+            </div>
+          </div>
+          {tickets.length === 0 ? (
+            <div className="text-center py-12 bg-muted/30 rounded-2xl border border-dashed text-muted-foreground text-sm font-medium">Belum ada tiket.</div>
+          ) : (
+            <div className="space-y-3">
+              {tickets.map(t => (
+                <div key={t.id} className="bg-card border rounded-xl p-4 space-y-3">
+                  <div className="flex items-start justify-between gap-2">
+                    <div>
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="font-bold text-sm">{t.userName}</span>
+                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${t.type === "order_problem" ? "bg-red-100 text-red-700" : t.type === "rank_up" ? "bg-blue-100 text-blue-700" : "bg-muted text-muted-foreground"}`}>
+                          {t.type === "order_problem" ? "Masalah Pesanan" : t.type === "rank_up" ? "Pengajuan Pangkat" : "Lainnya"}
+                        </span>
+                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${t.status === "open" ? "bg-amber-100 text-amber-700" : t.status === "resolved" ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}>
+                          {t.status.toUpperCase()}
+                        </span>
+                      </div>
+                      <p className="text-xs text-muted-foreground">{new Date(t.createdAt).toLocaleString("id-ID")}</p>
+                    </div>
+                    {t.status === "open" ? (
+                      <div className="flex gap-2">
+                        <Link href={`/ticket/${t.id}`}>
+                          <Button size="sm" className="h-7 text-[11px]">Buka Tiket</Button>
+                        </Link>
+                      </div>
+                    ) : (
+                      <div className="flex gap-2">
+                        <Link href={`/ticket/${t.id}`}>
+                          <Button size="sm" variant="ghost" className="h-7 text-[11px]">Lihat Detail</Button>
+                        </Link>
+                      </div>
+                    )}
+                  </div>
+                  {t.orderId && <p className="text-xs font-semibold text-primary">Pesanan ID: {t.orderId}</p>}
+                  <p className="text-sm line-clamp-2">{t.description}</p>
+                  <p className="text-xs text-muted-foreground mt-2">{(t.messages || []).length} balasan</p>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
 

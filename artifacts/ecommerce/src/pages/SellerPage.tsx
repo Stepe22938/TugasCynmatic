@@ -210,7 +210,7 @@ function SellerOrderCard({ order, onProcess, onShip, onChat }: {
   onChat: (order: PurchasedOrder) => void;
 }) {
   const [expanded, setExpanded] = useState(false);
-  const cfg = ORDER_STATUS_CONFIG[order.status];
+  const cfg = ORDER_STATUS_CONFIG[order.status] || { label: order.status || "Unknown", color: "text-gray-700", bg: "bg-gray-100" };
 
   return (
     <div className="bg-card border rounded-2xl overflow-hidden shadow-sm">
@@ -253,7 +253,7 @@ function SellerOrderCard({ order, onProcess, onShip, onChat }: {
         )}
         {order.status === "processing" && (
           <Button size="sm" onClick={() => onShip(order.id)} className="bg-orange-500 hover:bg-orange-600 text-white gap-1.5 text-xs">
-            <Truck className="h-3.5 w-3.5" />Kirim ke Kurir
+            <Truck className="h-3.5 w-3.5" />Done (Kirim ke Kurir)
           </Button>
         )}
         {(order.status === "shipped" || order.status === "in_delivery") && (

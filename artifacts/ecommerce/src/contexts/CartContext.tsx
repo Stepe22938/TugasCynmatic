@@ -4,6 +4,7 @@
  * Persists data to localStorage.
  */
 import React, { createContext, useContext, useReducer, useEffect, ReactNode } from "react";
+import { useAuth } from "./AuthContext";
 
 // Types
 export interface CartItem {
@@ -22,7 +23,8 @@ type CartAction =
   | { type: "ADD_ITEM"; payload: Omit<CartItem, "quantity"> }
   | { type: "REMOVE_ITEM"; payload: { id: number } }
   | { type: "UPDATE_QUANTITY"; payload: { id: number; quantity: number } }
-  | { type: "CLEAR_CART" };
+  | { type: "CLEAR_CART" }
+  | { type: "SET_CART"; payload: CartState };
 
 interface CartContextType {
   state: CartState;
@@ -31,20 +33,10 @@ interface CartContextType {
   subtotal: number;
 }
 
-// Initial state, optionally loaded from localStorage
+// Initial state
 const initialState: CartState = {
   items: []
 };
-
-function initCartState(initial: CartState): CartState {
-  try {
-    const localData = localStorage.getItem("toko_cart");
-    return localData ? JSON.parse(localData) : initial;
-  } catch (error) {
-    console.error("Failed to parse cart state from localStorage", error);
-    return initial;
-  }
-}
 
 // Reducer
 function cartReducer(state: CartState, action: CartAction): CartState {
@@ -75,6 +67,8 @@ function cartReducer(state: CartState, action: CartAction): CartState {
       };
     case "CLEAR_CART":
       return { ...state, items: [] };
+    case "SET_CART":
+      return action.payload;
     default:
       return state;
   }
@@ -85,12 +79,34 @@ const CartContext = createContext<CartContextType | undefined>(undefined);
 
 // Provider Component
 export function CartProvider({ children }: { children: ReactNode }) {
-  const [state, dispatch] = useReducer(cartReducer, initialState, initCartState);
+  const { user } = useAuth();
+  const cartKey = `toko_cart_${user ? user.id : "guest"}`;
+  
+  const [state, dispatch] = useReducer(cartReducer, initialState);
+
+  // Load from localStorage when user (and cartKey) changes
+  useEffect(() => {
+    try {
+      const localData = localStorage.getItem(cartKey);
+      const cartState = localData ? JSON.parse(localData) : { items: [] };
+      dispatch({ type: "SET_CART", payload: cartState });
+    } catch {
+      dispatch({ type: "SET_CART", payload: { items: [] } });
+    }
+  }, [cartKey]);
 
   // Sync to localStorage on change
   useEffect(() => {
-    localStorage.setItem("toko_cart", JSON.stringify(state));
-  }, [state]);
+    // Only save if it's the actual loaded state (prevent overwriting with empty initial state before load)
+    if (state !== initialState || state.items.length > 0) {
+      localStorage.setItem(cartKey, JSON.stringify(state));
+    } else if (state === initialState && localStorage.getItem(cartKey)) {
+      // It's strictly the initial empty state, but a real state exists in localStorage
+      // do nothing to prevent overwriting during rapid re-renders before SET_CART
+    } else {
+      localStorage.setItem(cartKey, JSON.stringify(state));
+    }
+  }, [state, cartKey]);
 
   // Derived state
   const totalItems = state.items.reduce((sum, item) => sum + item.quantity, 0);

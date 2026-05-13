@@ -67,6 +67,7 @@ export interface PurchasedOrder {
   paymentMethod?: "dana" | "qris";
   voucherCode?: string;
   voucherDiscount?: number;
+  coinDiscount?: number;
   status: OrderStatus;
   messages: OrderMessage[];
   problemReport?: string;
@@ -91,7 +92,14 @@ const ALL_ORDERS_KEY  = "toko_all_orders_v2";
 const ALL_REVIEWS_KEY = "toko_all_reviews";
 
 function loadAllOrders(): PurchasedOrder[] {
-  try { return JSON.parse(localStorage.getItem(ALL_ORDERS_KEY) ?? "[]"); }
+  try {
+    const data = JSON.parse(localStorage.getItem(ALL_ORDERS_KEY) ?? "[]");
+    return data.map((o: any) => ({
+      ...o,
+      status: o.status || "placed",
+      messages: o.messages || []
+    }));
+  }
   catch { return []; }
 }
 

@@ -16,6 +16,8 @@ import { NotificationProvider } from "./contexts/NotificationContext";
 import { PaymentSettingsProvider } from "./contexts/PaymentSettingsContext";
 import { VoucherProvider } from "./contexts/VoucherContext";
 import { LiveProvider } from "./contexts/LiveContext";
+import { TicketProvider } from "./contexts/TicketContext";
+import { ExchangeSettingsProvider } from "./contexts/ExchangeSettingsContext";
 
 import { Navbar } from "./components/Navbar";
 import { LoginPage } from "./pages/LoginPage";
@@ -31,6 +33,11 @@ import { SellerPage } from "./pages/SellerPage";
 import { AdminPage } from "./pages/AdminPage";
 import { LivePage } from "./pages/LivePage";
 import { CourierPage } from "./pages/CourierPage";
+import { TicketDashboardPage } from "./pages/TicketDashboardPage";
+import { TicketPage } from "./pages/TicketPage";
+import { ExchangePage } from "./pages/ExchangePage";
+import { FriendsPage } from "./pages/FriendsPage";
+import { ProfileCustomizePage } from "./pages/ProfileCustomizePage";
 import NotFound from "@/pages/not-found";
 
 const queryClient = new QueryClient();
@@ -84,6 +91,11 @@ const ProfileRoute  = () => <ProtectedRoute component={ProfilePage} />;
 const SellerRoute   = () => <RoleRoute component={SellerPage}   roles={["seller", "admin"]} />;
 const AdminRoute    = () => <RoleRoute component={AdminPage}    roles={["admin"]} />;
 const CourierRoute  = () => <RoleRoute component={CourierPage}  roles={["kurir", "admin"]} />;
+const TicketDashRoute = () => <ProtectedRoute component={TicketDashboardPage} />;
+const TicketChatRoute = () => <ProtectedRoute component={TicketPage} />;
+const ExchangeRoute   = () => <ProtectedRoute component={ExchangePage} />;
+const FriendsRoute    = () => <ProtectedRoute component={FriendsPage} />;
+const CustomizeRoute  = () => <ProtectedRoute component={ProfileCustomizePage} />;
 
 function Router() {
   return (
@@ -99,6 +111,11 @@ function Router() {
       <Route path="/seller"           component={SellerRoute} />
       <Route path="/admin"            component={AdminRoute} />
       <Route path="/courier"          component={CourierRoute} />
+      <Route path="/tickets"          component={TicketDashRoute} />
+      <Route path="/ticket/:id"       component={TicketChatRoute} />
+      <Route path="/exchange"         component={ExchangeRoute} />
+      <Route path="/friends"          component={FriendsRoute} />
+      <Route path="/customize"        component={CustomizeRoute} />
       <Route path="/checkout-success" component={SuccessRoute} />
       <Route path="/live"             component={LiveRoute} />
       <Route component={NotFound} />
@@ -113,22 +130,26 @@ export default function App() {
         <PaymentSettingsProvider>
         <AISettingsProvider>
         <VoucherProvider>
+        <ExchangeSettingsProvider>
         <LiveProvider>
         <AuthProvider>
           <ProductsProvider>
             <CartProvider>
               <OrderHistoryProvider>
                 <NotificationProvider>
-                  <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
-                    <Router />
-                  </WouterRouter>
-                  <Toaster />
+                  <TicketProvider>
+                    <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
+                      <Router />
+                    </WouterRouter>
+                    <Toaster />
+                  </TicketProvider>
                 </NotificationProvider>
               </OrderHistoryProvider>
             </CartProvider>
           </ProductsProvider>
         </AuthProvider>
         </LiveProvider>
+        </ExchangeSettingsProvider>
         </VoucherProvider>
         </AISettingsProvider>
         </PaymentSettingsProvider>

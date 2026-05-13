@@ -5,7 +5,7 @@
 import React, { useState } from "react";
 import { useLocation, Link } from "wouter";
 import { ArrowLeft, User, MapPin, CreditCard, CheckCircle2, Smartphone, QrCode,
-         Loader2, ShoppingBag, Tag, X } from "lucide-react";
+         Loader2, ShoppingBag, Tag, X, Coins } from "lucide-react";
 import { useCart } from "../contexts/CartContext";
 import { useOrderHistory } from "../contexts/OrderHistoryContext";
 import { useAuth } from "../contexts/AuthContext";
@@ -24,7 +24,7 @@ type Step = "form" | "payment";
 export function CheckoutPage() {
   const { state: { items }, dispatch, subtotal } = useCart();
   const { addOrder } = useOrderHistory();
-  const { user } = useAuth();
+  const { user, addCoins } = useAuth();
   const pay = usePaymentSettings();
   const { addNotification } = useNotifications();
   const { validateVoucher, useVoucher: markVoucherUsed } = useVouchers();
@@ -45,8 +45,13 @@ export function CheckoutPage() {
   const [voucherError, setVoucherError]   = useState("");
   const [voucherLoading, setVoucherLoading] = useState(false);
 
+  const [useCoins, setUseCoins] = useState(false);
+  const currentCoins = user?.coins || 0;
+
   const discount   = appliedVoucher?.discount ?? 0;
-  const grandTotal = subtotal + SHIPPING_FEE - discount;
+  const maxCoinsCanUse = Math.min(currentCoins, subtotal + SHIPPING_FEE - discount);
+  const coinDiscount = useCoins ? maxCoinsCanUse : 0;
+  const grandTotal = subtotal + SHIPPING_FEE - discount - coinDiscount;
 
   if (items.length === 0) {
     return (
@@ -120,6 +125,9 @@ export function CheckoutPage() {
       paymentMethod: payMethod ?? "dana",
       voucherCode: appliedVoucher?.code,
       voucherDiscount: appliedVoucher?.discount,
+      coinDiscount: coinDiscount > 0 ? coinDiscount : undefined,
+      status: "placed",
+      messages: [],
     });
     addNotification({
       type: "order_placed",
@@ -127,6 +135,18 @@ export function CheckoutPage() {
       message: `${orderNumber} senilai ${formatPrice(grandTotal)} sedang diproses.`,
       orderId: orderNumber,
     });
+    
+    // Potong koin yang dipakai
+    if (useCoins && coinDiscount > 0 && user?.id) {
+      addCoins(user.id, -coinDiscount);
+    }
+
+    // Berikan koin dari total belanja
+    const coinsEarned = Math.floor(grandTotal / 1000);
+    if (user?.id && coinsEarned > 0) {
+      addCoins(user.id, coinsEarned);
+    }
+
     dispatch({ type: "CLEAR_CART" });
     setLocation(`/checkout-success?order=${encodeURIComponent(orderNumber)}`);
   };
@@ -431,6 +451,26 @@ export function CheckoutPage() {
                     <Tag className="h-3.5 w-3.5" />{appliedVoucher.code}
                   </span>
                   <span>-{formatPrice(appliedVoucher.discount)}</span>
+                </div>
+              )}
+              {currentCoins > 0 && (
+                <div className="flex items-center justify-between mt-2 pt-2 border-t border-dashed">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input 
+                      type="checkbox" 
+                      checked={useCoins} 
+                      onChange={(e) => setUseCoins(e.target.checked)} 
+                      className="rounded border-gray-300 text-amber-500 focus:ring-amber-500"
+                    />
+                    <span className="text-xs font-semibold text-amber-800 flex items-center gap-1">
+                      <Coins className="h-3.5 w-3.5" /> Pakai {currentCoins.toLocaleString("id-ID")} Koin
+                    </span>
+                  </label>
+                  {useCoins && (
+                    <span className="text-amber-600 font-semibold text-sm">
+                      -{formatPrice(coinDiscount)}
+                    </span>
+                  )}
                 </div>
               )}
             </div>
