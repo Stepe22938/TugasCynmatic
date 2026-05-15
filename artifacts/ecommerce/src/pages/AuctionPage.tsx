@@ -91,7 +91,7 @@ export function AuctionPage() {
               </h1>
               <p className="text-gray-400 text-sm">Bid barang impian dengan harga terbaik!</p>
             </div>
-            <div className="bg-white/5 border border-white/10 px-4 py-2 rounded-2xl backdrop-blur-md">
+            <div className="bg-card/5 border border-white/10 px-4 py-2 rounded-2xl backdrop-blur-md">
                <p className="text-[10px] text-gray-500 font-bold uppercase">MyDompet</p>
                <p className="text-lg font-black text-amber-400">{formatPrice(balance)}</p>
             </div>
@@ -102,15 +102,15 @@ export function AuctionPage() {
       <div className="max-w-3xl mx-auto px-4 -mt-8 relative z-10 space-y-6">
         
         {/* Search & Filter */}
-        <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-4 space-y-4">
+        <div className="bg-card rounded-3xl shadow-sm border border-border p-4 space-y-4">
           <div className="relative">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
             <input
               type="text"
               value={search}
               onChange={e => setSearch(e.target.value)}
               placeholder="Cari barang lelang..."
-              className="w-full pl-12 pr-4 py-3 bg-gray-50 border-2 border-gray-50 rounded-2xl focus:outline-none focus:border-amber-500 transition"
+              className="w-full pl-12 pr-4 py-4 bg-background border-2 border-border rounded-2xl text-sm focus:outline-none focus:border-amber-500 transition text-foreground"
             />
           </div>
           <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
@@ -119,7 +119,7 @@ export function AuctionPage() {
                 key={f}
                 onClick={() => setFilter(f)}
                 className={`px-6 py-2 rounded-xl text-sm font-bold transition-all border-2 ${
-                  filter === f ? "bg-gray-900 border-gray-900 text-white" : "bg-gray-50 border-gray-100 text-gray-600 hover:bg-gray-100"
+                  filter === f ? "bg-gray-900 border-gray-900 text-white" : "bg-muted border-border text-muted-foreground hover:bg-muted"
                 }`}
               >
                 {f === "active" ? "Lelang Aktif" : f === "ended" ? "Sudah Berakhir" : "Semua"}
@@ -130,7 +130,7 @@ export function AuctionPage() {
 
         {/* Selected Auction Detail */}
         {selectedAuction && (
-          <div className="bg-white rounded-3xl shadow-2xl border-4 border-amber-500 overflow-hidden animate-in zoom-in-95 duration-200">
+          <div className="bg-card rounded-3xl shadow-2xl border-4 border-amber-500 overflow-hidden animate-in zoom-in-95 duration-200">
             <div className="relative h-64">
               <img src={selectedAuction.imageUrl} alt={selectedAuction.title} className="w-full h-full object-cover" />
               <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
@@ -155,20 +155,20 @@ export function AuctionPage() {
 
             <div className="p-6 space-y-6">
               <div className="grid grid-cols-3 gap-4">
-                 <div className="bg-gray-50 p-3 rounded-2xl border border-gray-100">
+                 <div className="bg-muted p-3 rounded-2xl border border-border">
                     <Timer className="h-4 w-4 text-amber-600 mb-1" />
                     <p className="text-[10px] text-gray-500 font-bold">SISA WAKTU</p>
-                    <p className="text-sm font-black text-gray-800">{getTimeLeft(selectedAuction.endTime)}</p>
+                    <p className="text-sm font-black text-card-foreground">{getTimeLeft(selectedAuction.endTime)}</p>
                  </div>
-                 <div className="bg-gray-50 p-3 rounded-2xl border border-gray-100">
+                 <div className="bg-muted p-3 rounded-2xl border border-border">
                     <TrendingUp className="h-4 w-4 text-amber-600 mb-1" />
                     <p className="text-[10px] text-gray-500 font-bold">BID MINIMAL</p>
-                    <p className="text-sm font-black text-gray-800">+{formatPrice(selectedAuction.minStep)}</p>
+                    <p className="text-sm font-black text-card-foreground">+{formatPrice(selectedAuction.minStep)}</p>
                  </div>
-                 <div className="bg-gray-50 p-3 rounded-2xl border border-gray-100">
+                 <div className="bg-muted p-3 rounded-2xl border border-border">
                     <Users className="h-4 w-4 text-amber-600 mb-1" />
                     <p className="text-[10px] text-gray-500 font-bold">PENAMBAL</p>
-                    <p className="text-sm font-black text-gray-800">{selectedAuction.bids.length} Bid</p>
+                    <p className="text-sm font-black text-card-foreground">{selectedAuction.bids.length} Bid</p>
                  </div>
               </div>
 
@@ -180,7 +180,7 @@ export function AuctionPage() {
                       value={bidAmount}
                       onChange={e => setBidAmount(e.target.value)}
                       placeholder={`Min: ${selectedAuction.currentPrice + selectedAuction.minStep}`}
-                      className="w-full px-6 py-4 bg-gray-50 border-2 border-gray-100 rounded-2xl text-xl font-black focus:outline-none focus:border-amber-500 transition"
+                      className="w-full px-6 py-4 bg-muted border-2 border-border rounded-2xl text-xl font-black focus:outline-none focus:border-amber-500 transition"
                     />
                     <div className="absolute right-4 top-1/2 -translate-y-1/2">
                        <Button 
@@ -212,9 +212,9 @@ export function AuctionPage() {
                     <p className="text-xs text-center text-muted-foreground py-4 italic">Belum ada penawaran.</p>
                   ) : (
                     selectedAuction.bids.map((bid, i) => (
-                      <div key={i} className={`flex justify-between items-center p-3 rounded-xl border ${i === 0 ? "bg-amber-50 border-amber-200" : "bg-gray-50 border-gray-100"}`}>
+                      <div key={i} className={`flex justify-between items-center p-3 rounded-xl border ${i === 0 ? "bg-amber-50 border-amber-200" : "bg-muted border-border"}`}>
                          <div className="flex items-center gap-2">
-                            <div className="w-6 h-6 bg-white rounded-full flex items-center justify-center text-[10px] font-bold border border-gray-200">
+                            <div className="w-6 h-6 bg-card rounded-full flex items-center justify-center text-[10px] font-bold border border-gray-200">
                               {bid.userName.charAt(0)}
                             </div>
                             <span className="text-xs font-bold">{bid.userName}</span>
@@ -233,7 +233,7 @@ export function AuctionPage() {
         {/* Auction List */}
         <div className="grid grid-cols-1 gap-6">
           {filtered.length === 0 ? (
-            <div className="text-center py-20 bg-white rounded-3xl border border-dashed border-gray-200">
+            <div className="text-center py-20 bg-card rounded-3xl border border-dashed border-gray-200">
                <ShoppingBag className="h-12 w-12 text-gray-200 mx-auto mb-4" />
                <p className="text-gray-400 font-bold">Tidak ada lelang yang tersedia saat ini.</p>
             </div>
@@ -242,7 +242,7 @@ export function AuctionPage() {
               <div 
                 key={auction.id} 
                 onClick={() => { setSelectedAuction(auction); setBidAmount(""); }}
-                className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-xl transition-all cursor-pointer group"
+                className="bg-card rounded-3xl shadow-sm border border-border overflow-hidden hover:shadow-xl transition-all cursor-pointer group"
               >
                 <div className="flex flex-col sm:flex-row h-full">
                   <div className="w-full sm:w-48 h-48 sm:h-auto relative overflow-hidden">
@@ -253,7 +253,7 @@ export function AuctionPage() {
                     />
                     <div className="absolute top-2 left-2 flex flex-col gap-1">
                        <span className={`px-2 py-0.5 rounded-lg text-[9px] font-black uppercase tracking-wider ${
-                         auction.status === "active" ? "bg-amber-500 text-black" : "bg-gray-500 text-white"
+                         auction.status === "active" ? "bg-amber-500 text-black" : "bg-muted0 text-white"
                        }`}>
                          {auction.status === "active" ? "LIVE" : "ENDED"}
                        </span>
@@ -272,7 +272,7 @@ export function AuctionPage() {
                        <p className="text-xs text-muted-foreground line-clamp-1 mb-4">{auction.description}</p>
                     </div>
 
-                    <div className="flex items-end justify-between border-t border-gray-50 pt-4">
+                    <div className="flex items-end justify-between border-t border-border pt-4">
                        <div>
                           <p className="text-[9px] text-gray-400 font-bold uppercase">Harga Sekarang</p>
                           <p className="text-xl font-black text-gray-900">{formatPrice(auction.currentPrice)}</p>

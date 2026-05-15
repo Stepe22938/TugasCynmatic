@@ -24,6 +24,11 @@ export interface SellerProduct {
   specs: { label: string; value: string }[];
   status: ProductStatus;
   createdAt: string;
+  isFlashSale?: boolean;
+  discountPercent?: number;
+  stock: number;
+  isPreOrder?: boolean;
+  releaseDate?: string;
 }
 
 export interface AdminProduct {
@@ -39,6 +44,11 @@ export interface AdminProduct {
   sellerId: "admin-001";
   sellerName: "Admin Toko";
   createdAt: string;
+  isFlashSale?: boolean;
+  discountPercent?: number;
+  stock: number;
+  isPreOrder?: boolean;
+  releaseDate?: string;
 }
 
 interface ProductsContextType {
@@ -56,6 +66,16 @@ interface ProductsContextType {
   deleteAdminProduct: (id: number) => void;
   /** Tambah produk baru sebagai Admin Toko (langsung approved) */
   addAdminProduct: (data: Omit<AdminProduct, "id" | "sellerId" | "sellerName" | "createdAt">) => void;
+  /** Toggle Flash Sale status and set discount */
+  toggleFlashSale: (id: number, isFlashSale: boolean, discountPercent: number) => void;
+  /** Update stock for a product */
+  updateStock: (id: number, newStock: number) => void;
+  /** Decrement stock after purchase */
+  decrementStock: (id: number, quantity: number) => void;
+  /** Update existing product details */
+  updateProduct: (id: number, data: Partial<Omit<SellerProduct, "id" | "sellerId" | "createdAt">>) => void;
+  /** Update existing admin product details */
+  updateAdminProduct: (id: number, data: Partial<Omit<AdminProduct, "id" | "sellerId" | "createdAt">>) => void;
 }
 
 const PRODUCTS_KEY       = "toko_seller_products";
@@ -94,6 +114,9 @@ function adminToProduct(ap: AdminProduct): Product {
     images: ap.images.length > 0 ? ap.images : [ap.image],
     category: ap.category, specs: ap.specs,
     sellerId: ap.sellerId, sellerName: ap.sellerName,
+    isFlashSale: ap.isFlashSale, discountPercent: ap.discountPercent,
+    stock: ap.stock,
+    isPreOrder: ap.isPreOrder, releaseDate: ap.releaseDate,
   };
 }
 
@@ -105,6 +128,9 @@ function sellerToProduct(sp: SellerProduct): Product {
     images: sp.images.length > 0 ? sp.images : [sp.image],
     category: sp.category, specs: sp.specs,
     sellerId: sp.sellerId, sellerName: sp.sellerName,
+    isFlashSale: sp.isFlashSale, discountPercent: sp.discountPercent,
+    stock: sp.stock,
+    isPreOrder: sp.isPreOrder, releaseDate: sp.releaseDate,
   };
 }
 
@@ -170,6 +196,29 @@ export function ProductsProvider({ children }: { children: ReactNode }) {
     };
     setAdminProducts((prev) => [newProduct, ...prev]);
   };
+  
+  const toggleFlashSale = (id: number, isFlashSale: boolean, discountPercent: number) => {
+    setSellerProducts((prev) => prev.map((p) => p.id === id ? { ...p, isFlashSale, discountPercent } : p));
+    setAdminProducts((prev) => prev.map((p) => p.id === id ? { ...p, isFlashSale, discountPercent } : p));
+  };
+
+  const updateStock = (id: number, newStock: number) => {
+    setSellerProducts((prev) => prev.map((p) => p.id === id ? { ...p, stock: newStock } : p));
+    setAdminProducts((prev) => prev.map((p) => p.id === id ? { ...p, stock: newStock } : p));
+  };
+
+  const decrementStock = (id: number, quantity: number) => {
+    setSellerProducts((prev) => prev.map((p) => p.id === id ? { ...p, stock: Math.max(0, p.stock - quantity) } : p));
+    setAdminProducts((prev) => prev.map((p) => p.id === id ? { ...p, stock: Math.max(0, p.stock - quantity) } : p));
+  };
+
+  const updateProduct = (id: number, data: Partial<Omit<SellerProduct, "id" | "sellerId" | "createdAt">>) => {
+    setSellerProducts((prev) => prev.map((p) => p.id === id ? { ...p, ...data } : p));
+  };
+
+  const updateAdminProduct = (id: number, data: Partial<Omit<AdminProduct, "id" | "sellerId" | "createdAt">>) => {
+    setAdminProducts((prev) => prev.map((p) => p.id === id ? { ...p, ...data } : p));
+  };
 
   return (
     <ProductsContext.Provider value={{
@@ -177,6 +226,8 @@ export function ProductsProvider({ children }: { children: ReactNode }) {
       autoApprove, setAutoApprove,
       submitProduct, approveProduct, rejectProduct, deleteProduct,
       deleteAdminProduct, addAdminProduct,
+      toggleFlashSale, updateStock, decrementStock,
+      updateProduct, updateAdminProduct,
     }}>
       {children}
     </ProductsContext.Provider>

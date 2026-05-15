@@ -5,7 +5,9 @@
 import React, { createContext, useContext, useState, useCallback, useEffect } from "react";
 import { useAuth } from "./AuthContext";
 
-export type NotifType = "order_placed" | "order_received" | "product_approved" | "product_rejected";
+export type NotifType = 
+  "order_placed" | "order_received" | "product_approved" | "product_rejected" | 
+  "friend_request" | "friend_accept" | "gift_received" | "points_earned" | "promo" | "system" | "report_status";
 
 export interface AppNotification {
   id: string;

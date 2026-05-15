@@ -13,6 +13,7 @@ import { useAuth } from "./AuthContext";
 export type OrderStatus =
   | "placed"       // Pesanan masuk
   | "processing"   // Seller sedang memproses
+  | "pending_po"   // Menunggu waktu rilis PO
   | "shipped"      // Dikirim ke kurir
   | "in_delivery"  // Kurir sedang mengantar
   | "delivered"    // Sudah sampai

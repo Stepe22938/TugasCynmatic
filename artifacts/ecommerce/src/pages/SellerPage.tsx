@@ -8,8 +8,9 @@ import {
   PlusCircle, Package, Clock, CheckCircle2, XCircle, Trash2,
   ChevronDown, ChevronUp, Store, Plus, X, ShieldCheck,
   ShoppingBag, Truck, Radio, Camera, CameraOff, Search,
-  MessageSquare, Send, ToggleLeft, ToggleRight, Zap,
+  MessageSquare, Send, ToggleLeft, ToggleRight, Zap, Pencil, Crown
 } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "../contexts/AuthContext";
 import { useProducts, SellerProduct, AdminProduct } from "../contexts/ProductsContext";
 import { useOrderHistory, PurchasedOrder, OrderStatus } from "../contexts/OrderHistoryContext";
@@ -21,23 +22,26 @@ import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
 import { useToast } from "../hooks/use-toast";
+import { useSultan } from "../contexts/MySultanContext";
+import { useWishlist } from "../contexts/WishlistContext";
 
-const CATEGORIES = ["Sepatu","Tas","Pakaian","Aksesori","Elektronik","Makanan","Lainnya"];
+const CATEGORIES = ["Sepatu","Tas","Pakaian","Aksesori","Elektronik","Makanan","Pre-Order","Lainnya"];
 
 const STATUS_CONFIG: Record<SellerProduct["status"], { label: string; color: string; icon: React.ReactNode }> = {
-  pending:  { label: "Menunggu Review", color: "bg-amber-100 text-amber-700",  icon: <Clock className="h-3 w-3" /> },
-  approved: { label: "Disetujui",       color: "bg-green-100 text-green-700",  icon: <CheckCircle2 className="h-3 w-3" /> },
-  rejected: { label: "Ditolak",         color: "bg-red-100 text-red-700",      icon: <XCircle className="h-3 w-3" /> },
+  pending:  { label: "Menunggu Review", color: "bg-amber-100 text-amber-700 dark:bg-amber-950/50 dark:text-amber-300",  icon: <Clock className="h-3 w-3" /> },
+  approved: { label: "Disetujui",       color: "bg-green-100 text-green-700 dark:bg-green-950/50 dark:text-green-300",  icon: <CheckCircle2 className="h-3 w-3" /> },
+  rejected: { label: "Ditolak",         color: "bg-red-100 text-red-700 dark:bg-red-950/50 dark:text-red-300",      icon: <XCircle className="h-3 w-3" /> },
 };
 
 const ORDER_STATUS_CONFIG: Record<OrderStatus, { label: string; color: string; bg: string }> = {
-  placed:      { label: "Pesanan Masuk",      color: "text-blue-700",   bg: "bg-blue-100" },
-  processing:  { label: "Sedang Diproses",    color: "text-amber-700",  bg: "bg-amber-100" },
-  shipped:     { label: "Dikirim ke Kurir",   color: "text-orange-700", bg: "bg-orange-100" },
-  in_delivery: { label: "Dalam Pengiriman",   color: "text-purple-700", bg: "bg-purple-100" },
-  delivered:   { label: "Terkirim",           color: "text-green-700",  bg: "bg-green-100" },
-  completed:   { label: "Selesai",            color: "text-green-800",  bg: "bg-green-200" },
-  problem:     { label: "Bermasalah",         color: "text-red-700",    bg: "bg-red-100" },
+  placed:      { label: "Pesanan Masuk",      color: "text-blue-700 dark:text-blue-300",   bg: "bg-blue-100 dark:bg-blue-950/50" },
+  processing:  { label: "Sedang Diproses",    color: "text-amber-700 dark:text-amber-300",  bg: "bg-amber-100 dark:bg-amber-950/50" },
+  pending_po:  { label: "Pending Pre-Order",  color: "text-cyan-700 dark:text-cyan-300", bg: "bg-cyan-100 dark:bg-cyan-950/50" },
+  shipped:     { label: "Dikirim ke Kurir",   color: "text-orange-700 dark:text-orange-300", bg: "bg-orange-100 dark:bg-orange-950/50" },
+  in_delivery: { label: "Dalam Pengiriman",   color: "text-purple-700 dark:text-purple-300", bg: "bg-purple-100 dark:bg-purple-950/50" },
+  delivered:   { label: "Terkirim",           color: "text-green-700 dark:text-green-300",  bg: "bg-green-100 dark:bg-green-950/50" },
+  completed:   { label: "Selesai",            color: "text-green-800 dark:text-green-400",  bg: "bg-green-200 dark:bg-green-950/70" },
+  problem:     { label: "Bermasalah",         color: "text-red-700 dark:text-red-300",    bg: "bg-red-100 dark:bg-red-950/50" },
 };
 
 function formatDate(iso: string) {
@@ -45,76 +49,266 @@ function formatDate(iso: string) {
 }
 
 // ─── Product cards ────────────────────────────────────────────────────────────
-function SellerProductCard({ product, onDelete, canAlwaysDelete = false }: {
-  product: SellerProduct; onDelete: (id: number) => void; canAlwaysDelete?: boolean;
+function SellerProductCard({ product, onDelete, onEdit, canAlwaysDelete = false }: {
+  product: SellerProduct; onDelete: (id: number) => void; onEdit: (p: SellerProduct) => void; canAlwaysDelete?: boolean;
 }) {
+  const { toggleFlashSale, updateStock } = useProducts();
+  const { getWishlistCountForProduct } = useWishlist();
   const cfg = STATUS_CONFIG[product.status];
+  const [discount, setDiscount] = useState(product.discountPercent || 10);
+  const wishlistCount = getWishlistCountForProduct(product.id);
+
+  // Sync state if prop changes (important for UI consistency)
+  useEffect(() => {
+    if (product.discountPercent !== undefined) {
+      setDiscount(product.discountPercent);
+    }
+  }, [product.discountPercent]);
+
   return (
-    <div className="flex gap-4 p-4 bg-card border rounded-2xl shadow-sm items-start">
-      <img src={product.image} alt={product.name}
-        className="w-16 h-16 rounded-xl object-cover flex-shrink-0 bg-muted"
-        onError={(e) => { (e.target as HTMLImageElement).src = "https://placehold.co/64x64?text=?"; }} />
-      <div className="flex-1 min-w-0">
-        <div className="flex items-start justify-between gap-2">
-          <div>
-            <h3 className="font-bold text-sm truncate">{product.name}</h3>
-            <p className="text-xs text-muted-foreground">{product.category} · {formatPrice(product.price)}</p>
+    <div className="p-4 bg-card border rounded-2xl shadow-sm space-y-4">
+      <div className="flex gap-4 items-start">
+        <img src={product.image} alt={product.name}
+          className="w-16 h-16 rounded-xl object-cover flex-shrink-0 bg-muted"
+          onError={(e) => { (e.target as HTMLImageElement).src = "https://placehold.co/64x64?text=?"; }} />
+        <div className="flex-1 min-w-0">
+          <div className="flex items-start justify-between gap-2">
+            <div>
+              <h3 className="font-bold text-sm truncate">{product.name}</h3>
+              <div className="flex items-center gap-2">
+                <p className="text-xs text-muted-foreground">{product.category}</p>
+                <span className="text-muted-foreground">·</span>
+                {product.isFlashSale ? (
+                  <div className="flex items-center gap-1.5">
+                    <p className="text-xs font-bold text-amber-600">{formatPrice(product.price * (1 - (product.discountPercent || 0) / 100))}</p>
+                    <p className="text-[10px] text-muted-foreground line-through opacity-60">{formatPrice(product.price)}</p>
+                  </div>
+                ) : (
+                  <p className="text-xs text-muted-foreground">{formatPrice(product.price)}</p>
+                )}
+              </div>
+            </div>
+            <span className={`inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full flex-shrink-0 ${cfg.color}`}>
+              {cfg.icon}{cfg.label}
+            </span>
           </div>
-          <span className={`inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full flex-shrink-0 ${cfg.color}`}>
-            {cfg.icon}{cfg.label}
-          </span>
+          <div className="flex items-center gap-2 mt-1">
+            <p className="text-xs text-muted-foreground line-clamp-1">{product.description}</p>
+            {wishlistCount > 0 && (
+              <span className="inline-flex items-center gap-1 text-[10px] font-bold text-red-500 bg-red-50 dark:bg-red-950/30 px-1.5 py-0.5 rounded-lg border border-red-100 dark:border-red-900/50">
+                <Heart className="h-2.5 w-2.5 fill-current" /> {wishlistCount}
+              </span>
+            )}
+          </div>
         </div>
-        <p className="text-xs text-muted-foreground mt-1 line-clamp-1">{product.description}</p>
+        <div className="flex flex-col gap-2 flex-shrink-0">
+          <Button variant="ghost" size="icon" className="h-8 w-8 text-primary hover:bg-primary/10"
+            onClick={() => onEdit(product)}>
+            <Pencil className="h-3.5 w-3.5" />
+          </Button>
+          {(canAlwaysDelete || product.status !== "approved") && (
+            <Button variant="ghost" size="icon" className="h-8 w-8 text-red-500 hover:bg-red-50"
+              onClick={() => onDelete(product.id)}>
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          )}
+        </div>
       </div>
-      {(canAlwaysDelete || product.status !== "approved") && (
-        <Button variant="ghost" size="icon" className="h-8 w-8 text-red-500 hover:bg-red-50 flex-shrink-0"
-          onClick={() => onDelete(product.id)}>
-          <Trash2 className="h-4 w-4" />
-        </Button>
+
+      {product.status === "approved" && (
+        <div className="flex items-center justify-between pt-3 border-t gap-4">
+          <div className="flex items-center gap-2">
+            <Zap className={`h-4 w-4 ${product.isFlashSale ? "text-amber-500 fill-amber-500" : "text-muted-foreground"}`} />
+            <span className="text-xs font-bold">Flash Sale</span>
+            <button 
+              onClick={() => toggleFlashSale(product.id, !product.isFlashSale, discount)}
+              className="transition-transform active:scale-90"
+            >
+              {product.isFlashSale ? <ToggleRight className="h-6 w-6 text-amber-500" /> : <ToggleLeft className="h-6 w-6 text-muted-foreground opacity-30" />}
+            </button>
+          </div>
+          
+          <div className="flex items-center gap-2 bg-muted/30 px-3 py-1.5 rounded-xl border border-border shadow-sm">
+            <span className="text-[10px] font-black text-muted-foreground uppercase tracking-tight">Stok</span>
+            <input 
+              type="number" 
+              value={product.stock} 
+              min="0"
+              onChange={(e) => updateStock(product.id, Number(e.target.value))}
+              className="w-12 h-7 text-center text-sm font-black bg-white dark:bg-slate-950 text-slate-900 dark:text-white border border-border rounded-lg focus:outline-none focus:border-primary transition-colors"
+            />
+            {product.stock === 0 && <span className="text-[9px] font-black text-red-500 uppercase ml-1 animate-pulse">Habis!</span>}
+          </div>
+
+          {product.isFlashSale && (
+            <div className="flex items-center gap-2 bg-amber-50 dark:bg-amber-950/30 px-3 py-1.5 rounded-xl border-2 border-amber-200 dark:border-amber-800/50 shadow-sm animate-in zoom-in-95 duration-200">
+              <span className="text-[10px] font-black text-amber-700 dark:text-amber-400 uppercase tracking-tight">Diskon</span>
+              <div className="flex items-center gap-1">
+                <input 
+                  type="number" 
+                  value={discount} 
+                  min="1"
+                  max="100"
+                  onChange={(e) => setDiscount(Number(e.target.value))}
+                  onBlur={() => {
+                    const val = Math.min(100, Math.max(1, Number(discount)));
+                    setDiscount(val);
+                    toggleFlashSale(product.id, true, val);
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      (e.target as HTMLInputElement).blur();
+                    }
+                  }}
+                  className="w-12 h-7 text-center text-sm font-black bg-white dark:bg-slate-950 text-slate-900 dark:text-white border-2 border-amber-300 dark:border-amber-700 rounded-lg focus:outline-none focus:border-amber-500 transition-colors"
+                />
+                <span className="text-xs font-black text-amber-700 dark:text-amber-400">%</span>
+              </div>
+            </div>
+          )}
+        </div>
       )}
     </div>
   );
 }
 
-function AdminProductCard({ product, onDelete }: { product: AdminProduct; onDelete: (id: number) => void }) {
+function AdminProductCard({ product, onDelete, onEdit }: { product: AdminProduct; onDelete: (id: number) => void; onEdit: (p: AdminProduct) => void }) {
+  const { toggleFlashSale, updateStock } = useProducts();
+  const [discount, setDiscount] = useState(product.discountPercent || 10);
+
+  useEffect(() => {
+    if (product.discountPercent !== undefined) {
+      setDiscount(product.discountPercent);
+    }
+  }, [product.discountPercent]);
+
   return (
-    <div className="flex gap-4 p-4 bg-card border rounded-2xl shadow-sm items-start">
-      <img src={product.image} alt={product.name}
-        className="w-16 h-16 rounded-xl object-cover flex-shrink-0 bg-muted"
-        onError={(e) => { (e.target as HTMLImageElement).src = "https://placehold.co/64x64?text=?"; }} />
-      <div className="flex-1 min-w-0">
-        <div className="flex items-start justify-between gap-2">
-          <div>
-            <h3 className="font-bold text-sm truncate">{product.name}</h3>
-            <p className="text-xs text-muted-foreground">{product.category} · {formatPrice(product.price)}</p>
+    <div className="p-4 bg-card border rounded-2xl shadow-sm space-y-4">
+      <div className="flex gap-4 items-start">
+        <img src={product.image} alt={product.name}
+          className="w-16 h-16 rounded-xl object-cover flex-shrink-0 bg-muted"
+          onError={(e) => { (e.target as HTMLImageElement).src = "https://placehold.co/64x64?text=?"; }} />
+        <div className="flex-1 min-w-0">
+          <div className="flex items-start justify-between gap-2">
+            <div>
+              <h3 className="font-bold text-sm truncate">{product.name}</h3>
+              <div className="flex items-center gap-2">
+                <p className="text-xs text-muted-foreground">{product.category}</p>
+                <span className="text-muted-foreground">·</span>
+                {product.isFlashSale ? (
+                  <div className="flex items-center gap-1.5">
+                    <p className="text-xs font-bold text-amber-600">{formatPrice(product.price * (1 - (product.discountPercent || 0) / 100))}</p>
+                    <p className="text-[10px] text-muted-foreground line-through opacity-60">{formatPrice(product.price)}</p>
+                  </div>
+                ) : (
+                  <p className="text-xs text-muted-foreground">{formatPrice(product.price)}</p>
+                )}
+              </div>
+            </div>
+            <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 dark:bg-blue-950/50 dark:text-blue-300">
+              <ShieldCheck className="h-3 w-3" />Admin Toko
+            </span>
           </div>
-          <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full bg-blue-100 text-blue-700">
-            <ShieldCheck className="h-3 w-3" />Admin Toko
-          </span>
+          <p className="text-xs text-muted-foreground mt-1 line-clamp-1">{product.description}</p>
         </div>
-        <p className="text-xs text-muted-foreground mt-1 line-clamp-1">{product.description}</p>
+        <div className="flex flex-col gap-2 flex-shrink-0">
+          <Button variant="ghost" size="icon" className="h-8 w-8 text-primary hover:bg-primary/10"
+            onClick={() => onEdit(product)}>
+            <Pencil className="h-3.5 w-3.5" />
+          </Button>
+          <Button variant="ghost" size="icon" className="h-8 w-8 text-red-500 hover:bg-red-50"
+            onClick={() => onDelete(product.id)}>
+            <Trash2 className="h-4 w-4" />
+          </Button>
+        </div>
       </div>
-      <Button variant="ghost" size="icon" className="h-8 w-8 text-red-500 hover:bg-red-50 flex-shrink-0" onClick={() => onDelete(product.id)}>
-        <Trash2 className="h-4 w-4" />
-      </Button>
+
+      <div className="flex items-center justify-between pt-3 border-t gap-4">
+        <div className="flex items-center gap-2">
+          <Zap className={`h-4 w-4 ${product.isFlashSale ? "text-amber-500 fill-amber-500" : "text-muted-foreground"}`} />
+          <span className="text-xs font-bold">Flash Sale</span>
+          <button 
+            onClick={() => toggleFlashSale(product.id, !product.isFlashSale, discount)}
+            className="transition-transform active:scale-90"
+          >
+            {product.isFlashSale ? <ToggleRight className="h-6 w-6 text-amber-500" /> : <ToggleLeft className="h-6 w-6 text-muted-foreground opacity-30" />}
+          </button>
+        </div>
+
+        <div className="flex items-center gap-2 bg-muted/30 px-3 py-1.5 rounded-xl border border-border shadow-sm">
+          <span className="text-[10px] font-black text-muted-foreground uppercase tracking-tight">Stok</span>
+          <input 
+            type="number" 
+            value={product.stock} 
+            min="0"
+            onChange={(e) => updateStock(product.id, Number(e.target.value))}
+            className="w-12 h-7 text-center text-sm font-black bg-white dark:bg-slate-950 text-slate-900 dark:text-white border border-border rounded-lg focus:outline-none focus:border-primary transition-colors"
+          />
+          {product.stock === 0 && <span className="text-[9px] font-black text-red-500 uppercase ml-1 animate-pulse">Habis!</span>}
+        </div>
+        
+        {product.isFlashSale && (
+            <div className="flex items-center gap-2 bg-amber-50 dark:bg-amber-950/30 px-3 py-1.5 rounded-xl border-2 border-amber-200 dark:border-amber-800/50 shadow-sm animate-in zoom-in-95 duration-200">
+              <span className="text-[10px] font-black text-amber-700 dark:text-amber-400 uppercase tracking-tight">Diskon</span>
+              <div className="flex items-center gap-1">
+                <input 
+                  type="number" 
+                  value={discount} 
+                  min="1"
+                  max="100"
+                  onChange={(e) => setDiscount(Number(e.target.value))}
+                  onBlur={() => {
+                    const val = Math.min(100, Math.max(1, Number(discount)));
+                    setDiscount(val);
+                    toggleFlashSale(product.id, true, val);
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      (e.target as HTMLInputElement).blur();
+                    }
+                  }}
+                  className="w-12 h-7 text-center text-sm font-black bg-white dark:bg-slate-950 text-slate-900 dark:text-white border-2 border-amber-300 dark:border-amber-700 rounded-lg focus:outline-none focus:border-amber-500 transition-colors"
+                />
+                <span className="text-xs font-black text-amber-700 dark:text-amber-400">%</span>
+              </div>
+            </div>
+        )}
+      </div>
     </div>
   );
 }
 
 // ─── Add Product Form ─────────────────────────────────────────────────────────
-interface FormState { name: string; category: string; price: string; description: string; longDescription: string; image: string; }
-const emptyForm: FormState = { name: "", category: CATEGORIES[0], price: "", description: "", longDescription: "", image: "" };
+interface FormState { name: string; category: string; price: string; stock: string; description: string; longDescription: string; image: string; isPreOrder: boolean; releaseDate: string; }
+const emptyForm: FormState = { name: "", category: CATEGORIES[0], price: "", stock: "50", description: "", longDescription: "", image: "", isPreOrder: false, releaseDate: "" };
 interface SpecRow { label: string; value: string; }
 
-function AddProductForm({ onSuccess, isAdmin }: { onSuccess: () => void; isAdmin?: boolean }) {
+function ProductForm({ onSuccess, isAdmin, product }: { onSuccess: () => void; isAdmin?: boolean; product?: SellerProduct | AdminProduct }) {
   const { user } = useAuth();
-  const { submitProduct, addAdminProduct } = useProducts();
+  const { submitProduct, addAdminProduct, updateProduct, updateAdminProduct } = useProducts();
   const { toast } = useToast();
-  const [form, setForm]       = useState<FormState>(emptyForm);
+  
+  const [form, setForm] = useState<FormState>(() => {
+    if (product) {
+      return {
+        name: product.name,
+        category: product.category,
+        price: String(product.price),
+        stock: String(product.stock),
+        description: product.description,
+        longDescription: product.longDescription,
+        image: product.image,
+        isPreOrder: !!product.isPreOrder,
+        releaseDate: product.releaseDate || "",
+      };
+    }
+    return emptyForm;
+  });
+
   const [loading, setLoading] = useState(false);
   const [errors, setErrors]   = useState<Partial<FormState>>({});
-  const [useSpecs, setUseSpecs] = useState(false);
-  const [specs, setSpecs]       = useState<SpecRow[]>([{ label: "", value: "" }]);
+  const [useSpecs, setUseSpecs] = useState(!!(product?.specs && product.specs.length > 0));
+  const [specs, setSpecs]       = useState<SpecRow[]>(product?.specs || [{ label: "", value: "" }]);
 
   const set = (field: keyof FormState) =>
     (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) =>
@@ -124,6 +318,7 @@ function AddProductForm({ onSuccess, isAdmin }: { onSuccess: () => void; isAdmin
     const e: Partial<FormState> = {};
     if (!form.name.trim())            e.name = "Nama produk wajib diisi.";
     if (!form.price || isNaN(Number(form.price)) || Number(form.price) <= 0) e.price = "Harga tidak valid.";
+    if (!form.stock || isNaN(Number(form.stock)) || Number(form.stock) < 0) e.stock = "Stok tidak valid.";
     if (!form.description.trim())     e.description = "Deskripsi singkat wajib diisi.";
     if (!form.longDescription.trim()) e.longDescription = "Deskripsi lengkap wajib diisi.";
     if (!form.image.trim())           e.image = "URL gambar wajib diisi.";
@@ -137,14 +332,43 @@ function AddProductForm({ onSuccess, isAdmin }: { onSuccess: () => void; isAdmin
     setLoading(true);
     await new Promise((r) => setTimeout(r, 300));
     const finalSpecs = useSpecs ? specs.filter((s) => s.label.trim() && s.value.trim()) : [];
-    if (isAdmin) {
-      addAdminProduct({ name: form.name.trim(), description: form.description.trim(), longDescription: form.longDescription.trim(), price: Number(form.price), image: form.image.trim(), images: [form.image.trim()], category: form.category, specs: finalSpecs });
-      toast({ title: "Produk ditambahkan!", description: "Langsung tampil di toko." });
+    
+    if (product) {
+      // EDIT MODE
+      const updateData = {
+        name: form.name.trim(),
+        description: form.description.trim(),
+        longDescription: form.longDescription.trim(),
+        price: Number(form.price),
+        stock: Number(form.stock),
+        image: form.image.trim(),
+        images: [form.image.trim()],
+        category: form.category,
+        specs: finalSpecs,
+        isPreOrder: form.isPreOrder,
+        releaseDate: form.releaseDate,
+      };
+
+      if (isAdmin) {
+        updateAdminProduct(product.id, updateData);
+      } else {
+        updateProduct(product.id, updateData);
+      }
+      toast({ title: "Produk diperbarui!", description: "Detail produk telah disimpan." });
     } else {
-      submitProduct({ sellerId: user.id, sellerName: user.name, name: form.name.trim(), description: form.description.trim(), longDescription: form.longDescription.trim(), price: Number(form.price), image: form.image.trim(), images: [form.image.trim()], category: form.category, specs: finalSpecs });
-      toast({ title: "Produk dikirim!", description: "Menunggu persetujuan admin." });
+      // ADD MODE
+      if (isAdmin) {
+        addAdminProduct({ name: form.name.trim(), description: form.description.trim(), longDescription: form.longDescription.trim(), price: Number(form.price), stock: Number(form.stock), image: form.image.trim(), images: [form.image.trim()], category: form.category, specs: finalSpecs, isPreOrder: form.isPreOrder, releaseDate: form.releaseDate });
+        toast({ title: "Produk ditambahkan!", description: "Langsung tampil di toko." });
+      } else {
+        submitProduct({ sellerId: user.id, sellerName: user.name, name: form.name.trim(), description: form.description.trim(), longDescription: form.longDescription.trim(), price: Number(form.price), stock: Number(form.stock), image: form.image.trim(), images: [form.image.trim()], category: form.category, specs: finalSpecs, isPreOrder: form.isPreOrder, releaseDate: form.releaseDate });
+        toast({ title: "Produk dikirim!", description: "Menunggu persetujuan admin." });
+      }
     }
-    setForm(emptyForm); setErrors({}); setSpecs([{ label: "", value: "" }]); setUseSpecs(false);
+    
+    if (!product) {
+      setForm(emptyForm); setErrors({}); setSpecs([{ label: "", value: "" }]); setUseSpecs(false);
+    }
     setLoading(false); onSuccess();
   };
 
@@ -166,6 +390,12 @@ function AddProductForm({ onSuccess, isAdmin }: { onSuccess: () => void; isAdmin
             {CATEGORIES.map((c) => <option key={c}>{c}</option>)}
           </select>)}
         {field("price", "Harga (Rp)", <Input id="price" type="number" min="1" placeholder="150000" value={form.price} onChange={set("price")} className="h-10" />, errors.price)}
+      </div>
+      <div className="grid grid-cols-2 gap-4">
+        {field("stock", "Jumlah Stok", <Input id="stock" type="number" min="0" placeholder="50" value={form.stock} onChange={set("stock")} className="h-10" />, errors.stock)}
+        <div className="pt-8 text-[10px] text-muted-foreground italic leading-tight">
+          Stok akan berkurang otomatis saat pembeli melakukan checkout.
+        </div>
       </div>
       {field("description", "Deskripsi Singkat", <Input id="description" placeholder="1–2 kalimat ringkasan" value={form.description} onChange={set("description")} className="h-10" />, errors.description)}
       {field("longDescription", "Deskripsi Lengkap",
@@ -195,8 +425,38 @@ function AddProductForm({ onSuccess, isAdmin }: { onSuccess: () => void; isAdmin
           </div>
         )}
       </div>
+
+      <div className="border rounded-xl p-4 space-y-4 bg-blue-50/30 dark:bg-blue-950/10 border-blue-100 dark:border-blue-900/30">
+        <label className="flex items-center gap-2 cursor-pointer select-none">
+          <input 
+            type="checkbox" 
+            checked={form.isPreOrder} 
+            onChange={(e) => setForm(f => ({ ...f, isPreOrder: e.target.checked }))} 
+            className="h-4 w-4 rounded border-input accent-primary" 
+          />
+          <span className="text-sm font-bold flex items-center gap-2">
+            <Clock className="h-4 w-4 text-blue-500" /> Aktifkan Pre-Order
+          </span>
+        </label>
+        
+        {form.isPreOrder && (
+          <div className="space-y-2 animate-in fade-in slide-in-from-top-2 duration-300">
+            <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Waktu Perilisan</Label>
+            <Input 
+              type="datetime-local" 
+              value={form.releaseDate} 
+              onChange={e => setForm(f => ({ ...f, releaseDate: e.target.value }))}
+              className="h-10"
+            />
+            <p className="text-[10px] text-blue-600 dark:text-blue-400 font-medium italic">
+              * MySultan dapat membeli 30 menit sebelum waktu ini.
+            </p>
+          </div>
+        )}
+      </div>
       <Button type="submit" className="w-full h-10 font-semibold" disabled={loading}>
-        {loading ? <span className="flex items-center gap-2"><span className="h-4 w-4 rounded-full border-2 border-white border-t-transparent animate-spin" />Mengirim…</span>
+        {loading ? <span className="flex items-center gap-2"><span className="h-4 w-4 rounded-full border-2 border-white border-t-transparent animate-spin" />{product ? "Menyimpan…" : "Mengirim…"}</span>
+          : product ? <span className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4" />Simpan Perubahan</span>
           : isAdmin ? <span className="flex items-center gap-2"><PlusCircle className="h-4 w-4" />Tambah ke Toko</span>
           : <span className="flex items-center gap-2"><PlusCircle className="h-4 w-4" />Kirim untuk Ditinjau</span>}
       </Button>
@@ -334,25 +594,36 @@ function ChatModal({ order, onClose }: { order: PurchasedOrder; onClose: () => v
 
 // ─── Live Tab ─────────────────────────────────────────────────────────────────
 function LiveTab({ user, isAdmin }: { user: NonNullable<ReturnType<typeof useAuth>["user"]>; isAdmin: boolean }) {
-  const { session, startLive, stopLive, updateSession, toggleProduct, gifts, totalPoints } = useLive();
+  const { activeSessions, startLive, stopLive, updateSession, toggleProduct, gifts, totalPoints } = useLive();
   const { allStoreProducts } = useProducts();
+  const { isSultan } = useSultan();
   const { toast } = useToast();
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
 
+  const handleSultanAnnouncement = () => {
+    if (!isLive) return;
+    toast({ 
+      title: "Announcement Sultan Terkirim", 
+      description: "User Sultan telah menerima notifikasi early access untuk produk ini!" 
+    });
+    // In a real app, this would send a special socket event
+  };
+
+  // Find if THIS seller is live
+  const mySession = activeSessions.find(s => s.sellerId === user.id);
+  const isLive = !!mySession;
+
   const [cameraOn, setCameraOn]   = useState(false);
   const [liveSearch, setLiveSearch] = useState("");
 
-  const isMySellerId = session.sellerId === user.id || isAdmin;
-  const canManage = isMySellerId || !session.isLive;
-
   const handleStartLive = () => {
     startLive(user.id, user.name);
-    toast({ title: "🔴 Live dimulai!", description: "Penonton sekarang bisa bergabung." });
+    toast({ title: "🔴 Live dimulai!", description: "Penonton sekarang bisa bergabung ke siaran kamu." });
   };
 
   const handleStopLive = () => {
-    stopLive();
+    stopLive(user.id);
     stopCamera();
     toast({ title: "Live dihentikan." });
   };
@@ -380,140 +651,195 @@ function LiveTab({ user, isAdmin }: { user: NonNullable<ReturnType<typeof useAut
     !liveSearch || p.name.toLowerCase().includes(liveSearch.toLowerCase())
   );
 
-  const selectedProducts = allStoreProducts.filter((p) => session.featuredProductIds.includes(p.id));
+  const selectedProducts = allStoreProducts.filter((p) => mySession?.featuredProductIds.includes(p.id) || false);
 
   return (
     <div className="space-y-5">
       {/* Live Status */}
-      <div className="bg-card border rounded-2xl p-5 shadow-sm">
+      <div className="bg-card border rounded-[2rem] p-6 shadow-xl shadow-black/5 border-primary/20">
         <div className="flex items-center justify-between gap-4">
           <div>
             <div className="flex items-center gap-2 mb-1">
-              <h3 className="font-bold">Status Live</h3>
-              {session.isLive && session.sellerId === user.id && (
-                <span className="flex items-center gap-1 bg-red-100 text-red-700 text-xs font-bold px-2.5 py-0.5 rounded-full animate-pulse">
-                  <span className="w-1.5 h-1.5 bg-red-500 rounded-full" />ON AIR
+              <h3 className="font-black tracking-tighter">Status Siaran</h3>
+              {isLive && (
+                <span className="flex items-center gap-1.5 bg-red-500 text-white text-[10px] font-black px-3 py-1 rounded-full animate-pulse shadow-lg shadow-red-500/20">
+                  <span className="w-1.5 h-1.5 bg-white rounded-full" />ON AIR
                 </span>
               )}
-              {session.isLive && session.sellerId !== user.id && (
-                <span className="text-xs text-muted-foreground">(live oleh {session.hostName})</span>
-              )}
             </div>
-            <p className="text-xs text-muted-foreground">
-              {session.isLive
-                ? (session.sellerId === user.id ? `Live aktif · ${totalPoints} poin hadiah diterima` : "Seller lain sedang live.")
-                : "Mulai live untuk berjualan langsung kepada pembeli."}
+            {isLive && (
+              <div className="flex gap-2 mt-2">
+                <Button 
+                  onClick={handleSultanAnnouncement}
+                  variant="outline" 
+                  className="flex-1 bg-yellow-50 border-yellow-200 text-yellow-800 hover:bg-yellow-100 font-bold text-xs gap-2"
+                >
+                  <Crown className="h-4 w-4" /> Announcement Sultan
+                </Button>
+                <Button variant="outline" className="flex-1 text-xs font-bold" onClick={handleStopLive}>
+                  Akhiri Sesi Live
+                </Button>
+              </div>
+            )}
+            <p className="text-xs text-muted-foreground font-medium mt-2">
+              {isLive
+                ? `Siaran kamu sedang berlangsung · ${totalPoints} poin hadiah diterima`
+                : "Mulai siaran untuk menjangkau lebih banyak pembeli secara langsung."}
             </p>
           </div>
-          {(canManage) && (
-            <button onClick={session.isLive ? handleStopLive : handleStartLive} className="flex-shrink-0">
-              {session.isLive
-                ? <ToggleRight className="h-12 w-12 text-red-500" />
-                : <ToggleLeft  className="h-12 w-12 text-muted-foreground" />}
-            </button>
-          )}
+          <button onClick={isLive ? handleStopLive : handleStartLive} className="flex-shrink-0 transition-transform active:scale-90">
+            {isLive
+              ? <ToggleRight className="h-14 w-14 text-red-500 drop-shadow-sm" />
+              : <ToggleLeft  className="h-14 w-14 text-muted-foreground opacity-30" />}
+          </button>
         </div>
       </div>
 
       {/* Kamera preview */}
-      <div className="bg-card border rounded-2xl p-5 shadow-sm space-y-3">
+      <div className="bg-card border rounded-[2rem] p-6 shadow-sm space-y-4">
         <div className="flex items-center justify-between">
-          <h3 className="font-bold text-sm flex items-center gap-2"><Camera className="h-4 w-4 text-primary" />Kamera Seller</h3>
-          <Button size="sm" variant={cameraOn ? "destructive" : "outline"} onClick={cameraOn ? stopCamera : startCamera} className="gap-1.5 text-xs">
-            {cameraOn ? <><CameraOff className="h-3.5 w-3.5" />Matikan</> : <><Camera className="h-3.5 w-3.5" />Nyalakan Kamera</>}
+          <h3 className="font-black tracking-tighter text-sm flex items-center gap-2"><Camera className="h-4 w-4 text-primary" />Monitor Kamera</h3>
+          <Button size="sm" variant={cameraOn ? "destructive" : "outline"} onClick={cameraOn ? stopCamera : startCamera} className="gap-2 rounded-xl text-xs font-bold px-4">
+            {cameraOn ? <><CameraOff className="h-3.5 w-3.5" />Matikan</> : <><Camera className="h-3.5 w-3.5" />Aktifkan Preview</>}
           </Button>
         </div>
-        <div className={`rounded-xl overflow-hidden bg-gray-900 flex items-center justify-center ${cameraOn ? "" : "border border-dashed border-muted"}`} style={{ height: "200px" }}>
+        <div className={`relative rounded-[1.5rem] overflow-hidden bg-gray-900 flex items-center justify-center transition-all ${cameraOn ? "aspect-video" : "h-40 border-2 border-dashed border-muted"}`}>
           {cameraOn
-            ? <video ref={videoRef} autoPlay playsInline muted className="w-full h-full object-cover" />
+            ? (
+              <>
+                <video ref={videoRef} autoPlay playsInline muted className="w-full h-full object-cover" />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent pointer-events-none" />
+                <div className="absolute bottom-4 left-4 flex items-center gap-2">
+                  <div className="w-2 h-2 bg-red-500 rounded-full animate-ping" />
+                  <span className="text-white text-[10px] font-black uppercase tracking-widest">Live Preview</span>
+                </div>
+              </>
+            )
             : <div className="text-center text-muted-foreground">
-                <Camera className="h-8 w-8 mx-auto mb-2 opacity-30" />
-                <p className="text-xs">Kamera belum aktif</p>
-                <p className="text-[11px] text-muted-foreground/70 mt-1">Preview lokal saja — viewer melihat etalase produk</p>
+                <Camera className="h-10 w-10 mx-auto mb-3 opacity-20" />
+                <p className="text-[11px] font-bold uppercase tracking-widest">Kamera Nonaktif</p>
               </div>}
         </div>
       </div>
 
       {/* Live config */}
-      <div className="bg-card border rounded-2xl p-5 shadow-sm space-y-4">
-        <h3 className="font-bold text-sm">Konfigurasi Siaran</h3>
-        <div className="space-y-1">
-          <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Judul Siaran</label>
-          <input value={session.title} onChange={(e) => updateSession({ title: e.target.value })}
-            placeholder="Flash Sale — Penawaran Terbatas!"
-            className="w-full px-3 py-2 text-sm border rounded-xl bg-background focus:outline-none focus:ring-2 focus:ring-ring" />
+      <div className="bg-card border rounded-[2rem] p-6 shadow-sm space-y-4">
+        <h3 className="font-black tracking-tighter text-sm">Pengaturan Konten</h3>
+        <div className="space-y-2">
+          <label className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em] ml-1">Judul Siaran</label>
+          <input 
+            value={mySession?.title || ""} 
+            onChange={(e) => updateSession(user.id, { title: e.target.value })}
+            placeholder="Contoh: Diskon Gila-gilaan Akhir Bulan!"
+            className="w-full px-4 py-3 text-sm border-2 border-muted rounded-2xl bg-background focus:outline-none focus:border-primary transition-colors font-bold" 
+          />
         </div>
-        <div className="space-y-1">
-          <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Nama Host</label>
-          <input value={session.hostName} onChange={(e) => updateSession({ hostName: e.target.value })}
-            placeholder="Nama toko / nama kamu"
-            className="w-full px-3 py-2 text-sm border rounded-xl bg-background focus:outline-none focus:ring-2 focus:ring-ring" />
+        <div className="space-y-2">
+          <label className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em] ml-1">Nama Host</label>
+          <input 
+            value={mySession?.hostName || ""} 
+            onChange={(e) => updateSession(user.id, { hostName: e.target.value })}
+            placeholder="Nama kamu atau nama toko"
+            className="w-full px-4 py-3 text-sm border-2 border-muted rounded-2xl bg-background focus:outline-none focus:border-primary transition-colors font-bold" 
+          />
         </div>
       </div>
 
       {/* Gift stats */}
-      {session.isLive && totalPoints > 0 && (
-        <div className="bg-gradient-to-r from-yellow-50 to-orange-50 border border-yellow-200 rounded-2xl p-4">
-          <div className="flex items-center gap-2 mb-3">
-            <Zap className="h-4 w-4 text-orange-500" />
-            <h3 className="font-bold text-sm">Hadiah Diterima</h3>
-            <span className="text-orange-600 font-bold text-sm ml-auto">{totalPoints} poin</span>
+      {isLive && totalPoints > 0 && (
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-gradient-to-r from-amber-500 to-orange-600 rounded-[2rem] p-6 text-white shadow-lg shadow-orange-500/20"
+        >
+          <div className="flex items-center gap-3 mb-4">
+            <div className="bg-white/20 p-2 rounded-xl">
+              <Zap className="h-5 w-5 text-white" />
+            </div>
+            <div>
+              <h3 className="font-black tracking-tighter text-sm uppercase">Hadiah Diterima</h3>
+              <p className="text-2xl font-black">{totalPoints} <span className="text-xs opacity-70">Poin</span></p>
+            </div>
           </div>
-          <div className="flex gap-3 flex-wrap">
+          <div className="flex gap-2 flex-wrap">
             {GIFT_TYPES.map((g) => (
-              <div key={g.id} className="flex items-center gap-1 text-xs text-muted-foreground">
-                <span className="text-base">{g.emoji}</span>
-                <span className="font-semibold">{g.label}</span>
+              <div key={g.id} className="bg-white/10 px-3 py-1.5 rounded-full flex items-center gap-2 border border-white/10">
+                <span className="text-lg">{g.emoji}</span>
+                <span className="text-[10px] font-black uppercase">{g.label}</span>
               </div>
             ))}
           </div>
-        </div>
+        </motion.div>
       )}
 
       {/* Produk etalase */}
-      <div className="bg-card border rounded-2xl p-5 shadow-sm space-y-4">
+      <div className="bg-card border rounded-[2.5rem] p-6 shadow-sm space-y-5 border-muted">
         <div>
-          <h3 className="font-bold text-sm mb-1 flex items-center gap-2">
-            <ShoppingBag className="h-4 w-4 text-primary" />Etalase Live
+          <h3 className="font-black tracking-tighter text-sm mb-1 flex items-center gap-2">
+            <ShoppingBag className="h-4 w-4 text-primary" />Katalog Produk Live
           </h3>
-          <p className="text-xs text-muted-foreground">
-            {session.featuredProductIds.length === 0
-              ? "Belum ada produk dipilih — semua produk akan tampil."
-              : `${session.featuredProductIds.length} produk dipilih.`}
+          <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">
+            {mySession?.featuredProductIds.length === 0
+              ? "Semua produk toko ditampilkan secara default."
+              : `${mySession?.featuredProductIds.length} produk di-pin ke siaran.`}
           </p>
         </div>
+
         {/* Selected products preview */}
         {selectedProducts.length > 0 && (
-          <div className="flex gap-2 overflow-x-auto pb-1">
+          <div className="flex gap-3 overflow-x-auto pb-2 custom-scrollbar">
             {selectedProducts.map((p) => (
-              <div key={p.id} className="flex-shrink-0 flex flex-col items-center gap-1 w-16">
-                <div className="relative">
-                  <img src={p.image} alt={p.name} className="w-14 h-14 rounded-lg object-cover border-2 border-orange-400" />
-                  <button onClick={() => toggleProduct(p.id)} className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white rounded-full flex items-center justify-center text-[9px]">×</button>
+              <div key={p.id} className="flex-shrink-0 flex flex-col items-center gap-2 w-20">
+                <div className="relative group">
+                  <div className="absolute -inset-1 bg-gradient-to-r from-primary to-orange-400 rounded-2xl blur opacity-25 group-hover:opacity-50 transition duration-1000 group-hover:duration-200" />
+                  <img src={p.image} alt={p.name} className="relative w-16 h-16 rounded-xl object-cover border-2 border-white shadow-sm" />
+                  <button 
+                    onClick={() => toggleProduct(user.id, p.id)} 
+                    className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center text-xs font-black shadow-lg"
+                  >
+                    ×
+                  </button>
                 </div>
-                <span className="text-[9px] text-center text-muted-foreground line-clamp-1">{p.name}</span>
+                <span className="text-[9px] font-black text-center text-muted-foreground line-clamp-1 uppercase tracking-tighter">{p.name}</span>
               </div>
             ))}
           </div>
         )}
+
         <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <input value={liveSearch} onChange={(e) => setLiveSearch(e.target.value)} placeholder="Cari produk…"
-            className="w-full pl-10 pr-4 py-2 text-sm border rounded-xl bg-background focus:outline-none focus:ring-2 focus:ring-ring" />
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <input 
+            value={liveSearch} 
+            onChange={(e) => setLiveSearch(e.target.value)} 
+            placeholder="Cari produk dari tokomu..."
+            className="w-full pl-12 pr-4 py-3 text-sm border-2 border-muted rounded-2xl bg-background focus:outline-none focus:border-primary transition-colors font-bold" 
+          />
         </div>
-        <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
+
+        <div className="space-y-3 max-h-80 overflow-y-auto pr-1 custom-scrollbar">
           {filteredProducts.map((p) => {
-            const selected = session.featuredProductIds.includes(p.id);
+            const selected = mySession?.featuredProductIds.includes(p.id) || false;
             return (
-              <button key={p.id} onClick={() => toggleProduct(p.id)}
-                className={`w-full flex items-center gap-3 p-2.5 rounded-xl border-2 text-left transition-all ${selected ? "border-orange-500 bg-orange-50" : "border-border hover:border-primary/40"}`}>
-                <img src={p.image} alt={p.name} className="w-10 h-10 rounded-lg object-cover flex-shrink-0 bg-muted" />
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold truncate">{p.name}</p>
-                  <p className="text-xs text-muted-foreground">{formatPrice(p.price)}</p>
+              <button 
+                key={p.id} 
+                onClick={() => toggleProduct(user.id, p.id)}
+                className={`w-full flex items-center gap-4 p-3 rounded-[1.5rem] border-2 text-left transition-all ${
+                  selected 
+                    ? "border-primary bg-primary/5 shadow-md shadow-primary/5" 
+                    : "border-muted hover:border-primary/20 hover:bg-muted/30"
+                }`}
+              >
+                <div className="w-12 h-12 rounded-xl overflow-hidden bg-muted flex-shrink-0 border border-border">
+                  <img src={p.image} alt={p.name} className="w-full h-full object-cover" />
                 </div>
-                <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${selected ? "bg-orange-500 border-orange-500" : "border-muted-foreground"}`}>
-                  {selected && <CheckCircle2 className="h-3 w-3 text-white" />}
+                <div className="flex-1 min-w-0">
+                  <p className="text-[11px] font-black uppercase tracking-tight truncate">{p.name}</p>
+                  <p className="text-primary font-black text-sm">{formatPrice(p.price)}</p>
+                </div>
+                <div className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center flex-shrink-0 transition-colors ${
+                  selected ? "bg-primary border-primary" : "border-muted-foreground/30"
+                }`}>
+                  {selected && <CheckCircle2 className="h-4 w-4 text-white" />}
                 </div>
               </button>
             );
@@ -532,11 +858,14 @@ export function SellerPage() {
   const { auctions, createAuction, endAuction, deleteAuction } = useAuction();
   const { sellerProducts, adminProducts, deleteProduct, deleteAdminProduct } = useProducts();
   const { getAllOrders, updateOrderStatus } = useOrderHistory();
-  const { session } = useLive();
+  const { activeSessions } = useLive();
+  const isAnyLive = activeSessions.length > 0;
+  const isMyLive = activeSessions.some(s => s.sellerId === user?.id);
   const [tab, setTab] = useState<"products" | "orders" | "live" | "auction">("products");
   const [showForm, setShowForm] = useState(false);
   const [chatOrder, setChatOrder] = useState<PurchasedOrder | null>(null);
   const [orderFilter, setOrderFilter] = useState<OrderStatus | "all">("all");
+  const [editingProduct, setEditingProduct] = useState<SellerProduct | AdminProduct | null>(null);
   const { toast } = useToast();
 
   const myAuctions = auctions.filter(a => a.sellerId === user?.id);
@@ -589,6 +918,7 @@ export function SellerPage() {
 
   const handleDelete      = (id: number) => { deleteProduct(id); toast({ title: "Produk dihapus." }); };
   const handleDeleteAdmin = (id: number) => { deleteAdminProduct(id); toast({ title: "Produk dihapus dari toko." }); };
+  const handleEdit        = (p: SellerProduct | AdminProduct) => { setEditingProduct(p); setShowForm(true); window.scrollTo({ top: 0, behavior: 'smooth' }); };
   const handleProcess     = (id: string) => { updateOrderStatus(id, "processing"); toast({ title: "Pesanan diproses.", description: "Pembeli mendapat notifikasi." }); };
   const handleShip        = (id: string) => { updateOrderStatus(id, "shipped"); toast({ title: "Dikirim ke kurir!", description: "Kurir akan segera mengambil paket." }); };
 
@@ -617,7 +947,8 @@ export function SellerPage() {
         {TABS.map(({ id, label, badge }) => (
           <button key={id} onClick={() => setTab(id)}
             className={`relative flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${tab === id ? "bg-white shadow text-foreground" : "text-muted-foreground hover:text-foreground"}`}>
-            {id === "live" && session.isLive && <Radio className="h-3.5 w-3.5 text-red-500" />}
+            {id === "live" && isMyLive && <Radio className="h-3.5 w-3.5 text-red-500 animate-pulse" />}
+            {id === "live" && !isMyLive && isAnyLive && <Radio className="h-3.5 w-3.5 text-orange-500 opacity-50" />}
             {label}
             {badge != null && badge > 0 && (
               <span className="bg-red-500 text-white text-[9px] font-bold w-4 h-4 rounded-full flex items-center justify-center">{badge}</span>
@@ -643,23 +974,41 @@ export function SellerPage() {
             ))}
           </div>
           <div className="bg-card border rounded-2xl overflow-hidden mb-6 shadow-sm">
-            <button className="w-full flex items-center justify-between px-5 py-4 hover:bg-muted/30 transition-colors" onClick={() => setShowForm((v) => !v)}>
-              <span className="flex items-center gap-2 font-bold"><PlusCircle className="h-5 w-5 text-primary" />Tambah Produk Baru</span>
+            <button className="w-full flex items-center justify-between px-5 py-4 hover:bg-muted/30 transition-colors" onClick={() => { 
+              if (showForm) { setShowForm(false); setEditingProduct(null); }
+              else { setShowForm(true); }
+            }}>
+              <span className="flex items-center gap-2 font-bold text-left truncate">
+                {editingProduct ? (
+                  <><Pencil className="h-5 w-5 text-primary flex-shrink-0" /> Edit Produk: <span className="text-primary truncate">{editingProduct.name}</span></>
+                ) : (
+                  <><PlusCircle className="h-5 w-5 text-primary flex-shrink-0" /> Tambah Produk Baru</>
+                )}
+              </span>
               {showForm ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
             </button>
             {showForm && (
               <div className="px-5 pb-6 border-t">
                 <p className="text-xs text-muted-foreground mt-4 mb-4">
-                  {isAdmin ? "Produk langsung tampil di toko." : "Produk menunggu persetujuan admin."}
+                  {editingProduct ? "Silakan perbarui detail produk di bawah ini." : (isAdmin ? "Produk langsung tampil di toko." : "Produk menunggu persetujuan admin.")}
                 </p>
-                <AddProductForm onSuccess={() => setShowForm(false)} isAdmin={isAdmin} />
+                <ProductForm 
+                  onSuccess={() => { setShowForm(false); setEditingProduct(null); }} 
+                  isAdmin={isAdmin} 
+                  product={editingProduct || undefined} 
+                />
+                {editingProduct && (
+                  <Button variant="ghost" className="w-full mt-2 text-xs h-8 text-muted-foreground" onClick={() => { setEditingProduct(null); setShowForm(false); }}>
+                    Batal Edit
+                  </Button>
+                )}
               </div>
             )}
           </div>
           {isAdmin && adminProducts.length > 0 && (
             <div className="mb-6">
               <h2 className="text-base font-bold mb-3">Produk Admin Toko <span className="text-sm font-normal text-muted-foreground">({adminProducts.length})</span></h2>
-              <div className="space-y-3">{adminProducts.map((p) => <AdminProductCard key={p.id} product={p} onDelete={handleDeleteAdmin} />)}</div>
+              <div className="space-y-3">{adminProducts.map((p) => <AdminProductCard key={p.id} product={p} onDelete={handleDeleteAdmin} onEdit={handleEdit} />)}</div>
             </div>
           )}
           <div>
@@ -670,7 +1019,7 @@ export function SellerPage() {
                 <p className="font-semibold text-muted-foreground">Belum ada produk</p>
               </div>
             ) : (
-              <div className="space-y-3">{mySellerProducts.map((p) => <SellerProductCard key={p.id} product={p} onDelete={handleDelete} canAlwaysDelete={isAdmin} />)}</div>
+              <div className="space-y-3">{mySellerProducts.map((p) => <SellerProductCard key={p.id} product={p} onDelete={handleDelete} onEdit={handleEdit} canAlwaysDelete={isAdmin} />)}</div>
             )}
           </div>
         </>

@@ -1,15 +1,17 @@
 /**
  * Navbar.tsx
- * Navigasi utama + notification bell + LIVE indicator + Kurir link.
+ * Navigasi utama + notification bell + LIVE indicator + Kurir link + Theme Toggle.
  */
 import React, { useState, useRef, useEffect } from "react";
 import { Link, useLocation } from "wouter";
 import { ShoppingCart, Package, ClipboardList, ShieldCheck, Store, Bell,
-         CheckCheck, Trash2, Radio, Truck } from "lucide-react";
+         CheckCheck, Trash2, Radio, Truck, Moon, Sun, ArrowRight, Zap } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 import { useCart } from "../contexts/CartContext";
 import { useAuth } from "../contexts/AuthContext";
 import { useNotifications } from "../contexts/NotificationContext";
 import { useLive } from "../contexts/LiveContext";
+import { useTheme } from "../contexts/ThemeContext";
 import { Button } from "./ui/button";
 
 function avatarUrl(name: string) {
@@ -29,188 +31,169 @@ function timeAgo(iso: string): string {
 const NOTIF_ICON: Record<string, string> = {
   order_placed: "🛍️", order_received: "📦",
   product_approved: "✅", product_rejected: "❌",
+  friend_request: "👥", friend_accept: "🤝",
+  gift_received: "🎁", points_earned: "✨",
+  promo: "🔥", system: "⚙️", report_status: "🚩"
 };
 
 export function Navbar() {
   const { totalItems } = useCart();
   const { user } = useAuth();
   const { notifications, unreadCount, markAllRead, markRead, clearAll } = useNotifications();
-  const { session } = useLive();
+  const { activeSessions } = useLive();
+  const isLive = activeSessions.length > 0;
+  const { theme, toggleTheme } = useTheme();
   const [location] = useLocation();
   const [bellOpen, setBellOpen] = useState(false);
   const bellRef = useRef<HTMLDivElement>(null);
 
   const isActive = (path: string) => location === path;
 
+  const [scrolled, setScrolled] = useState(false);
+
   useEffect(() => {
-    if (!bellOpen) return;
-    const handler = (e: MouseEvent) => {
-      if (bellRef.current && !bellRef.current.contains(e.target as Node)) setBellOpen(false);
-    };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
-  }, [bellOpen]);
+    const handleScroll = () => setScrolled(window.scrollY > 10);
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
 
   const handleBellClick = () => {
     setBellOpen((v) => !v);
     if (!bellOpen && unreadCount > 0) markAllRead();
   };
 
+  const navItems = [
+    { path: "/", label: "Home", icon: Package },
+    { path: "/flashsale", label: "Flash Sale", icon: Zap, pulse: true },
+    { path: "/orders", label: "Pesanan", icon: ClipboardList },
+    ...(user?.role === "seller" || user?.role === "admin" ? [{ path: "/seller", label: "Dashboard", icon: Store }] : []),
+    ...(user?.role === "admin" ? [{ path: "/admin", label: "Admin", icon: ShieldCheck }] : []),
+  ];
+
   return (
-    <header className="sticky top-0 z-50 w-full border-b bg-background/80 backdrop-blur-md">
-      <div className="container mx-auto px-4 h-16 flex items-center justify-between">
+    <header className={`sticky top-0 z-50 w-full transition-all duration-500 border-b ${
+      scrolled 
+        ? "bg-background/95 backdrop-blur-xl py-2 shadow-xl shadow-black/5" 
+        : "bg-background/50 backdrop-blur-md py-4"
+    }`}>
+      <div className="container mx-auto px-4 flex items-center justify-between">
+ 
+        {/* Logo & Nav Links */}
+        <div className="flex items-center gap-8">
+          <Link href="/" className="flex items-center gap-2.5 text-primary font-black text-2xl tracking-tighter group transition-all active:scale-95">
+            <motion.div 
+              whileHover={{ rotate: 10, scale: 1.1 }}
+              className="bg-primary/10 p-1.5 rounded-xl border border-primary/20"
+            >
+              <Package className="h-7 w-7" />
+            </motion.div>
+            <span className="hidden sm:inline">Toko Online</span>
+          </Link>
 
-        {/* Logo */}
-        <Link href="/" className="flex items-center gap-2 text-primary font-bold text-xl flex-shrink-0">
-          <Package className="h-6 w-6" />
-          <span className="hidden sm:inline">Toko Online</span>
-          <span className="sm:hidden">Toko</span>
-        </Link>
+          {/* Desktop Nav Items with Sliding Underline */}
+          <nav className="hidden lg:flex items-center gap-1 relative">
+            {navItems.map((item) => (
+              <Link key={item.path} href={item.path}>
+                <div className={`relative px-4 py-2 text-sm font-bold transition-all cursor-pointer rounded-xl hover:bg-muted/50 ${
+                  isActive(item.path) ? "text-primary" : item.pulse ? "text-orange-500" : "text-muted-foreground hover:text-foreground"
+                }`}>
+                  <span className="relative z-10 flex items-center gap-2">
+                    <item.icon className={`h-4 w-4 ${item.pulse ? "animate-pulse fill-orange-500" : ""}`} />
+                    {item.label}
+                  </span>
+                  {isActive(item.path) && (
+                    <motion.div
+                      layoutId="active-nav"
+                      className="absolute inset-0 bg-primary/10 rounded-xl border border-primary/20 z-0"
+                      transition={{ type: "spring", bounce: 0.25, duration: 0.5 }}
+                    />
+                  )}
+                </div>
+              </Link>
+            ))}
+          </nav>
+        </div>
 
-        {/* Nav kanan */}
-        <div className="flex items-center gap-1 sm:gap-2">
+        {/* Right Nav */}
+        <div className="flex items-center gap-2">
 
           {/* LIVE button */}
           <Link href="/live">
-            <button className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all ${
-              session.isLive
-                ? "bg-red-600 text-white animate-pulse"
-                : "border border-muted text-muted-foreground hover:border-primary/50 hover:text-primary"
-            }`} title={session.isLive ? "Live sedang berlangsung!" : "Live Shopping"}>
-              {session.isLive ? (
-                <><span className="w-1.5 h-1.5 bg-white rounded-full" />LIVE</>
+            <motion.button 
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              className={`flex items-center gap-2 px-4 py-2 rounded-2xl text-[11px] font-black uppercase tracking-wider transition-all ${
+                isLive
+                  ? "bg-red-600 text-white shadow-lg shadow-red-600/30 ring-4 ring-red-600/10 animate-pulse"
+                  : "bg-muted/50 text-muted-foreground hover:bg-primary/10 hover:text-primary border border-transparent"
+              }`}
+            >
+              {isLive ? (
+                <><motion.span animate={{ opacity: [1, 0, 1] }} transition={{ repeat: Infinity, duration: 1 }} className="w-2 h-2 bg-white rounded-full" />LIVE</>
               ) : (
-                <><Radio className="h-3.5 w-3.5" /><span className="hidden sm:inline">Live</span></>
+                <><Radio className="h-3.5 w-3.5" /><span className="hidden md:inline">Live Show</span></>
               )}
-            </button>
+            </motion.button>
           </Link>
 
-
-
-          {/* Seller dashboard */}
-          {user?.role === "seller" && (
-            <Link href="/seller">
-              <Button variant={isActive("/seller") ? "secondary" : "ghost"} size="sm"
-                className="hidden sm:flex items-center gap-1.5" data-testid="button-nav-seller">
-                <Store className="h-4 w-4" />Dashboard
+          <div className="flex items-center bg-muted/30 p-1 rounded-2xl border border-border/50">
+            {/* Theme Toggle */}
+            <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
+              <Button variant="ghost" size="icon" onClick={toggleTheme} className="rounded-xl h-10 w-10">
+                {theme === "light" ? <Moon className="h-5 w-5" /> : <Sun className="h-5 w-5" />}
               </Button>
-              <Button variant={isActive("/seller") ? "secondary" : "ghost"} size="icon"
-                className="sm:hidden" title="Dashboard Seller">
-                <Store className="h-5 w-5" />
-              </Button>
-            </Link>
-          )}
+            </motion.div>
 
-          {/* Panel Admin */}
-          {user?.role === "admin" && (
-            <Link href="/admin">
-              <Button variant={isActive("/admin") ? "secondary" : "ghost"} size="sm"
-                className="hidden sm:flex items-center gap-1.5" data-testid="button-nav-admin">
-                <ShieldCheck className="h-4 w-4" />Admin
-              </Button>
-              <Button variant={isActive("/admin") ? "secondary" : "ghost"} size="icon"
-                className="sm:hidden" title="Panel Admin">
-                <ShieldCheck className="h-5 w-5" />
-              </Button>
-            </Link>
-          )}
+            <div className="w-px h-5 bg-border mx-1" />
 
-          {/* Pesanan */}
-          <Link href="/orders">
-            <Button variant={isActive("/orders") ? "secondary" : "ghost"} size="sm"
-              className="hidden sm:flex items-center gap-1.5" data-testid="button-nav-orders">
-              <ClipboardList className="h-4 w-4" />Pesanan
-            </Button>
-            <Button variant={isActive("/orders") ? "secondary" : "ghost"} size="icon"
-              className="sm:hidden" title="Riwayat Pesanan">
-              <ClipboardList className="h-5 w-5" />
-            </Button>
-          </Link>
-
-          {/* Notification Bell */}
-          <div ref={bellRef} className="relative">
-            <Button variant="ghost" size="icon" className="relative" onClick={handleBellClick}>
-              <Bell className="h-5 w-5" />
-              {unreadCount > 0 && (
-                <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white">
-                  {unreadCount > 9 ? "9+" : unreadCount}
-                </span>
-              )}
-            </Button>
-            {bellOpen && (
-              <div className="absolute right-0 top-full mt-2 w-80 bg-background border rounded-2xl shadow-xl overflow-hidden z-50">
-                <div className="flex items-center justify-between px-4 py-3 border-b bg-muted/30">
-                  <span className="font-bold text-sm">Notifikasi</span>
-                  <div className="flex items-center gap-1">
-                    {notifications.length > 0 && (
-                      <>
-                        <button onClick={markAllRead} className="p-1.5 text-muted-foreground hover:text-foreground rounded-lg hover:bg-muted transition-colors">
-                          <CheckCheck className="h-4 w-4" />
-                        </button>
-                        <button onClick={clearAll} className="p-1.5 text-muted-foreground hover:text-red-500 rounded-lg hover:bg-muted transition-colors">
-                          <Trash2 className="h-4 w-4" />
-                        </button>
-                      </>
+            {/* Keranjang */}
+            <Link href="/cart">
+              <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
+                <Button variant="ghost" size="icon" className="relative rounded-xl h-10 w-10" data-testid="button-cart-icon">
+                  <ShoppingCart className="h-5 w-5" />
+                  <AnimatePresence>
+                    {totalItems > 0 && (
+                      <motion.span 
+                        initial={{ scale: 0, rotate: -45 }}
+                        animate={{ scale: 1, rotate: 0 }}
+                        exit={{ scale: 0, rotate: 45 }}
+                        data-testid="text-cart-count"
+                        className="absolute top-1 right-1 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[9px] font-black text-primary-foreground shadow-lg shadow-primary/20"
+                      >
+                        {totalItems}
+                      </motion.span>
                     )}
-                  </div>
-                </div>
-                <div className="max-h-80 overflow-y-auto divide-y">
-                  {notifications.length === 0 ? (
-                    <div className="px-4 py-8 text-center text-sm text-muted-foreground">
-                      <Bell className="h-8 w-8 mx-auto mb-2 opacity-30" />Belum ada notifikasi
-                    </div>
-                  ) : (
-                    notifications.map((n) => (
-                      <button key={n.id} onClick={() => { markRead(n.id); setBellOpen(false); }}
-                        className={`w-full text-left px-4 py-3 hover:bg-muted/50 transition-colors flex gap-3 ${!n.read ? "bg-primary/5" : ""}`}>
-                        <span className="text-xl flex-shrink-0 mt-0.5">{NOTIF_ICON[n.type] ?? "🔔"}</span>
-                        <div className="flex-1 min-w-0">
-                          <p className={`text-sm font-semibold leading-tight ${!n.read ? "text-foreground" : "text-muted-foreground"}`}>{n.title}</p>
-                          <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed line-clamp-2">{n.message}</p>
-                          <p className="text-[10px] text-muted-foreground/70 mt-1">{timeAgo(n.createdAt)}</p>
-                        </div>
-                        {!n.read && <div className="w-2 h-2 bg-primary rounded-full flex-shrink-0 mt-1.5" />}
-                      </button>
-                    ))
-                  )}
-                </div>
-              </div>
-            )}
+                  </AnimatePresence>
+                </Button>
+              </motion.div>
+            </Link>
           </div>
 
-          {/* Keranjang */}
-          <Link href="/cart">
-            <Button variant="ghost" size="icon" className="relative" data-testid="button-cart-icon">
-              <ShoppingCart className="h-5 w-5" />
-              {totalItems > 0 && (
-                <span data-testid="text-cart-count"
-                  className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">
-                  {totalItems}
-                </span>
-              )}
-            </Button>
-          </Link>
-
-          {/* Avatar */}
+          {/* Avatar / Profile */}
           {user && (
             <Link href="/profile">
-              <button data-testid="button-nav-profile" title={`Profil — ${user.name}`}
-                className="flex items-center gap-2 ml-1 pl-3 border-l group">
-                <div className={`w-9 h-9 rounded-xl overflow-hidden ring-2 transition-all ${
-                  isActive("/profile") ? "ring-primary" : "ring-transparent group-hover:ring-primary/50"
-                }`}>
-                  <img src={avatarUrl(user.name)} alt={user.name} className="w-full h-full object-cover" />
-                </div>
-                <div className="hidden sm:flex flex-col items-start leading-tight">
-                  <span className="text-sm font-semibold text-foreground flex items-center gap-1">
+              <motion.button 
+                whileHover={{ x: 3 }}
+                data-testid="button-nav-profile" 
+                className="flex items-center gap-3 ml-2 pl-4 border-l border-border/50 group"
+              >
+                <div className="hidden md:flex flex-col items-end leading-none">
+                  <span className="text-[13px] font-black text-foreground flex items-center gap-1.5 group-hover:text-primary transition-colors">
                     {user.name.split(" ")[0]}
                     {user.role === "admin"  && <ShieldCheck className="h-3.5 w-3.5 text-primary" />}
                     {user.role === "seller" && <Store className="h-3.5 w-3.5 text-purple-500" />}
                     {user.role === "kurir"  && <Truck className="h-3.5 w-3.5 text-blue-500" />}
                   </span>
-                  <span className="text-[10px] text-muted-foreground capitalize">{user.role}</span>
+                  <span className="text-[9px] text-muted-foreground font-black uppercase tracking-[0.1em] mt-1 opacity-60 group-hover:opacity-100 transition-opacity">
+                    {user.role} Account
+                  </span>
                 </div>
-              </button>
+                <div className={`w-10 h-10 rounded-2xl overflow-hidden ring-4 transition-all duration-300 ${
+                  isActive("/profile") ? "ring-primary/20 border-2 border-primary" : "ring-transparent border-2 border-transparent group-hover:border-primary/50"
+                }`}>
+                  <img src={avatarUrl(user.name)} alt={user.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                </div>
+              </motion.button>
             </Link>
           )}
         </div>

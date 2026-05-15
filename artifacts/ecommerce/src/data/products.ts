@@ -17,6 +17,11 @@ export interface Product {
   specs: { label: string; value: string }[];
   sellerId: string;
   sellerName: string;
+  isFlashSale?: boolean;
+  discountPercent?: number;
+  stock: number;
+  isPreOrder?: boolean;
+  releaseDate?: string;
 }
 
 export const products: Product[] = [
@@ -46,6 +51,7 @@ export const products: Product[] = [
     ],
     sellerId: "admin-001",
     sellerName: "Admin Toko",
+    stock: 50,
   },
   {
     id: 2,
@@ -72,6 +78,7 @@ export const products: Product[] = [
     ],
     sellerId: "admin-001",
     sellerName: "Admin Toko",
+    stock: 50,
   },
   {
     id: 3,
@@ -98,6 +105,7 @@ export const products: Product[] = [
     ],
     sellerId: "admin-001",
     sellerName: "Admin Toko",
+    stock: 50,
   },
   {
     id: 4,
@@ -125,6 +133,7 @@ export const products: Product[] = [
     ],
     sellerId: "admin-001",
     sellerName: "Admin Toko",
+    stock: 50,
   },
 ];
 

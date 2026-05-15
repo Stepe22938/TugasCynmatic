@@ -58,15 +58,15 @@ function OrderProgressBar({ status }: { status: OrderStatus }) {
       {/* Status badge */}
       <div className="flex items-center gap-2 mb-3">
         {isProblem ? (
-          <span className="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1 rounded-full bg-red-100 text-red-700">
+          <span className="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1 rounded-full bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-400">
             <AlertCircle className="h-3.5 w-3.5" />Pesanan Bermasalah
           </span>
         ) : isComplete ? (
-          <span className="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1 rounded-full bg-green-100 text-green-700">
+          <span className="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1 rounded-full bg-green-100 text-green-700 dark:bg-green-950 dark:text-green-400">
             <CheckCircle2 className="h-3.5 w-3.5" />Pesanan Selesai
           </span>
         ) : (
-          <span className="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1 rounded-full bg-blue-100 text-blue-700">
+          <span className="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1 rounded-full bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-400">
             <Truck className="h-3.5 w-3.5" />{PROGRESS_STEPS[Math.min(currentIdx, PROGRESS_STEPS.length - 1)]?.label ?? "Dalam Proses"}
           </span>
         )}
@@ -83,7 +83,7 @@ function OrderProgressBar({ status }: { status: OrderStatus }) {
               {/* Node */}
               <div className="flex flex-col items-center flex-shrink-0">
                 <div className={`w-7 h-7 rounded-full border-2 flex items-center justify-center transition-all ${
-                  isProblem && i === currentIdx   ? "border-red-500 bg-red-100 text-red-600"
+                  isProblem && i === currentIdx   ? "border-red-500 bg-red-100 dark:bg-red-950 text-red-600 dark:text-red-400"
                   : isComplete || (done && !active) ? "border-green-500 bg-green-500 text-white"
                   : active                           ? "border-primary bg-primary text-primary-foreground animate-pulse"
                   : "border-muted-foreground/30 bg-muted text-muted-foreground/50"
@@ -308,7 +308,9 @@ export function OrderHistoryPage() {
                 {order.shippingInfo.phone && <span>📱 {order.shippingInfo.phone}</span>}
                 <span>📍 {order.shippingInfo.address}</span>
                 {order.paymentMethod && (
-                  <span className="font-semibold text-orange-600 uppercase">💳 {order.paymentMethod === "dana" ? "DANA" : "QRIS"}</span>
+                  <span className="font-semibold text-orange-600 uppercase">
+                    💳 {order.paymentMethod === "dana" ? "DANA" : order.paymentMethod === "qris" ? "QRIS" : "MyDompet"}
+                  </span>
                 )}
               </div>
             )}
@@ -351,7 +353,7 @@ export function OrderHistoryPage() {
                           {review.userName && <span className="text-xs font-semibold">{review.userName}</span>}
                           <StaticStars rating={review.rating} />
                           <span className={`inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full ${
-                            review.status === "sesuai" ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"
+                            review.status === "sesuai" ? "bg-green-100 text-green-700 dark:bg-green-950 dark:text-green-400" : "bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-400"
                           }`}>
                             {review.status === "sesuai" ? <CheckCircle2 className="h-3 w-3" /> : <AlertCircle className="h-3 w-3" />}
                             {review.status === "sesuai" ? "Barang Sesuai" : "Barang Tidak Sesuai"}

@@ -4,7 +4,8 @@
  */
 import React, { useState, useMemo } from "react";
 import { Link } from "wouter";
-import { ShoppingBag, Star, Truck, Shield, Search, X, SlidersHorizontal, ChevronDown, Radio, Eye, Zap } from "lucide-react";
+import { ShoppingBag, Star, Truck, Shield, Search, X, SlidersHorizontal, ChevronDown, Radio, Eye, Zap, Sparkles } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 import { ProductCard } from "../components/ProductCard";
 import { useAuth } from "../contexts/AuthContext";
 import { useProducts } from "../contexts/ProductsContext";
@@ -36,7 +37,9 @@ const PRICE_RANGES: { key: PriceRange; label: string; min: number; max: number }
 export function HomePage() {
   const { user } = useAuth();
   const { allStoreProducts } = useProducts();
-  const { session } = useLive();
+  const { activeSessions } = useLive();
+  const liveCount = activeSessions.length;
+  const mainLive = activeSessions[0];
 
   const [query,          setQuery]          = useState("");
   const [activeCategory, setCategory]       = useState("Semua");
@@ -81,82 +84,160 @@ export function HomePage() {
     <div className="min-h-screen bg-background">
 
       {/* ── Live Banner — shown when live is active ─────────────────────── */}
-      {session.isLive && (
+      {liveCount > 0 && (
         <Link href="/live">
-          <div className="bg-gradient-to-r from-red-600 via-rose-600 to-orange-500 text-white px-4 py-3 cursor-pointer hover:from-red-700 hover:to-orange-600 transition-all">
-            <div className="container mx-auto flex items-center justify-between gap-4">
+          <motion.div 
+            initial={{ y: -50, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            className="bg-gradient-to-r from-red-600 via-rose-600 to-orange-500 text-white px-4 py-3 cursor-pointer relative overflow-hidden group"
+          >
+            <div className="absolute inset-0 bg-white/10 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000" />
+            <div className="container mx-auto flex items-center justify-between gap-4 relative z-10">
               <div className="flex items-center gap-3 min-w-0">
-                <div className="flex items-center gap-1.5 bg-white/20 px-2.5 py-1 rounded-full flex-shrink-0">
+                <div className="flex items-center gap-2 bg-white/20 px-3 py-1 rounded-full flex-shrink-0 border border-white/20">
                   <span className="w-2 h-2 bg-white rounded-full animate-ping" />
-                  <span className="text-xs font-extrabold tracking-widest">LIVE</span>
+                  <span className="text-[10px] font-black tracking-[0.2em]">LIVE</span>
                 </div>
                 <div className="min-w-0">
-                  <p className="font-bold text-sm truncate">{session.title}</p>
-                  <p className="text-[11px] text-white/80">oleh {session.hostName} · Klik untuk bergabung</p>
+                  <p className="font-black text-sm truncate tracking-tight">{mainLive.title}</p>
+                  <p className="text-[10px] text-white/80 font-bold uppercase tracking-widest mt-0.5">
+                    {liveCount > 1 ? `+${liveCount - 1} Siaran Lainnya` : `oleh ${mainLive.hostName}`} · Gabung Sekarang
+                  </p>
                 </div>
               </div>
               <div className="flex items-center gap-3 flex-shrink-0">
-                <div className="hidden sm:flex items-center gap-1.5 text-white/90 text-xs">
-                  <Eye className="h-3.5 w-3.5" />
-                  <span className="font-semibold font-mono">1.2rb+ penonton</span>
+                <div className="hidden sm:flex items-center gap-1.5 text-white/90 text-[10px] font-black uppercase bg-black/20 px-3 py-1 rounded-full">
+                  <Eye className="h-3 w-3" />
+                  <span>Sedang Ramai</span>
                 </div>
-                <div className="flex items-center gap-1.5 bg-white text-red-600 text-xs font-bold px-3 py-1.5 rounded-full">
-                  <Zap className="h-3 w-3" />Tonton Sekarang
-                </div>
+                <Zap className="h-5 w-5 text-yellow-300 animate-pulse" />
               </div>
             </div>
-          </div>
+          </motion.div>
         </Link>
       )}
-
       {/* Hero */}
-      <section className="bg-gradient-to-br from-primary/10 via-background to-orange-50 border-b">
-        <div className="container mx-auto px-4 py-12 flex flex-col md:flex-row items-center gap-8">
-          <div className="flex-1 text-center md:text-left">
-            <p className="text-sm font-semibold text-primary uppercase tracking-widest mb-3">Toko Online Pilihan</p>
-            <h1 className="text-4xl md:text-5xl font-extrabold text-foreground leading-tight mb-4">
-              {firstName
-                ? <><span>Halo, </span><span className="text-primary">{firstName}!</span><br />Temukan Produk Terbaik</>
-                : <>Temukan Produk <span className="text-primary">Terbaik</span> untuk Anda</>}
-            </h1>
-            <p className="text-muted-foreground text-lg max-w-md mb-6">
-              Koleksi pilihan berkualitas dengan harga terjangkau. Belanja mudah, cepat, dan aman.
-            </p>
-            <div className="flex flex-wrap gap-3 justify-center md:justify-start">
-              <a href="#products"
-                className="inline-flex items-center gap-2 bg-primary text-primary-foreground px-6 py-3 rounded-full font-semibold shadow-md hover:bg-primary/90 transition-colors">
-                <ShoppingBag className="h-4 w-4" />Lihat Produk
-              </a>
-              <Link href="/live">
-                <button className={`inline-flex items-center gap-2 px-6 py-3 rounded-full font-semibold border-2 transition-colors ${
-                  session.isLive
-                    ? "bg-red-600 border-red-600 text-white hover:bg-red-700"
-                    : "border-primary/40 text-primary hover:bg-primary/5"
-                }`}>
-                  <Radio className="h-4 w-4" />
-                  {session.isLive ? "Tonton Live" : "Live Shopping"}
-                </button>
-              </Link>
-            </div>
-          </div>
-          <div className="flex-shrink-0 hidden md:block">
-            <div className="w-48 h-48 bg-primary/10 rounded-full flex items-center justify-center">
-              <ShoppingBag className="w-24 h-24 text-primary/40" strokeWidth={1} />
-            </div>
-          </div>
-        </div>
+      <section className="relative overflow-hidden bg-gradient-to-br from-primary/10 via-background to-orange-50/30 dark:to-orange-950/20 border-b">
+        {/* Animated Background Blobs */}
+        <motion.div 
+          animate={{ 
+            scale: [1, 1.2, 1],
+            rotate: [0, 90, 0],
+            x: [0, 50, 0],
+            y: [0, -30, 0]
+          }}
+          transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+          className="absolute top-[-10%] right-[-5%] w-[30%] h-[50%] bg-primary/5 blur-[120px] rounded-full"
+        />
+        <motion.div 
+          animate={{ 
+            scale: [1.2, 1, 1.2],
+            rotate: [0, -90, 0],
+            x: [0, -50, 0],
+            y: [0, 30, 0]
+          }}
+          transition={{ duration: 15, repeat: Infinity, ease: "linear" }}
+          className="absolute bottom-[-10%] left-[-5%] w-[30%] h-[50%] bg-orange-500/5 blur-[120px] rounded-full"
+        />
 
-        <div className="container mx-auto px-4 pb-8">
-          <div className="grid grid-cols-3 gap-4 max-w-xl mx-auto md:mx-0">
-            {PERKS.map(({ icon: Icon, label, desc }) => (
-              <div key={label} className="flex flex-col items-center md:items-start gap-1 text-center md:text-left">
-                <div className="w-8 h-8 bg-primary/15 rounded-lg flex items-center justify-center mb-1">
-                  <Icon className="h-4 w-4 text-primary" />
+        <div className="container mx-auto px-4 py-20 relative z-10">
+          <div className="flex flex-col md:flex-row items-center gap-12">
+            <div className="flex-1 text-center md:text-left">
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6 }}
+              >
+                <span className="inline-flex items-center gap-2 px-3 py-1 bg-primary/10 text-primary text-[10px] font-black uppercase tracking-[0.2em] rounded-full mb-6 border border-primary/20">
+                  <Sparkles className="h-3 w-3" /> Edisi Terbatas 2026
+                </span>
+                <h1 className="text-5xl md:text-7xl font-black text-foreground leading-[1.1] mb-6 tracking-tighter">
+                  {firstName
+                    ? <>Halo, <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-orange-600">{firstName}!</span><br />Waktunya Belanja.</>
+                    : <>Gaya Hidup <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-orange-600">Premium</span><br />Mulai dari Sini.</>}
+                </h1>
+                <p className="text-muted-foreground text-xl max-w-lg mb-8 leading-relaxed opacity-80 font-medium">
+                  Koleksi pilihan berkualitas dengan standar internasional. Belanja cerdas, cepat, dan 100% terjamin aman.
+                </p>
+                <div className="flex flex-wrap gap-4 justify-center md:justify-start">
+                  <motion.a 
+                    whileHover={{ scale: 1.05, y: -2 }}
+                    whileTap={{ scale: 0.95 }}
+                    href="#products"
+                    className="inline-flex items-center gap-3 bg-gradient-to-br from-primary to-orange-600 text-white px-8 py-4 rounded-2xl font-black shadow-2xl shadow-primary/30 transition-all hover:shadow-primary/50"
+                  >
+                    <ShoppingBag className="h-5 w-5" />
+                    Mulai Belanja
+                  </motion.a>
+                  <Link href="/live">
+                    <motion.button 
+                      whileHover={{ scale: 1.05, y: -2 }}
+                      whileTap={{ scale: 0.95 }}
+                      className={`inline-flex items-center gap-3 px-8 py-4 rounded-2xl font-black border-2 transition-all ${
+                        liveCount > 0
+                          ? "bg-red-600 border-red-600 text-white shadow-xl shadow-red-600/30"
+                          : "border-primary/20 text-primary bg-primary/5 hover:bg-primary/10"
+                      }`}
+                    >
+                      <Radio className={`h-5 w-5 ${liveCount > 0 ? 'animate-pulse' : ''}`} />
+                      {liveCount > 0 ? "Tonton Live Sekarang" : "Jadwal Live"}
+                    </motion.button>
+                  </Link>
                 </div>
-                <p className="text-xs font-semibold text-foreground">{label}</p>
-                <p className="text-[11px] text-muted-foreground hidden sm:block">{desc}</p>
+              </motion.div>
+            </div>
+
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.8, rotate: -5 }}
+              animate={{ opacity: 1, scale: 1, rotate: 0 }}
+              transition={{ duration: 0.8, delay: 0.2, type: "spring" }}
+              className="flex-shrink-0 hidden lg:block"
+            >
+              <div className="relative">
+                <div className="w-80 h-80 bg-gradient-to-br from-primary/20 to-orange-500/20 rounded-[3rem] rotate-12 absolute inset-0 blur-2xl" />
+                <div className="w-80 h-80 bg-card border border-white/20 rounded-[3rem] flex items-center justify-center shadow-2xl relative z-10 backdrop-blur-md">
+                  <motion.div
+                    animate={{ y: [0, -20, 0] }}
+                    transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+                  >
+                    <ShoppingBag className="w-40 h-40 text-primary opacity-20" strokeWidth={0.5} />
+                  </motion.div>
+                  <div className="absolute -bottom-6 -right-6 bg-white dark:bg-slate-900 p-6 rounded-3xl shadow-2xl border border-border/50 animate-bounce duration-[3000ms]">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-green-500/10 rounded-xl flex items-center justify-center">
+                        <Zap className="h-5 w-5 text-green-500" />
+                      </div>
+                      <div>
+                        <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Stok Ready</p>
+                        <p className="text-sm font-black">99+ Produk</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
-            ))}
+            </motion.div>
+          </div>
+
+          <div className="mt-20">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+              {PERKS.map(({ icon: Icon, label, desc }, idx) => (
+                <motion.div 
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.4 + idx * 0.1 }}
+                  key={label} 
+                  className="flex items-center gap-4 group p-4 rounded-2xl hover:bg-white/50 dark:hover:bg-white/5 transition-colors"
+                >
+                  <div className="w-14 h-14 bg-primary/10 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform duration-500 border border-primary/10 shadow-lg shadow-primary/5">
+                    <Icon className="h-6 w-6 text-primary" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-black text-foreground tracking-tight">{label}</p>
+                    <p className="text-xs text-muted-foreground font-medium">{desc}</p>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
           </div>
         </div>
       </section>
@@ -253,15 +334,25 @@ export function HomePage() {
 
         {/* ── Category pills (always visible when filter panel is closed) */}
         {!showFilters && (
-          <div className="flex gap-2 flex-wrap mb-4">
+          <div className="flex gap-2 flex-wrap mb-8">
             {categories.map((cat) => (
-              <button key={cat} onClick={() => setCategory(cat)}
-                className={`px-3.5 py-1.5 rounded-full text-xs font-semibold border transition-all ${
+              <button 
+                key={cat} 
+                onClick={() => setCategory(cat)}
+                className={`relative px-5 py-2 rounded-2xl text-[11px] font-black uppercase tracking-wider transition-all duration-300 ${
                   activeCategory === cat
-                    ? "bg-primary text-primary-foreground border-primary"
-                    : "bg-background text-muted-foreground border-border hover:border-primary/50"
-                }`}>
-                {cat}
+                    ? "text-white"
+                    : "bg-muted/30 text-muted-foreground border border-border/50 hover:bg-primary/5 hover:text-primary hover:border-primary/30"
+                }`}
+              >
+                <span className="relative z-10">{cat}</span>
+                {activeCategory === cat && (
+                  <motion.div
+                    layoutId="active-pill"
+                    className="absolute inset-0 bg-gradient-to-r from-primary to-orange-600 rounded-2xl shadow-lg shadow-primary/20 z-0"
+                    transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+                  />
+                )}
               </button>
             ))}
           </div>
@@ -313,20 +404,52 @@ export function HomePage() {
 
         {/* ── Grid produk ────────────────────────────────────────────── */}
         {filtered.length === 0 ? (
-          <div className="text-center py-20 text-muted-foreground">
-            <Search className="h-10 w-10 mx-auto mb-3 opacity-30" />
-            <p className="font-semibold">Produk tidak ditemukan</p>
-            <p className="text-sm mt-1">Coba kata kunci lain atau ubah filter.</p>
-            <button onClick={clearAll} className="mt-4 text-sm text-primary underline underline-offset-2">
-              Reset semua filter
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="text-center py-32 border-2 border-dashed border-border/50 rounded-[3rem] bg-muted/10"
+          >
+            <div className="w-20 h-20 bg-muted rounded-full flex items-center justify-center mx-auto mb-4">
+              <Search className="h-8 w-8 text-muted-foreground opacity-30" />
+            </div>
+            <p className="font-black text-xl tracking-tight">Ups! Tidak Ada Hasil</p>
+            <p className="text-muted-foreground text-sm mt-2 max-w-xs mx-auto opacity-70">
+              Kami tidak bisa menemukan produk yang cocok dengan pencarian atau filter kamu.
+            </p>
+            <button 
+              onClick={clearAll} 
+              className="mt-6 px-6 py-2.5 bg-foreground text-background rounded-full text-[11px] font-black uppercase tracking-wider hover:opacity-90 transition-opacity"
+            >
+              Reset Semua Filter
             </button>
-          </div>
+          </motion.div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5" data-testid="product-grid">
-            {filtered.map((product) => (
-              <ProductCard key={product.id} product={product} />
-            ))}
-          </div>
+          <motion.div 
+            layout
+            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-8" 
+            data-testid="product-grid"
+          >
+            <AnimatePresence mode="popLayout">
+              {filtered.map((product, idx) => (
+                <motion.div
+                  layout
+                  key={product.id}
+                  initial={{ opacity: 0, y: 30, scale: 0.9 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.9, transition: { duration: 0.2 } }}
+                  transition={{ 
+                    duration: 0.5, 
+                    delay: idx * 0.05,
+                    type: "spring",
+                    stiffness: 260,
+                    damping: 20 
+                  }}
+                >
+                  <ProductCard product={product} />
+                </motion.div>
+              ))}
+            </AnimatePresence>
+          </motion.div>
         )}
       </section>
     </div>

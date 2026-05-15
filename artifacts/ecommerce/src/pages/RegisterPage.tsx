@@ -5,20 +5,23 @@
  */
 import React, { useState, useEffect } from "react";
 import { Link, useLocation } from "wouter";
-import { Package, Eye, EyeOff, UserPlus } from "lucide-react";
+import { Package, Eye, EyeOff, UserPlus, Sun, Moon } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
+import { useTheme } from "../contexts/ThemeContext";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
 
 export function RegisterPage() {
   const { register, isAuthenticated } = useAuth();
+  const { theme, toggleTheme } = useTheme();
   const [, setLocation] = useLocation();
 
   const [name, setName]             = useState("");
   const [email, setEmail]           = useState("");
   const [password, setPassword]     = useState("");
   const [confirm, setConfirm]       = useState("");
+  const [referralCode, setReferralCode] = useState("");
   const [showPass, setShowPass]     = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [error, setError]           = useState("");
@@ -38,9 +41,9 @@ export function RegisterPage() {
     }
 
     setLoading(true);
-    await new Promise((r) => setTimeout(r, 300));
+    await new Promise((r) => setTimeout(r, 600));
 
-    const result = register(name, email, password);
+    const result = register(name, email, password, referralCode);
     if (!result.ok) {
       setError(result.error ?? "Pendaftaran gagal.");
     } else {
@@ -50,170 +53,166 @@ export function RegisterPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-orange-50 to-amber-50 p-4">
-      <div className="w-full max-w-sm">
+    <div className={`min-h-screen flex items-center justify-center relative overflow-hidden transition-colors duration-700 py-12 px-4 ${theme === 'dark' ? 'bg-[#0a0a0b]' : 'bg-slate-50'}`}>
+      {/* Theme Toggle Button */}
+      <button 
+        type="button"
+        onClick={toggleTheme}
+        className={`absolute top-6 right-6 z-20 w-12 h-12 rounded-2xl flex items-center justify-center transition-all shadow-lg active:scale-95 ${
+          theme === 'dark' ? 'bg-white/10 text-white border border-white/10 hover:bg-white/20' : 'bg-white text-slate-800 border border-slate-200 hover:bg-slate-50'
+        }`}
+      >
+        {theme === 'dark' ? <Sun className="h-6 w-6" /> : <Moon className="h-6 w-6" />}
+      </button>
 
-        <div className="bg-white rounded-3xl border shadow-xl overflow-hidden">
-
-          {/* Header */}
-          <div className="bg-gradient-to-br from-primary to-orange-600 px-6 py-8 text-center text-white">
-            <div className="w-16 h-16 bg-white/20 rounded-2xl flex items-center justify-center mx-auto mb-4">
-              <Package className="h-8 w-8 text-white" />
-            </div>
-            <h1 className="text-2xl font-extrabold mb-1">Buat Akun</h1>
-            <p className="text-orange-100 text-sm">Daftar dan mulai berbelanja</p>
+      {/* Dynamic Background Elements */}
+      <div className={`absolute top-[-10%] right-[-10%] w-[40%] h-[40%] rounded-full blur-[120px] animate-pulse ${theme === 'dark' ? 'bg-primary/20' : 'bg-primary/10'}`} />
+      <div className={`absolute bottom-[-10%] left-[-10%] w-[40%] h-[40%] rounded-full blur-[120px] animate-pulse delay-700 ${theme === 'dark' ? 'bg-indigo-600/10' : 'bg-indigo-600/5'}`} />
+      
+      <div className="w-full max-w-md relative z-10 animate-in fade-in zoom-in-95 duration-700">
+        <div className="text-center mb-8">
+          <div className="inline-flex items-center justify-center w-20 h-20 rounded-[2rem] bg-gradient-to-br from-primary to-orange-600 shadow-2xl shadow-primary/20 mb-4">
+            <Package className="h-10 w-10 text-white" />
           </div>
+          <h1 className={`text-4xl font-black tracking-tight mb-2 ${theme === 'dark' ? 'text-white' : 'text-slate-900'}`}>Buat Akun</h1>
+          <p className="text-muted-foreground font-medium">Daftar sekarang untuk mulai berbelanja</p>
+        </div>
 
-          {/* Form */}
-          <form onSubmit={handleSubmit} className="px-6 py-7 space-y-4">
-
+        {/* Glass Card */}
+        <div className={`${theme === 'dark' ? 'bg-card/40 border-white/10 shadow-[0_20px_50px_rgba(0,0,0,0.3)]' : 'bg-white/80 border-slate-200 shadow-xl shadow-slate-200/50'} backdrop-blur-2xl border rounded-[2.5rem] overflow-hidden transition-all duration-700`}>
+          <form onSubmit={handleSubmit} className="p-8 space-y-4">
             {error && (
-              <div className="bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-xl">
+              <div className="bg-red-500/10 border border-red-500/20 text-red-500 text-sm px-4 py-3 rounded-2xl animate-in shake-in duration-300 text-center">
                 {error}
               </div>
             )}
 
-            {/* Nama */}
             <div className="space-y-1.5">
-              <Label htmlFor="name" className="text-sm font-semibold">Nama Lengkap</Label>
+              <Label htmlFor="name" className={`text-xs font-bold ml-1 uppercase tracking-wider ${theme === 'dark' ? 'text-white/50' : 'text-slate-500'}`}>Full Name</Label>
               <Input
                 id="name"
-                type="text"
-                autoComplete="name"
-                placeholder="Nama kamu"
+                placeholder="Nama Lengkap"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 required
-                className="h-11"
-                data-testid="input-name"
+                className={`h-12 border rounded-2xl transition-all duration-300 ${
+                  theme === 'dark' ? 'bg-white/5 border-white/10 text-white focus:bg-white/10 placeholder:text-white/20' : 'bg-slate-50 border-slate-200 text-slate-900 focus:bg-white placeholder:text-slate-400'
+                }`}
               />
             </div>
 
-            {/* Email */}
             <div className="space-y-1.5">
-              <Label htmlFor="email" className="text-sm font-semibold">Email</Label>
+              <Label htmlFor="email" className={`text-xs font-bold ml-1 uppercase tracking-wider ${theme === 'dark' ? 'text-white/50' : 'text-slate-500'}`}>Email Address</Label>
               <Input
                 id="email"
                 type="email"
-                autoComplete="email"
-                placeholder="nama@email.com"
+                placeholder="name@email.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                className="h-11"
-                data-testid="input-email"
+                className={`h-12 border rounded-2xl transition-all duration-300 ${
+                  theme === 'dark' ? 'bg-white/5 border-white/10 text-white focus:bg-white/10 placeholder:text-white/20' : 'bg-slate-50 border-slate-200 text-slate-900 focus:bg-white placeholder:text-slate-400'
+                }`}
               />
             </div>
 
-            {/* Password */}
             <div className="space-y-1.5">
-              <Label htmlFor="password" className="text-sm font-semibold">Password</Label>
-              <div className="relative">
+              <Label htmlFor="password" className={`text-xs font-bold ml-1 uppercase tracking-wider ${theme === 'dark' ? 'text-white/50' : 'text-slate-500'}`}>Create Password</Label>
+              <div className="relative group">
                 <Input
                   id="password"
                   type={showPass ? "text" : "password"}
-                  autoComplete="new-password"
-                  placeholder="Minimal 6 karakter"
+                  placeholder="Min. 6 characters"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
-                  className="h-11 pr-10"
-                  data-testid="input-password"
+                  className={`h-12 border rounded-2xl transition-all duration-300 ${
+                    theme === 'dark' ? 'bg-white/5 border-white/10 text-white focus:bg-white/10 placeholder:text-white/20' : 'bg-slate-50 border-slate-200 text-slate-900 focus:bg-white placeholder:text-slate-400'
+                  }`}
                 />
                 <button
                   type="button"
-                  onClick={() => setShowPass((v) => !v)}
-                  className="absolute inset-y-0 right-3 flex items-center text-muted-foreground hover:text-foreground"
-                  tabIndex={-1}
+                  onClick={() => setShowPass(!showPass)}
+                  className={`absolute inset-y-0 right-4 flex items-center transition ${
+                    theme === 'dark' ? 'text-white/30 hover:text-white/60' : 'text-slate-400 hover:text-slate-600'
+                  }`}
                 >
-                  {showPass ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  {showPass ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                 </button>
               </div>
-
-              {/* Strength indicator */}
-              {password.length > 0 && (
-                <div className="flex gap-1 mt-1">
-                  {[1, 2, 3].map((i) => (
-                    <div
-                      key={i}
-                      className={`h-1 flex-1 rounded-full transition-colors ${
-                        password.length < 6
-                          ? i === 1 ? "bg-red-400" : "bg-muted"
-                          : password.length < 10
-                          ? i <= 2 ? "bg-amber-400" : "bg-muted"
-                          : "bg-green-500"
-                      }`}
-                    />
-                  ))}
-                  <span className="text-[10px] text-muted-foreground ml-1">
-                    {password.length < 6 ? "Lemah" : password.length < 10 ? "Sedang" : "Kuat"}
-                  </span>
-                </div>
-              )}
             </div>
 
-            {/* Konfirmasi Password */}
             <div className="space-y-1.5">
-              <Label htmlFor="confirm" className="text-sm font-semibold">Konfirmasi Password</Label>
-              <div className="relative">
+              <Label htmlFor="confirm" className={`text-xs font-bold ml-1 uppercase tracking-wider ${theme === 'dark' ? 'text-white/50' : 'text-slate-500'}`}>Confirm Password</Label>
+              <div className="relative group">
                 <Input
                   id="confirm"
                   type={showConfirm ? "text" : "password"}
-                  autoComplete="new-password"
                   placeholder="Ulangi password"
                   value={confirm}
                   onChange={(e) => setConfirm(e.target.value)}
                   required
-                  className={`h-11 pr-10 ${
-                    confirm.length > 0 && confirm !== password
-                      ? "border-red-400 focus-visible:ring-red-300"
-                      : ""
-                  }`}
-                  data-testid="input-confirm"
+                  className={`h-12 border rounded-2xl transition-all duration-300 ${
+                    theme === 'dark' ? 'bg-white/5 border-white/10 text-white focus:bg-white/10 placeholder:text-white/20' : 'bg-slate-50 border-slate-200 text-slate-900 focus:bg-white placeholder:text-slate-400'
+                  } ${confirm.length > 0 && confirm !== password ? "border-red-500/50" : ""}`}
                 />
                 <button
                   type="button"
-                  onClick={() => setShowConfirm((v) => !v)}
-                  className="absolute inset-y-0 right-3 flex items-center text-muted-foreground hover:text-foreground"
-                  tabIndex={-1}
+                  onClick={() => setShowConfirm(!showConfirm)}
+                  className={`absolute inset-y-0 right-4 flex items-center transition ${
+                    theme === 'dark' ? 'text-white/30 hover:text-white/60' : 'text-slate-400 hover:text-slate-600'
+                  }`}
                 >
-                  {showConfirm ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  {showConfirm ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                 </button>
               </div>
-              {confirm.length > 0 && confirm !== password && (
-                <p className="text-xs text-red-500">Password tidak cocok</p>
-              )}
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="referral" className={`text-xs font-bold ml-1 uppercase tracking-wider ${theme === 'dark' ? 'text-white/50' : 'text-slate-500'}`}>Kode Referral (Opsional)</Label>
+              <Input
+                id="referral"
+                placeholder="CONTOH: CYN-ABC"
+                value={referralCode}
+                onChange={(e) => setReferralCode(e.target.value.toUpperCase())}
+                className={`h-12 border rounded-2xl transition-all duration-300 ${
+                  theme === 'dark' ? 'bg-white/5 border-white/10 text-white focus:bg-white/10 placeholder:text-white/20' : 'bg-slate-50 border-slate-200 text-slate-900 focus:bg-white placeholder:text-slate-400'
+                }`}
+              />
             </div>
 
-            {/* Tombol Daftar */}
             <Button
               type="submit"
-              className="w-full h-11 font-semibold text-base mt-1"
+              className="w-full h-14 bg-gradient-to-r from-primary to-orange-600 hover:from-primary/90 hover:to-orange-500 text-white font-black text-lg rounded-2xl shadow-xl shadow-primary/20 transition-all active:scale-[0.98] mt-4"
               disabled={loading}
-              data-testid="button-register"
             >
               {loading ? (
-                <span className="flex items-center gap-2">
-                  <span className="h-4 w-4 rounded-full border-2 border-white border-t-transparent animate-spin" />
-                  Mendaftar...
-                </span>
+                <div className="flex items-center gap-2">
+                  <div className="h-5 w-5 rounded-full border-2 border-white/30 border-t-white animate-spin" />
+                  <span>Mendaftar...</span>
+                </div>
               ) : (
-                <span className="flex items-center gap-2">
-                  <UserPlus className="h-4 w-4" />
-                  Buat Akun
-                </span>
+                <div className="flex items-center gap-2">
+                  <span>Buat Akun</span>
+                  <UserPlus className="h-5 w-5" />
+                </div>
               )}
             </Button>
 
-            {/* Link ke Login */}
-            <p className="text-center text-sm text-muted-foreground pt-1">
-              Sudah punya akun?{" "}
-              <Link href="/login" className="text-primary font-semibold hover:underline">
-                Masuk di sini
-              </Link>
-            </p>
+            <div className="pt-4 text-center">
+              <p className={`text-sm font-medium ${theme === 'dark' ? 'text-white/40' : 'text-slate-500'}`}>
+                Sudah punya akun?{" "}
+                <Link href="/login" className={`font-bold transition underline-offset-4 hover:underline ${theme === 'dark' ? 'text-white hover:text-primary' : 'text-primary'}`}>
+                  Masuk di sini
+                </Link>
+              </p>
+            </div>
           </form>
         </div>
+
+        {/* Footer info */}
+        <p className={`text-center mt-10 text-[10px] font-bold uppercase tracking-[0.2em] ${theme === 'dark' ? 'text-white/20' : 'text-slate-300'}`}>
+          Join Thousands of Shoppers &bull; Reliable & Secure
+        </p>
       </div>
     </div>
   );

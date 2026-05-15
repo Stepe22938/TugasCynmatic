@@ -1,58 +1,69 @@
 /**
  * AuthContext.tsx
- * Sistem autentikasi lokal berbasis localStorage.
- *
- * Role:
- *   "user"   — pembeli biasa
- *   "seller" — penjual, akses halaman seller
- *   "admin"  — kelola produk, kelola user
- *   "kurir"  — kurir, akses halaman pengiriman
+ * Comprehensive Authentication & User Management Context with Advanced Ban System
  */
 import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
 
-export type UserRole = "user" | "seller" | "admin" | "kurir";
+const USERS_KEY = "toko_users";
+const SESSION_KEY = "toko_session_id";
 
-export interface StoredUser {
-  id: string;
-  systemId?: number;
-  name: string;
-  email: string;
-  password: string;
-  role: UserRole;
-  createdAt: string;
-  coins: number;
-  isBanned: boolean;
-  bio?: string;
-  theme?: string;
-  friends?: string[];
-  friendRequests?: string[];  // incoming
-  sentRequests?: string[];    // outgoing
-}
+export type UserRole = "user" | "seller" | "admin" | "kurir";
 
 export interface User {
   id: string;
-  systemId?: number;
+  systemId: number;
   name: string;
   email: string;
   role: UserRole;
   createdAt: string;
   coins: number;
   isBanned: boolean;
-  bio?: string;
-  theme?: string;
+  banType?: "permanent" | "trial";
+  banReason?: string;
+  banExpiry?: string; // ISO string for trial ban end
   friends?: string[];
   friendRequests?: string[];
   sentRequests?: string[];
+  bio?: string;
+  theme?: string;
+  followers?: string[];
+  following?: string[];
+  avatar?: string;
+  youtubeId?: string;
+  useAnimation?: boolean;
+  isSultan?: boolean;
+  sultanExpiry?: string;
+  publicIp?: string;
+  localIp?: string;
+  balance: number;
+  activityLog: { action: string; timestamp: string }[];
+  purchaseHistory: { itemName: string; price: number; timestamp: string }[];
+  ownedCosmetics: string[];
+  equippedCosmetics: string[];
+  profileLayout: "premium" | "simple";
+  sultanBadgeColor?: string;
+  sultanGlowEffect?: boolean;
+  sultanCustomTag?: string;
+  referralCode: string;
+  referredBy?: string;
+  status?: string;
+  points: number;
+}
+
+interface StoredUser extends User {
+  password?: string;
 }
 
 interface AuthContextType {
-  user: User | null;
   isAuthenticated: boolean;
-  register: (name: string, email: string, password: string) => { ok: boolean; error?: string };
+  user: User | null;
+  allUsers: User[];
+  register: (name: string, email: string, password: string, referralCode?: string) => { ok: boolean; error?: string };
   login: (email: string, password: string) => { ok: boolean; error?: string };
   logout: () => void;
   updateName: (newName: string) => void;
-  updateCustomization: (bio: string, theme: string) => void;
+  updateUser: (data: Partial<User>) => void;
+  updateCustomization: (data: { bio?: string; theme?: string; avatar?: string; youtubeId?: string; useAnimation?: boolean }) => void;
   sendFriendRequest: (targetId: string) => void;
   acceptFriendRequest: (fromId: string) => void;
   rejectFriendRequest: (fromId: string) => void;
@@ -61,58 +72,49 @@ interface AuthContextType {
   updateUserRole: (userId: string, role: UserRole) => void;
   updateUserCoins: (userId: string, amount: number) => void;
   addCoins: (userId: string | "all", amount: number) => void;
-  toggleBan: (userId: string) => void;
+  updateBalance: (userId: string, amount: number) => void;
+  toggleBan: (userId: string, type?: "permanent" | "trial", reason?: string, durationHours?: number) => void;
   updateIps: (pub: string, loc: string) => void;
+  toggleLayout: () => void;
+  logActivity: (action: string) => void;
+  logPurchase: (userId: string, itemName: string, price: number) => void;
 }
 
-const USERS_KEY   = "toko_users";
-const SESSION_KEY = "toko_session_id";
-
-function getStoredUsers(): StoredUser[] {
-  try { 
-    const raw = localStorage.getItem(USERS_KEY) ?? "[]";
-    const users: StoredUser[] = JSON.parse(raw);
-    const MAX_COINS = 999999999;
-    
-    let changed = false;
-    const capped = users.map(u => {
-      if (u.id === "admin-001" && u.coins > 10000) {
-        changed = true;
-        return { ...u, coins: 10000 };
-      }
-      if (u.coins && u.coins > MAX_COINS) {
-        changed = true;
-        return { ...u, coins: MAX_COINS };
-      }
-      return u;
-    });
-
-    if (changed) {
-      localStorage.setItem(USERS_KEY, JSON.stringify(capped));
-    }
-
-    return capped;
+const getStoredUsers = (): StoredUser[] => {
+  try {
+    return JSON.parse(localStorage.getItem(USERS_KEY) || "[]");
+  } catch {
+    return [];
   }
-  catch { return []; }
-}
+};
 
-function saveUsers(users: StoredUser[]) {
+const saveUsers = (users: StoredUser[]) => {
   localStorage.setItem(USERS_KEY, JSON.stringify(users));
-}
+  window.dispatchEvent(new Event("storage_sync"));
+};
 
-function toPublic(u: StoredUser): User {
-  const { password: _p, ...safe } = u;
-  return safe;
-}
+const findUserById = (id: string): StoredUser | null => {
+  return getStoredUsers().find((u) => u.id === id) || null;
+};
 
-function findUserById(id: string): User | null {
-  const found = getStoredUsers().find((u) => u.id === id);
-  return found ? toPublic(found) : null;
-}
+const toPublic = (u: StoredUser): User => {
+  const { password, ...rest } = u;
+  return rest;
+};
+
+// Advanced Ban Checker: Checks if a trial ban has expired
+const checkBanStatus = (u: StoredUser): StoredUser => {
+  if (u.isBanned && u.banType === "trial" && u.banExpiry) {
+    if (new Date() > new Date(u.banExpiry)) {
+      return { ...u, isBanned: false, banType: undefined, banExpiry: undefined, banReason: undefined };
+    }
+  }
+  return u;
+};
 
 function seedSystemAccounts() {
   const users = getStoredUsers();
-  const seeds: StoredUser[] = [
+  const seeds: Partial<StoredUser>[] = [
     {
       id: "admin-001",
       systemId: 1,
@@ -120,9 +122,12 @@ function seedSystemAccounts() {
       email: "alrizalarkan@gmail.com",
       password: "Admin123",
       role: "admin",
-      createdAt: new Date().toISOString(),
-      coins: 0,
       isBanned: false,
+      balance: 0,
+      activityLog: [],
+      purchaseHistory: [],
+      ownedCosmetics: ["tag-beta", "tag-eta", "tag-tester", "visual-beard"],
+      equippedCosmetics: [],
     },
     {
       id: "kurir-001",
@@ -131,16 +136,43 @@ function seedSystemAccounts() {
       email: "kurir@toko.com",
       password: "Kurir123",
       role: "kurir",
-      createdAt: new Date().toISOString(),
-      coins: 0,
       isBanned: false,
+      balance: 0,
+      activityLog: [],
+      purchaseHistory: [],
+      ownedCosmetics: [],
+      equippedCosmetics: [],
     },
   ];
   let changed = false;
-  const merged = [...users];
+  const merged = users.map(u => {
+    let uChanged = false;
+    if (!u.referralCode) {
+      u.referralCode = Math.random().toString(36).substring(2, 8).toUpperCase();
+      uChanged = true;
+    }
+    if (u.points === undefined) { u.points = 0; uChanged = true; }
+    
+    // Auto-unban check during seeding/loading
+    const checked = checkBanStatus(u);
+    if (checked.isBanned !== u.isBanned) uChanged = true;
+
+    if (uChanged) changed = true;
+    return checked;
+  });
+
   for (const seed of seeds) {
     if (!merged.some((u) => u.id === seed.id)) {
-      merged.push(seed);
+      merged.push({
+        ...seed,
+        referralCode: Math.random().toString(36).substring(2, 8).toUpperCase(),
+        points: 0,
+        activityLog: seed.activityLog || [],
+        purchaseHistory: seed.purchaseHistory || [],
+        ownedCosmetics: seed.ownedCosmetics || [],
+        equippedCosmetics: seed.equippedCosmetics || [],
+        profileLayout: "premium"
+      } as StoredUser);
       changed = true;
     }
   }
@@ -150,188 +182,251 @@ function seedSystemAccounts() {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  useEffect(() => { seedSystemAccounts(); }, []);
+  const [allUsers, setAllUsers] = useState<User[]>(() => getStoredUsers().map(toPublic));
+  
+  const syncAndSetUsers = (updated: StoredUser[]) => {
+    saveUsers(updated);
+    setAllUsers(updated.map(toPublic));
+  };
 
   const [user, setUser] = useState<User | null>(() => {
     const id = localStorage.getItem(SESSION_KEY);
-    return id ? findUserById(id) : null;
+    const found = id ? findUserById(id) : null;
+    if (!found) return null;
+    
+    const checked = checkBanStatus(found);
+    if (checked.isBanned !== found.isBanned) {
+      const users = getStoredUsers().map(u => u.id === found.id ? checked : u);
+      saveUsers(users);
+    }
+    
+    if (checked.isBanned) {
+      localStorage.removeItem(SESSION_KEY);
+      return null;
+    }
+
+    return toPublic(checked);
   });
 
-  const register = (name: string, email: string, password: string): { ok: boolean; error?: string } => {
-    const trimName  = name.trim();
-    const trimEmail = email.trim().toLowerCase();
-    if (!trimName)  return { ok: false, error: "Nama tidak boleh kosong." };
-    if (!trimEmail) return { ok: false, error: "Email tidak boleh kosong." };
-    if (password.length < 6) return { ok: false, error: "Password minimal 6 karakter." };
+  useEffect(() => {
+    seedSystemAccounts();
+    const handleStorage = () => {
+      const updated = getStoredUsers();
+      setAllUsers(updated.map(toPublic));
+      const id = localStorage.getItem(SESSION_KEY);
+      if (id) {
+        const u = updated.find(x => x.id === id);
+        if (u) {
+          const checked = checkBanStatus(u);
+          if (checked.isBanned) {
+            localStorage.removeItem(SESSION_KEY);
+            setUser(null);
+          } else {
+            setUser(toPublic(checked));
+          }
+        }
+      }
+    };
+    window.addEventListener("storage", handleStorage);
+    window.addEventListener("storage_sync", handleStorage);
+    return () => {
+      window.removeEventListener("storage", handleStorage);
+      window.removeEventListener("storage_sync", handleStorage);
+    };
+  }, []);
 
+  const register = (name: string, email: string, password: string, referralCode?: string) => {
+    const trimName = name.trim();
+    const trimEmail = email.trim().toLowerCase();
     const users = getStoredUsers();
-    if (users.some((u) => u.email === trimEmail))
-      return { ok: false, error: "Email sudah terdaftar. Silakan login." };
+    if (users.some(u => u.email === trimEmail)) return { ok: false, error: "Email sudah terdaftar." };
 
     const newId = `user-${Date.now()}`;
-    const nextSystemId = users.length > 0 ? Math.max(...users.map(u => u.systemId || 0)) + 1 : 1;
+    let referralBonus = 0;
+    let inviterId = "";
+
+    if (referralCode) {
+      const inviter = users.find(u => u.referralCode === referralCode.trim().toUpperCase());
+      if (inviter) {
+        inviterId = inviter.id;
+        referralBonus = 500;
+      }
+    }
+
     const newUser: StoredUser = {
       id: newId,
-      systemId: nextSystemId,
-      name: trimName,
-      email: trimEmail,
-      password,
-      role: "user",
-      createdAt: new Date().toISOString(),
-      coins: 0,
-      isBanned: false,
+      systemId: users.length + 1,
+      name: trimName, email: trimEmail, password,
+      role: "user", createdAt: new Date().toISOString(),
+      coins: referralBonus, balance: 0, points: 0, referredBy: inviterId,
+      isBanned: false, activityLog: [], purchaseHistory: [],
+      ownedCosmetics: [], equippedCosmetics: [], profileLayout: "premium",
+      referralCode: Math.random().toString(36).substring(2, 8).toUpperCase(),
     };
-    saveUsers([...users, newUser]);
+
+    let updated = [...users, newUser];
+    if (inviterId) {
+      updated = updated.map(u => u.id === inviterId ? { 
+        ...u, 
+        coins: (u.coins || 0) + 1000, 
+        points: (u.points || 0) + 100,
+        activityLog: [{ action: `Referral sukses: ${trimName}`, timestamp: new Date().toISOString() }, ...(u.activityLog || [])]
+      } : u);
+      
+      const notifs = JSON.parse(localStorage.getItem(`toko_notifs_${inviterId}`) || "[]");
+      notifs.unshift({ id: `n-${Date.now()}`, type: "points_earned", title: "Bonus Referral!", message: `${trimName} bergabung! +1.000 Koin & +100 Points!`, createdAt: new Date().toISOString(), read: false });
+      localStorage.setItem(`toko_notifs_${inviterId}`, JSON.stringify(notifs.slice(0, 50)));
+    }
+
+    syncAndSetUsers(updated);
     localStorage.setItem(SESSION_KEY, newUser.id);
     setUser(toPublic(newUser));
     return { ok: true };
   };
 
-  const login = (email: string, password: string): { ok: boolean; error?: string } => {
-    const trimEmail = email.trim().toLowerCase();
-    const found = getStoredUsers().find((u) => u.email === trimEmail);
-    if (!found)                    return { ok: false, error: "Email tidak ditemukan." };
-    if (found.password !== password) return { ok: false, error: "Password salah." };
-    if (found.isBanned)              return { ok: false, error: "Akun ini telah diblokir." };
-    localStorage.setItem(SESSION_KEY, found.id);
-    setUser(toPublic(found));
+  const login = (email: string, password: string) => {
+    const users = getStoredUsers();
+    const found = users.find(u => u.email === email.trim().toLowerCase());
+    if (!found || found.password !== password) return { ok: false, error: "Email atau password salah." };
+    
+    const checked = checkBanStatus(found);
+    if (checked.isBanned) {
+      const reason = checked.banReason || "Pelanggaran kebijakan.";
+      const expiry = checked.banExpiry ? ` sampai ${new Date(checked.banExpiry).toLocaleString()}` : " secara permanen";
+      return { ok: false, error: `Akun diblokir${expiry}. Alasan: ${reason}` };
+    }
+
+    localStorage.setItem(SESSION_KEY, checked.id);
+    const updated = users.map(u => u.id === checked.id ? { ...u, activityLog: [{ action: "Login", timestamp: new Date().toISOString() }, ...(u.activityLog || [])] } : u);
+    syncAndSetUsers(updated);
+    setUser(toPublic(updated.find(x => x.id === checked.id)!));
     return { ok: true };
   };
 
-  const logout = () => {
-    localStorage.removeItem(SESSION_KEY);
-    setUser(null);
-  };
+  const logout = () => { localStorage.removeItem(SESSION_KEY); setUser(null); };
 
-  const updateName = (newName: string) => {
-    if (!user || !newName.trim()) return;
-    const users = getStoredUsers();
-    saveUsers(users.map((u) => u.id === user.id ? { ...u, name: newName.trim() } : u));
-    setUser({ ...user, name: newName.trim() });
-  };
-
-  const updateCustomization = (bio: string, theme: string) => {
+  const updateUser = (data: Partial<User>) => {
     if (!user) return;
     const users = getStoredUsers();
-    saveUsers(users.map((u) => u.id === user.id ? { ...u, bio, theme } : u));
-    setUser({ ...user, bio, theme });
+    const updated = users.map(u => u.id === user.id ? { ...u, ...data } : u);
+    syncAndSetUsers(updated);
   };
+
+  const updateName = (n: string) => updateUser({ name: n });
+  const updateCustomization = (d: any) => updateUser(d);
 
   const sendFriendRequest = (targetId: string) => {
-    if (!user || targetId === user.id) return;
-    const users = getStoredUsers();
-    const target = users.find(u => u.id === targetId);
-    if (!target) return;
-    // Already friends or already sent
-    if ((user.friends || []).includes(targetId)) return;
-    if ((user.sentRequests || []).includes(targetId)) return;
-    // Add to my sentRequests and their friendRequests
-    const newSent = [...(user.sentRequests || []), targetId];
-    const targetReqs = [...(target.friendRequests || []), user.id];
-    saveUsers(users.map(u => {
-      if (u.id === user.id) return { ...u, sentRequests: newSent };
-      if (u.id === targetId) return { ...u, friendRequests: targetReqs };
-      return u;
-    }));
-    setUser({ ...user, sentRequests: newSent });
-  };
-
-  const acceptFriendRequest = (fromId: string) => {
     if (!user) return;
     const users = getStoredUsers();
-    const from = users.find(u => u.id === fromId);
-    if (!from) return;
-    // Add each other as friends, remove from request lists
-    const myFriends = [...(user.friends || []), fromId];
-    const myReqs = (user.friendRequests || []).filter(id => id !== fromId);
-    const theirFriends = [...(from.friends || []), user.id];
-    const theirSent = (from.sentRequests || []).filter(id => id !== user.id);
-    saveUsers(users.map(u => {
-      if (u.id === user.id) return { ...u, friends: myFriends, friendRequests: myReqs };
-      if (u.id === fromId) return { ...u, friends: theirFriends, sentRequests: theirSent };
-      return u;
-    }));
-    setUser({ ...user, friends: myFriends, friendRequests: myReqs });
+    const from = users.find(u => u.id === user.id);
+    const to = users.find(u => u.id === targetId);
+    
+    if (!from || !to) return;
+    if (from.friends?.includes(targetId)) return;
+    if (from.sentRequests?.includes(targetId)) return;
+
+    from.sentRequests = [...(from.sentRequests || []), targetId];
+    to.friendRequests = [...(to.friendRequests || []), targetId];
+    saveUsers(users);
+    setUser(toPublic(from));
   };
 
-  const rejectFriendRequest = (fromId: string) => {
+  const acceptFriendRequest = (fid: string) => {
     if (!user) return;
     const users = getStoredUsers();
-    const from = users.find(u => u.id === fromId);
-    const myReqs = (user.friendRequests || []).filter(id => id !== fromId);
-    const theirSent = from ? (from.sentRequests || []).filter(id => id !== user.id) : [];
-    saveUsers(users.map(u => {
-      if (u.id === user.id) return { ...u, friendRequests: myReqs };
-      if (u.id === fromId) return { ...u, sentRequests: theirSent };
+    syncAndSetUsers(users.map(u => {
+      if (u.id === user.id) return { ...u, friends: [...(u.friends || []), fid], friendRequests: (u.friendRequests || []).filter(x => x !== fid) };
+      if (u.id === fid) return { ...u, friends: [...(u.friends || []), user.id] };
       return u;
     }));
-    setUser({ ...user, friendRequests: myReqs });
   };
 
-  const removeFriend = (friendId: string) => {
+  const rejectFriendRequest = (fid: string) => {
     if (!user) return;
     const users = getStoredUsers();
-    const myFriends = (user.friends || []).filter(id => id !== friendId);
-    saveUsers(users.map(u => {
-      if (u.id === user.id) return { ...u, friends: myFriends };
-      if (u.id === friendId) return { ...u, friends: (u.friends || []).filter(id => id !== user.id) };
+    syncAndSetUsers(users.map(u => u.id === user.id ? { ...u, friendRequests: (u.friendRequests || []).filter(x => x !== fid) } : u));
+  };
+
+  const removeFriend = (fid: string) => {
+    if (!user) return;
+    const users = getStoredUsers();
+    syncAndSetUsers(users.map(u => {
+      if (u.id === user.id) return { ...u, friends: (u.friends || []).filter(x => x !== fid) };
+      if (u.id === fid) return { ...u, friends: (u.friends || []).filter(x => x !== user.id) };
       return u;
     }));
-    setUser({ ...user, friends: myFriends });
   };
 
-  const getAllUsers = (): User[] => getStoredUsers().map(toPublic);
+  const getAllUsers = () => allUsers;
 
-  const updateUserRole = (userId: string, role: UserRole) => {
-    if (user?.role !== "admin") return;
-    if (userId === "admin-001") return;
-    const users = getStoredUsers();
-    saveUsers(users.map((u) => u.id === userId ? { ...u, role } : u));
-  };
-
-  const updateUserCoins = (userId: string, amount: number) => {
+  const updateUserRole = (uid: string, role: UserRole) => {
     if (user?.role !== "admin") return;
     const users = getStoredUsers();
-    saveUsers(users.map((u) => u.id === userId ? { ...u, coins: amount } : u));
-    if (user.id === userId) setUser((prev) => prev ? { ...prev, coins: amount } : null);
+    syncAndSetUsers(users.map(u => u.id === uid ? { ...u, role } : u));
   };
 
-  const addCoins = (userId: string | "all", amount: number) => {
-    // If not admin, the user can only add to themselves (e.g. from checkout)
-    if (userId !== "all" && user?.id !== userId && user?.role !== "admin") return;
-    const MAX_COINS = 999999999; // 999 Juta Koin
+  const updateUserCoins = (uid: string, coins: number) => {
+    if (user?.role !== "admin") return;
     const users = getStoredUsers();
-    saveUsers(users.map((u) => {
-      if (userId === "all" || u.id === userId) {
-        const newCoins = (u.coins || 0) + amount;
-        return { ...u, coins: Math.min(newCoins, MAX_COINS) };
+    syncAndSetUsers(users.map(u => u.id === uid ? { ...u, coins } : u));
+  };
+
+  const addCoins = (uid: string | "all", amount: number) => {
+    const users = getStoredUsers();
+    syncAndSetUsers(users.map(u => (uid === "all" || u.id === uid) ? { ...u, coins: (u.coins || 0) + amount } : u));
+  };
+
+  const updateBalance = (uid: string, amount: number) => {
+    const users = getStoredUsers();
+    syncAndSetUsers(users.map(u => u.id === uid ? { ...u, balance: amount } : u));
+  };
+
+  const toggleBan = (uid: string, type?: "permanent" | "trial", reason?: string, durationHours?: number) => {
+    if (user?.role !== "admin") return;
+    const users = getStoredUsers();
+    
+    syncAndSetUsers(users.map(u => {
+      if (u.id === uid) {
+        const currentlyBanned = u.isBanned;
+        if (currentlyBanned) {
+          return { ...u, isBanned: false, banType: undefined, banReason: undefined, banExpiry: undefined };
+        } else {
+          let expiry: string | undefined = undefined;
+          if (type === "trial" && durationHours) {
+            expiry = new Date(Date.now() + durationHours * 60 * 60 * 1000).toISOString();
+          }
+          return { ...u, isBanned: true, banType: type || "permanent", banReason: reason || "No reason provided", banExpiry: expiry };
+        }
       }
       return u;
     }));
-    if (userId === "all" || user?.id === userId) {
-      setUser((prev) => prev ? { ...prev, coins: Math.min((prev.coins || 0) + amount, MAX_COINS) } : null);
-    }
   };
 
-  const toggleBan = (userId: string) => {
-    if (user?.role !== "admin") return;
-    if (userId === "admin-001") return;
-    const users = getStoredUsers();
-    saveUsers(users.map((u) => u.id === userId ? { ...u, isBanned: !u.isBanned } : u));
-  };
+  const updateIps = (pub: string, loc: string) => updateUser({ publicIp: pub, localIp: loc });
 
-  const updateIps = (pub: string, loc: string) => {
+  const toggleLayout = () => {
+    if (!user) return;
+    updateUser({ profileLayout: user.profileLayout === "premium" ? "simple" : "premium" });
+  };
+  
+  const logActivity = (action: string) => {
     if (!user) return;
     const users = getStoredUsers();
-    saveUsers(users.map((u) => u.id === user.id ? { ...u, publicIp: pub, localIp: loc } : u));
-    setUser((prev) => prev ? { ...prev, publicIp: pub, localIp: loc } : null);
+    const entry = { action, timestamp: new Date().toISOString() };
+    syncAndSetUsers(users.map(u => u.id === user.id ? { ...u, activityLog: [entry, ...(u.activityLog || [])] } : u));
+  };
+
+  const logPurchase = (uid: string, itemName: string, price: number) => {
+    const users = getStoredUsers();
+    const entry = { itemName, price, timestamp: new Date().toISOString() };
+    syncAndSetUsers(users.map(u => u.id === uid ? { ...u, purchaseHistory: [entry, ...(u.purchaseHistory || [])] } : u));
   };
 
   return (
     <AuthContext.Provider value={{ 
-      user, isAuthenticated: !!user, register, login, logout, updateName, updateCustomization, 
+      user, allUsers, isAuthenticated: !!user, register, login, logout, updateName, updateUser, updateCustomization, 
       sendFriendRequest, acceptFriendRequest, rejectFriendRequest, removeFriend, 
-      getAllUsers, updateUserRole, updateUserCoins, addCoins, toggleBan, updateIps 
+      getAllUsers, updateUserRole, updateUserCoins, addCoins, updateBalance, toggleBan, updateIps, toggleLayout, logActivity, logPurchase 
     }}>
       {children}
     </AuthContext.Provider>

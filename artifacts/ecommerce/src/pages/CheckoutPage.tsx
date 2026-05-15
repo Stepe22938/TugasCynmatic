@@ -15,8 +15,10 @@ import { useVouchers } from "../contexts/VoucherContext";
 import { formatPrice } from "../utils/formatPrice";
 import { Button } from "../components/ui/button";
 import { useToast } from "../hooks/use-toast";
+import { useProducts } from "../contexts/ProductsContext";
 import { useWallet } from "../contexts/WalletContext";
-import { Wallet } from "lucide-react";
+import { Wallet, Clock } from "lucide-react";
+import { useSultan } from "../contexts/MySultanContext";
 
 const SHIPPING_FEE = 15000;
 
@@ -24,21 +26,31 @@ type PaymentMethod = "dana" | "qris" | "mydompet";
 type Step = "form" | "payment";
 
 export function CheckoutPage() {
-  const { state: { items }, dispatch, subtotal, processPayouts } = useCart();
+  const { state: { items }, dispatch, subtotal: cartSubtotal, processPayouts, directItem, setDirectItem } = useCart();
   const { addOrder } = useOrderHistory();
   const { user, addCoins } = useAuth();
+  const { decrementStock } = useProducts();
   const pay = usePaymentSettings();
   const { addNotification } = useNotifications();
   const { validateVoucher, useVoucher: markVoucherUsed } = useVouchers();
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const { balance, spend } = useWallet();
+  const { isSultan } = useSultan();
+
+  const checkoutItems = directItem ? [directItem] : items;
+  const subtotal = directItem ? directItem.price * directItem.quantity : cartSubtotal;
+
+  // 1. All States First
 
   const [step, setStep]               = useState<Step>("form");
   const [firstName, setFirstName]     = useState("");
   const [lastName, setLastName]       = useState("");
   const [address, setAddress]         = useState("");
   const [phone, setPhone]             = useState("");
+  const [addressMethod, setAddressMethod] = useState<"manual" | "map">("manual");
+  const [markerPos, setMarkerPos] = useState({ x: 50, y: 50 }); // percentage
+  const [mapZoom, setMapZoom] = useState(15);
   const [payMethod, setPayMethod]     = useState<PaymentMethod | null>(pay.enabledMethods[0] ?? null);
   const [confirming, setConfirming]   = useState(false);
 
@@ -47,8 +59,8 @@ export function CheckoutPage() {
   const [appliedVoucher, setAppliedVoucher] = useState<{ code: string; discount: number } | null>(null);
   const [voucherError, setVoucherError]   = useState("");
   const [voucherLoading, setVoucherLoading] = useState(false);
-
   const [useCoins, setUseCoins] = useState(false);
+
   const currentCoins = user?.coins || 0;
 
   const discount   = appliedVoucher?.discount ?? 0;
@@ -56,7 +68,51 @@ export function CheckoutPage() {
   const coinDiscount = useCoins ? maxCoinsCanUse : 0;
   const grandTotal = subtotal + SHIPPING_FEE - discount - coinDiscount;
 
-  if (items.length === 0) {
+  // 2. All Effects Next
+  // WASD Map Control
+  React.useEffect(() => {
+    if (addressMethod !== "map") return;
+    
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const step = 3; // sensitivity
+      const key = e.key.toLowerCase();
+      
+      if (["w", "a", "s", "d"].includes(key)) {
+        // Prevent scrolling with WASD when using map
+        if (["w", "s"].includes(key)) e.preventDefault();
+        
+        setMarkerPos(prev => ({
+          x: key === "a" ? Math.max(5, prev.x - step) : key === "d" ? Math.min(95, prev.x + step) : prev.x,
+          y: key === "w" ? Math.max(5, prev.y - step) : key === "s" ? Math.min(95, prev.y + step) : prev.y
+        }));
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [addressMethod]);
+
+  // Sync Address with Marker Position in Real-time
+  React.useEffect(() => {
+    if (addressMethod === "map") {
+      // Mock Geocoding Logic: Change address based on marker position
+      const regions = ["Jakarta Pusat", "Jakarta Selatan", "Jakarta Barat", "Jakarta Timur", "Jakarta Utara"];
+      const regionIndex = Math.floor(markerPos.x / 21); // Simple mapping to regions
+      const streetNo = Math.floor((markerPos.x * markerPos.y) / 50) + 1;
+      const block = String.fromCharCode(65 + Math.floor(markerPos.y / 10)); // A, B, C...
+      
+      const simulatedAddress = `Kawasan Sudirman Central, Blok ${block} No. ${streetNo}, ${regions[regionIndex] || "Jakarta Selatan"}, DKI Jakarta (Pinpoint GPS)`;
+      setAddress(simulatedAddress);
+    }
+  }, [markerPos, addressMethod, setAddress]);
+
+  // Clear directItem on unmount
+  React.useEffect(() => {
+    return () => {
+    };
+  }, []);
+
+  if (checkoutItems.length === 0) {
     return (
       <div className="container mx-auto px-4 py-16 flex flex-col items-center text-center">
         <ShoppingBag className="h-12 w-12 text-muted-foreground mb-4" />
@@ -122,15 +178,16 @@ export function CheckoutPage() {
       }
 
       // Payout to Sellers (Helper from CartContext handles sellerId logic)
-      processPayouts(items);
+      processPayouts(checkoutItems);
     }
 
     addOrder({
       id: `${Date.now()}`,
       userId: user?.id ?? "guest",
+      userName: user?.name || "Guest User",
       orderNumber,
       date: new Date().toISOString(),
-      items: [...items],
+      items: [...checkoutItems],
       subtotal,
       shippingFee: SHIPPING_FEE,
       grandTotal,
@@ -145,13 +202,36 @@ export function CheckoutPage() {
       voucherCode: appliedVoucher?.code,
       voucherDiscount: appliedVoucher?.discount,
       coinDiscount: coinDiscount > 0 ? coinDiscount : undefined,
-      status: "placed",
+      status: (() => {
+        // Find if any item is a pre-order not yet released
+        const poItem = items.find(it => it.isPreOrder && it.releaseDate);
+        if (poItem) {
+          const release = new Date(poItem.releaseDate!);
+          const now = new Date();
+          const timeToRelease = release.getTime() - now.getTime();
+          
+          // If within 30 mins window
+          if (timeToRelease > 0 && timeToRelease <= 30 * 60 * 1000) {
+            return isSultan ? "placed" : "pending_po";
+          }
+          // If already released
+          if (timeToRelease <= 0) return "placed";
+          
+          // If way before 30 mins (shouldn't happen if button disabled, but just in case)
+          return "pending_po";
+        }
+        return "placed";
+      })(),
       messages: [],
     });
+    
+    const isPO = items.some(it => it.isPreOrder && it.releaseDate);
+    const orderStatus = isPO && !isSultan ? "Pending Pre-Order" : "Berhasil Dibuat";
+
     addNotification({
       type: "order_placed",
-      title: "Pesanan Berhasil Dibuat!",
-      message: `${orderNumber} senilai ${formatPrice(grandTotal)} sedang diproses.`,
+      title: `Pesanan ${orderStatus}!`,
+      message: `${orderNumber} senilai ${formatPrice(grandTotal)} ${isPO && !isSultan ? "akan diproses setelah rilis." : "sedang diproses."}`,
       orderId: orderNumber,
     });
     
@@ -160,13 +240,22 @@ export function CheckoutPage() {
       addCoins(user.id, -coinDiscount);
     }
 
+    // Potong stok barang
+    items.forEach((item) => {
+      decrementStock(item.id, item.quantity);
+    });
+
     // Berikan koin dari total belanja
     const coinsEarned = Math.floor(grandTotal / 1000);
     if (user?.id && coinsEarned > 0) {
       addCoins(user.id, coinsEarned);
     }
 
-    dispatch({ type: "CLEAR_CART" });
+    if (directItem) {
+      setDirectItem(null);
+    } else {
+      dispatch({ type: "CLEAR_CART" });
+    }
     setLocation(`/checkout-success?order=${encodeURIComponent(orderNumber)}`);
   };
 
@@ -246,18 +335,113 @@ export function CheckoutPage() {
               </div>
 
               {/* Alamat */}
-              <div className="bg-card border rounded-2xl p-5 space-y-3">
-                <div className="flex items-center gap-2 mb-1">
-                  <MapPin className="h-4 w-4 text-primary" />
-                  <h2 className="font-bold text-sm">Alamat Pengiriman</h2>
+              <div className="bg-card border rounded-2xl p-5 space-y-4 shadow-sm">
+                <div className="flex items-center justify-between mb-1">
+                  <div className="flex items-center gap-2">
+                    <MapPin className="h-4 w-4 text-primary" />
+                    <h2 className="font-bold text-sm">Alamat Pengiriman</h2>
+                  </div>
+                  <div className="flex bg-muted p-1 rounded-xl">
+                    <button 
+                      type="button"
+                      onClick={() => setAddressMethod("manual")}
+                      className={`px-3 py-1.5 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all ${addressMethod === "manual" ? "bg-white shadow-sm text-primary" : "text-muted-foreground hover:text-foreground"}`}
+                    >
+                      Ketik Manual
+                    </button>
+                    <button 
+                      type="button"
+                      onClick={() => setAddressMethod("map")}
+                      className={`px-3 py-1.5 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all ${addressMethod === "map" ? "bg-white shadow-sm text-primary" : "text-muted-foreground hover:text-foreground"}`}
+                    >
+                      Pilih via Peta
+                    </button>
+                  </div>
                 </div>
-                <div className="space-y-1">
-                  <label className="text-xs font-semibold text-muted-foreground">Alamat Lengkap *</label>
-                  <textarea value={address} onChange={(e) => setAddress(e.target.value)}
-                    placeholder="Jl. Sudirman No. 10, Kelurahan …, Kecamatan …, Kota …, Kode Pos …"
-                    required rows={3}
-                    className="w-full px-3 py-2 text-sm border border-input rounded-xl bg-background focus:outline-none focus:ring-2 focus:ring-ring resize-none" />
-                </div>
+
+                {addressMethod === "manual" ? (
+                  <div className="space-y-1 animate-in fade-in slide-in-from-left-2 duration-300">
+                    <label className="text-xs font-semibold text-muted-foreground">Alamat Lengkap *</label>
+                    <textarea value={address} onChange={(e) => setAddress(e.target.value)}
+                      placeholder="Jl. Sudirman No. 10, Kelurahan …, Kecamatan …, Kota …, Kode Pos …"
+                      required rows={3}
+                      className="w-full px-4 py-3 text-sm border border-input rounded-2xl bg-background focus:outline-none focus:ring-2 focus:ring-ring resize-none transition-all" />
+                  </div>
+                ) : (
+                  <div className="space-y-3 animate-in fade-in slide-in-from-right-2 duration-300">
+                     <div 
+                       className="relative rounded-[2rem] overflow-hidden border-2 border-muted aspect-video bg-slate-100 group shadow-inner cursor-crosshair"
+                       onWheel={(e) => {
+                         // Scroll to Zoom logic
+                         if (e.deltaY < 0) setMapZoom(prev => Math.min(21, prev + 1));
+                         else setMapZoom(prev => Math.max(10, prev - 1));
+                       }}
+                     >
+                        <iframe 
+                          width="100%" 
+                          height="100%" 
+                          frameBorder="0" 
+                          style={{ border: 0 }}
+                          src={`https://www.google.com/maps?q=-6.229728,106.7891583&z=${mapZoom}&output=embed&iwloc=near`}
+                          allowFullScreen
+                          className="grayscale-[20%] group-hover:grayscale-0 transition-all duration-500 pointer-events-none"
+                        ></iframe>
+                        
+                        {/* Zoom Indicator */}
+                        <div className="absolute top-4 right-4 z-30 bg-black/60 backdrop-blur-md px-3 py-1 rounded-full border border-white/10 text-[10px] font-black text-white uppercase tracking-widest">
+                           Zoom: {mapZoom}x
+                        </div>
+
+                        <div className="absolute inset-0 bg-black/10 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity backdrop-blur-[1px]">
+                           <Button 
+                             type="button" 
+                             className="rounded-full gap-2 shadow-2xl bg-white text-slate-900 hover:bg-slate-100 h-12 px-6 font-black text-xs uppercase tracking-widest border-none" 
+                             onClick={() => {
+                                setAddressMethod("manual");
+                                toast({ 
+                                  title: "Lokasi Terkunci!", 
+                                  description: "Alamat telah disinkronkan dari titik peta.",
+                                  duration: 3000 
+                                });
+                             }}
+                           >
+                              <MapPin className="h-4 w-4 text-primary" /> Gunakan Alamat Ini
+                           </Button>
+                        </div>
+                        {/* Map Overlay Pointer (WASD Controlled) */}
+                        <div 
+                          className="absolute pointer-events-none transition-all duration-100 ease-out z-20"
+                          style={{ left: `${markerPos.x}%`, top: `${markerPos.y}%` }}
+                        >
+                           <div className="relative -translate-x-1/2 -translate-y-full mb-1">
+                              <div className="absolute -inset-4 bg-primary/20 rounded-full blur-xl animate-pulse" />
+                              <MapPin className="h-10 w-10 text-primary drop-shadow-[0_10px_10px_rgba(0,0,0,0.5)]" />
+                              <div className="w-2 h-2 bg-black/40 rounded-full blur-[1.5px] mx-auto mt-[-4px]" />
+                           </div>
+                        </div>
+
+                        {/* Controls Guide */}
+                        <div className="absolute bottom-4 left-4 z-30 flex gap-2">
+                           <div className="bg-black/60 backdrop-blur-md px-3 py-2 rounded-xl border border-white/10 flex items-center gap-3">
+                              <div className="grid grid-cols-3 gap-1">
+                                 <div className="w-6 h-6 bg-white/20 rounded flex items-center justify-center text-[10px] font-bold text-white">W</div>
+                                 <div className="w-6 h-6" />
+                                 <div className="w-6 h-6" />
+                                 <div className="w-6 h-6 bg-white/20 rounded flex items-center justify-center text-[10px] font-bold text-white">A</div>
+                                 <div className="w-6 h-6 bg-white/20 rounded flex items-center justify-center text-[10px] font-bold text-white">S</div>
+                                 <div className="w-6 h-6 bg-white/20 rounded flex items-center justify-center text-[10px] font-bold text-white">D</div>
+                              </div>
+                              <p className="text-[9px] font-black text-white uppercase tracking-tighter leading-tight">
+                                Gunakan WASD<br/>untuk Navigasi
+                              </p>
+                           </div>
+                        </div>
+                     </div>
+                     <p className="text-[10px] text-muted-foreground text-center font-bold uppercase tracking-widest opacity-60">
+                       Arahkan Pin ke Lokasi Anda & Klik Konfirmasi
+                     </p>
+                  </div>
+                )}
               </div>
 
               {/* Metode Pembayaran */}
@@ -456,7 +640,7 @@ export function CheckoutPage() {
           <div className="bg-card border rounded-2xl p-5 sticky top-24 space-y-4">
             <h2 className="font-bold text-sm">Ringkasan Pesanan</h2>
             <div className="space-y-3 max-h-60 overflow-y-auto pr-1">
-              {items.map((item) => (
+              {checkoutItems.map((item) => (
                 <div key={item.id} className="flex gap-3 items-center">
                   <img src={item.image} alt={item.name}
                     className="w-12 h-12 rounded-lg object-cover bg-muted flex-shrink-0"

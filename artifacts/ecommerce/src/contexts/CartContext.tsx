@@ -3,7 +3,7 @@
  * Manages global cart state using React Context and useReducer.
  * Persists data to localStorage.
  */
-import React, { createContext, useContext, useReducer, useEffect, ReactNode } from "react";
+import React, { createContext, useContext, useReducer, useEffect, useState, ReactNode } from "react";
 import { useAuth } from "./AuthContext";
 
 // Types
@@ -15,6 +15,8 @@ export interface CartItem {
   quantity: number;
   sellerId?: string;
   sellerName?: string;
+  isPreOrder?: boolean;
+  releaseDate?: string;
 }
 
 interface CartState {
@@ -34,6 +36,8 @@ interface CartContextType {
   totalItems: number;
   subtotal: number;
   processPayouts: (items: CartItem[]) => void;
+  directItem: CartItem | null;
+  setDirectItem: (item: CartItem | null) => void;
 }
 
 // Initial state
@@ -141,7 +145,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       
       const recipientTx = {
         id: Math.random().toString(36).substr(2, 9),
-        type: "refund", 
+        type: "topup", 
         amount: finalAmt,
         description: compensation > 0 
           ? `Hasil Penjualan: ${item.name} (Limit! +${compensation} Koin)` 
@@ -162,8 +166,10 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const totalItems = state.items.reduce((sum, item) => sum + item.quantity, 0);
   const subtotal = state.items.reduce((sum, item) => sum + item.price * item.quantity, 0);
 
+  const [directItem, setDirectItem] = useState<CartItem | null>(null);
+
   return (
-    <CartContext.Provider value={{ state, dispatch, totalItems, subtotal, processPayouts }}>
+    <CartContext.Provider value={{ state, dispatch, totalItems, subtotal, processPayouts, directItem, setDirectItem }}>
       {children}
     </CartContext.Provider>
   );

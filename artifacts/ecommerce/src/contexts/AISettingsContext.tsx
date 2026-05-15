@@ -4,18 +4,12 @@
  */
 import React, { createContext, useContext, useState, useCallback } from "react";
 
-export type AIProvider = "openai" | "openrouter";
-
 interface AISettings {
-  activeProvider: AIProvider | null;
-  openaiKey: string;
   openrouterKey: string;
   openrouterModel: string;
 }
 
 interface AISettingsContextValue extends AISettings {
-  setActiveProvider: (p: AIProvider | null) => void;
-  setOpenaiKey: (k: string) => void;
   setOpenrouterKey: (k: string) => void;
   setOpenrouterModel: (m: string) => void;
   isAIEnabled: boolean;
@@ -35,7 +29,7 @@ function load(): AISettings {
     }
   } catch {
   }
-  return { activeProvider: null, openaiKey: "", openrouterKey: "", openrouterModel: "" };
+  return { openrouterKey: "", openrouterModel: "" };
 }
 
 function save(s: AISettings) {
@@ -57,14 +51,7 @@ export function AISettingsProvider({ children }: { children: React.ReactNode }) 
 
   const value: AISettingsContextValue = {
     ...settings,
-    isAIEnabled:
-      settings.activeProvider === "openai"
-        ? Boolean(settings.openaiKey)
-        : settings.activeProvider === "openrouter"
-        ? Boolean(settings.openrouterKey)
-        : false,
-    setActiveProvider: (p) => update({ activeProvider: p }),
-    setOpenaiKey: (k) => update({ openaiKey: k }),
+    isAIEnabled: Boolean(settings.openrouterKey),
     setOpenrouterKey: (k) => update({ openrouterKey: k }),
     setOpenrouterModel: (m) => update({ openrouterModel: m }),
   };

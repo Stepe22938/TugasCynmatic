@@ -34,28 +34,48 @@ export function AIProductChecker({ productName, description, price, category }: 
   const [loading, setLoading] = useState(false);
   const [result,  setResult]  = useState<AIResult | null>(null);
   const [error,   setError]   = useState<string | null>(null);
-  const { isAIEnabled, activeProvider, openaiKey, openrouterKey, openrouterModel } = useAISettings();
+  const { isAIEnabled, openrouterKey, openrouterModel } = useAISettings();
   const [, setLocation] = useLocation();
 
   const handleCheck = async () => {
-    if (!isAIEnabled || !activeProvider) return;
+    if (!isAIEnabled) return;
     setLoading(true); setError(null); setResult(null);
+    
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 15000);
+
     try {
       const base = import.meta.env.BASE_URL?.replace(/\/$/, "") ?? "";
-      const apiKey = activeProvider === "openai" ? openaiKey : openrouterKey;
-      const model  = activeProvider === "openrouter" && openrouterModel ? openrouterModel : undefined;
+      const apiKey = openrouterKey;
+      const model  = openrouterModel || undefined;
       const res = await fetch(`${base}/api/ai/check-product`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: productName, description, price, category, provider: activeProvider, apiKey, model }),
+        body: JSON.stringify({ name: productName, description, price, category, apiKey, model }),
+        signal: controller.signal
       });
-      const data = await res.json();
+      clearTimeout(timeoutId);
+
+      let data;
+      const contentType = res.headers.get("content-type");
+      if (contentType && contentType.includes("application/json")) {
+        data = await res.json();
+      } else {
+        const text = await res.text();
+        throw new Error(text || `Server error: ${res.status}`);
+      }
+
       if (!res.ok) throw new Error(data.error ?? "Terjadi kesalahan.");
       setResult(data as AIResult);
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : "Gagal menghubungi AI.");
+      if (e instanceof Error && e.name === "AbortError") {
+        setError("Permintaan waktu habis (timeout). Coba lagi atau gunakan model lain.");
+      } else {
+        setError(e instanceof Error ? e.message : "Gagal menghubungi AI.");
+      }
     } finally {
       setLoading(false);
+      clearTimeout(timeoutId);
     }
   };
 
@@ -80,7 +100,7 @@ export function AIProductChecker({ productName, description, price, category }: 
           {!isAIEnabled ? (
             <div className="pt-3 space-y-2">
               <p className="text-xs text-muted-foreground">
-                Fitur AI belum dikonfigurasi. Admin perlu menambahkan API key dan mengaktifkan salah satu provider AI.
+                Fitur AI belum dikonfigurasi. Admin perlu menambahkan API key OpenRouter.
               </p>
               <Button
                 variant="outline"
@@ -97,7 +117,7 @@ export function AIProductChecker({ productName, description, price, category }: 
               <p className="text-xs text-muted-foreground pt-3">
                 AI akan menganalisis nama, deskripsi, harga, dan kategori produk untuk memperkirakan keasliannya.
                 <span className="ml-1 font-medium text-primary">
-                  ({activeProvider === "openai" ? "ChatGPT" : "OpenRouter"})
+                  (OpenRouter)
                 </span>
               </p>
 

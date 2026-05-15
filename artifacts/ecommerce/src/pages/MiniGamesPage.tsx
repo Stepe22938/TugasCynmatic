@@ -12,8 +12,11 @@ import {
 import { useAuth } from "../contexts/AuthContext";
 import { useToast } from "../hooks/use-toast";
 import { Button } from "../components/ui/button";
+import { BackroomsGame } from "../components/BackroomsGame";
+import { StoryPinoGame } from "../components/StoryPinoGame";
+import { Ghost, Skull, BookOpen } from "lucide-react";
 
-type GameType = "dashboard" | "spin" | "click" | "flappy" | "tictactoe" | "quiz" | "rps" | "sawit";
+type GameType = "dashboard" | "spin" | "click" | "flappy" | "tictactoe" | "quiz" | "rps" | "sawit" | "backrooms" | "pino";
 
 export function MiniGamesPage() {
   const { user, addCoins } = useAuth();
@@ -21,8 +24,9 @@ export function MiniGamesPage() {
   const [selectedGame, setSelectedGame] = useState<GameType>("dashboard");
 
   // --- Daily Limit Logic ---
+  const isSultan = user?.isSultan || false;
   const [gamesPlayed, setGamesPlayed] = useState(0);
-  const DAILY_LIMIT = 6;
+  const DAILY_LIMIT = isSultan ? 15 : 6; // Sultan users get 15 games per day!
 
   useEffect(() => {
     if (!user) return;
@@ -60,7 +64,7 @@ export function MiniGamesPage() {
   if (!user) return null;
 
   return (
-    <div className="min-h-[calc(100vh-80px)] bg-[#f9fafb] pb-24">
+    <div className="min-h-[calc(100vh-80px)] bg-background pb-24">
       {/* Header */}
       <div className="bg-gradient-to-br from-indigo-600 via-blue-600 to-cyan-600 text-white pb-14 pt-8 px-4">
         <div className="max-w-3xl mx-auto">
@@ -86,7 +90,7 @@ export function MiniGamesPage() {
                 </span>
               </div>
             </div>
-            <div className="bg-white/20 px-4 py-3 rounded-2xl border border-white/30 backdrop-blur-sm text-center">
+            <div className="bg-card/20 px-4 py-3 rounded-2xl border border-white/30 backdrop-blur-sm text-center">
               <div className="flex items-center gap-1">
                 <Coins className="h-5 w-5 text-yellow-300" />
                 <p className="text-2xl font-extrabold">{(user.coins || 0).toLocaleString("id-ID")}</p>
@@ -113,6 +117,8 @@ export function MiniGamesPage() {
         {selectedGame === "quiz" && <QuizGame addCoins={addCoins} userId={user.id} toast={toast} onFinish={incrementGameCount} />}
         {selectedGame === "rps" && <RPSGame addCoins={addCoins} userId={user.id} toast={toast} onFinish={incrementGameCount} />}
         {selectedGame === "sawit" && <SawitAdventureGame addCoins={addCoins} userId={user.id} toast={toast} onFinish={incrementGameCount} />}
+        {selectedGame === "backrooms" && <BackroomsGame addCoins={addCoins} userId={user.id} toast={toast} onFinish={incrementGameCount} />}
+        {selectedGame === "pino" && <StoryPinoGame addCoins={addCoins} userId={user.id} toast={toast} onFinish={incrementGameCount} isSultan={isSultan} />}
       </div>
     </div>
   );
@@ -128,6 +134,8 @@ function GameDashboard({ onSelect }: { onSelect: (g: GameType) => void }) {
     { id: "quiz", title: "Quiz Pintar", icon: HelpCircle, color: "bg-rose-500", desc: "Asah otak, raih koin." },
     { id: "rps", title: "Suwit Koin", icon: Scissors, color: "bg-orange-500", desc: "Batu Gunting Kertas!" },
     { id: "sawit", title: "Petualangan Sawit", icon: TreePalm, color: "bg-green-700", desc: "Kumpulkan hasil panen!" },
+    { id: "backrooms", title: "Backrooms 2D", icon: Skull, color: "bg-neutral-800", desc: "Bertahan hidup dari entitas!" },
+    { id: "pino", title: "Story Pino", icon: BookOpen, color: "bg-blue-600", desc: "Kisah CEO Cynmatic." },
   ];
 
   return (
@@ -136,17 +144,17 @@ function GameDashboard({ onSelect }: { onSelect: (g: GameType) => void }) {
         <div 
           key={game.id} 
           onClick={() => onSelect(game.id as GameType)}
-          className="bg-white rounded-3xl shadow-sm border border-gray-100 p-5 hover:shadow-xl transition-all cursor-pointer group"
+          className="bg-card rounded-3xl shadow-sm border border-border p-5 hover:shadow-xl transition-all cursor-pointer group"
         >
           <div className="flex items-center gap-4">
             <div className={`${game.color} p-3 rounded-2xl text-white shadow-lg group-hover:scale-110 transition-transform`}>
               <game.icon className="h-6 w-6" />
             </div>
             <div className="flex-1">
-              <h3 className="font-bold text-gray-800">{game.title}</h3>
+              <h3 className="font-bold text-card-foreground">{game.title}</h3>
               <p className="text-xs text-muted-foreground">{game.desc}</p>
             </div>
-            <Play className="h-4 w-4 text-gray-300 group-hover:text-gray-600" />
+            <Play className="h-4 w-4 text-gray-300 group-hover:text-muted-foreground" />
           </div>
         </div>
       ))}
@@ -176,7 +184,7 @@ function DailySpinGame({ addCoins, userId, toast }: any) {
   };
 
   return (
-    <div className="bg-white rounded-3xl shadow-xl p-8 text-center space-y-6">
+    <div className="bg-card rounded-3xl shadow-xl p-8 text-center space-y-6">
       <div className="bg-amber-500 rounded-2xl p-3 inline-block mb-2">
         <RotateCw className={`h-8 w-8 text-white ${isSpinning ? "animate-spin" : ""}`} />
       </div>
@@ -189,7 +197,7 @@ function DailySpinGame({ addCoins, userId, toast }: any) {
       <p className="text-muted-foreground">Putar roda keberuntunganmu setiap 24 jam.</p>
       <Button 
         size="lg" onClick={handleSpin} disabled={!canSpin || isSpinning}
-        className={`w-full max-w-xs h-14 rounded-2xl text-lg font-bold ${canSpin ? "bg-amber-500 hover:bg-amber-600 text-white" : "bg-gray-100 text-gray-400"}`}
+        className={`w-full max-w-xs h-14 rounded-2xl text-lg font-bold ${canSpin ? "bg-amber-500 hover:bg-amber-600 text-white" : "bg-muted text-gray-400"}`}
       >
         {isSpinning ? "Memutar..." : canSpin ? "Putar Sekarang" : "Tunggu Besok"}
       </Button>
@@ -223,7 +231,7 @@ function QuickClickGame({ addCoins, userId, toast, onFinish }: any) {
   const start = () => { setScore(0); setTimeLeft(10); setIsPlaying(true); moveCoin(); };
 
   return (
-    <div className="bg-white rounded-3xl shadow-xl overflow-hidden">
+    <div className="bg-card rounded-3xl shadow-xl overflow-hidden">
       <div className="bg-indigo-600 p-4 text-white font-bold flex justify-between">
         <span>Quick Click</span>
         {isPlaying && <span>{timeLeft}s</span>}
@@ -237,7 +245,7 @@ function QuickClickGame({ addCoins, userId, toast, onFinish }: any) {
             <Button onClick={start} className="bg-indigo-600 h-12 px-10 rounded-xl font-bold text-white">Mulai Game</Button>
           </div>
         ) : (
-          <div className="relative h-80 bg-gray-50 rounded-2xl overflow-hidden cursor-crosshair">
+          <div className="relative h-80 bg-muted/50 rounded-2xl overflow-hidden cursor-crosshair">
             <div className="absolute top-4 left-4 font-black text-2xl text-indigo-200">SKOR: {score}</div>
             <button
               onClick={() => { setScore(s => s + 1); moveCoin(); }}
@@ -313,7 +321,7 @@ function FlappyBirdGame({ addCoins, userId, toast, onFinish }: any) {
   const jump = () => { if (gameStatus === "playing") velocity.current = JUMP; };
 
   return (
-    <div className="bg-white rounded-3xl shadow-xl overflow-hidden">
+    <div className="bg-card rounded-3xl shadow-xl overflow-hidden">
       <div className="bg-sky-500 p-4 text-white font-bold flex justify-between">
         <span>Flappy Coin</span>
         <span>Skor: {score}</span>
@@ -384,12 +392,12 @@ function TicTacToeGame({ addCoins, userId, toast, onFinish }: any) {
   const reset = () => { setBoard(Array(9).fill(null)); setIsPlayerTurn(true); setWinner(null); };
 
   return (
-    <div className="bg-white rounded-3xl shadow-xl overflow-hidden">
+    <div className="bg-card rounded-3xl shadow-xl overflow-hidden">
       <div className="bg-emerald-600 p-4 text-white font-bold flex justify-between"><span>Tic Tac Toe</span><button onClick={reset}><RotateCcw className="h-4 w-4" /></button></div>
       <div className="p-10 text-center flex flex-col items-center">
         <div className="grid grid-cols-3 gap-2 w-64 h-64 mb-6">
           {board.map((cell, i) => (
-            <button key={i} onClick={() => handleMove(i)} className={`w-20 h-20 rounded-2xl border-4 flex items-center justify-center text-3xl font-black transition-all ${cell === "X" ? "bg-blue-50 border-blue-200 text-blue-600" : cell === "O" ? "bg-red-50 border-red-200 text-red-600" : "bg-gray-50 border-gray-100 hover:bg-gray-100"}`}>{cell}</button>
+            <button key={i} onClick={() => handleMove(i)} className={`w-20 h-20 rounded-2xl border-4 flex items-center justify-center text-3xl font-black transition-all ${cell === "X" ? "bg-blue-50 dark:bg-blue-950/40 border-blue-200 dark:border-blue-800 text-blue-600 dark:text-blue-400" : cell === "O" ? "bg-red-50 dark:bg-red-950/40 border-red-200 dark:border-red-800 text-red-600 dark:text-red-400" : "bg-muted/50 border-border hover:bg-muted"}`}>{cell}</button>
           ))}
         </div>
         {winner ? <div className="space-y-3"><p className="text-xl font-bold">{winner === "X" ? "🥳 Kamu Menang!" : winner === "O" ? "💀 Bot Menang!" : "🤝 Seri!"}</p><Button onClick={reset} className="bg-emerald-600">Main Lagi</Button></div> : <p className="text-sm font-medium text-muted-foreground">{isPlayerTurn ? "Giliranmu (X)" : "Giliran Bot (O)..."}</p>}
@@ -425,7 +433,7 @@ function QuizGame({ addCoins, userId, toast, onFinish }: any) {
   };
 
   return (
-    <div className="bg-white rounded-3xl shadow-xl overflow-hidden">
+    <div className="bg-card rounded-3xl shadow-xl overflow-hidden">
       <div className="bg-rose-500 p-4 text-white font-bold">Quiz Pintar</div>
       <div className="p-8 text-center min-h-[300px] flex flex-col justify-center">
         {step === "intro" ? <div className="space-y-4"><HelpCircle className="h-16 w-16 text-rose-500 mx-auto" /><h3 className="text-xl font-bold">Uji Pengetahuanmu!</h3><Button onClick={() => setStep("playing")} className="bg-rose-500">Mulai Kuis</Button></div> : 
@@ -488,7 +496,7 @@ function RPSGame({ addCoins, userId, toast, onFinish }: any) {
   };
 
   return (
-    <div className="bg-white rounded-3xl shadow-xl overflow-hidden">
+    <div className="bg-card rounded-3xl shadow-xl overflow-hidden">
       <div className="bg-orange-500 p-4 text-white font-bold flex justify-between">
         <span>Suwit Koin (RPS)</span>
         <button onClick={() => {setResult(null); setPlayerChoice(null); setBotChoice(null);}}><RotateCcw className="h-4 w-4" /></button>
@@ -497,21 +505,21 @@ function RPSGame({ addCoins, userId, toast, onFinish }: any) {
         <div className="flex justify-around items-center h-24">
           <div className="flex flex-col items-center gap-2">
             <span className="text-[10px] font-bold text-muted-foreground uppercase">Bot</span>
-            <div className={`w-16 h-16 rounded-2xl flex items-center justify-center border-2 ${result === "KALAH" ? "bg-green-50 border-green-200" : "bg-gray-50 border-gray-100"}`}>
+            <div className={`w-16 h-16 rounded-2xl flex items-center justify-center border-2 ${result === "KALAH" ? "bg-green-50 border-green-200" : "bg-muted/50 border-border"}`}>
               {isAnimating ? <RotateCw className="h-6 w-6 animate-spin text-gray-400" /> : botChoice ? getIcon(botChoice) : "?"}
             </div>
           </div>
           <div className="text-2xl font-black text-gray-300">VS</div>
           <div className="flex flex-col items-center gap-2">
             <span className="text-[10px] font-bold text-muted-foreground uppercase">Kamu</span>
-            <div className={`w-16 h-16 rounded-2xl flex items-center justify-center border-2 ${result === "MENANG" ? "bg-green-50 border-green-200" : "bg-gray-50 border-gray-100"}`}>
+            <div className={`w-16 h-16 rounded-2xl flex items-center justify-center border-2 ${result === "MENANG" ? "bg-green-50 dark:bg-green-950/40 border-green-200 dark:border-green-800" : "bg-muted/50 border-border"}`}>
               {isAnimating ? <RotateCw className="h-6 w-6 animate-spin text-gray-400" /> : playerChoice ? getIcon(playerChoice) : "?"}
             </div>
           </div>
         </div>
 
         {result && (
-          <div className={`text-2xl font-black animate-bounce ${result === "MENANG" ? "text-green-600" : result === "KALAH" ? "text-red-600" : "text-gray-500"}`}>
+          <div className={`text-2xl font-black animate-bounce ${result === "MENANG" ? "text-green-600 dark:text-green-400" : result === "KALAH" ? "text-red-600 dark:text-red-400" : "text-gray-500"}`}>
             {result}!
           </div>
         )}
@@ -522,7 +530,7 @@ function RPSGame({ addCoins, userId, toast, onFinish }: any) {
               key={c.name}
               disabled={isAnimating}
               onClick={() => handlePlay(c.name)}
-              className="flex flex-col items-center gap-2 p-4 rounded-2xl border-2 border-gray-100 hover:border-orange-200 hover:bg-orange-50 transition-all active:scale-95"
+              className="flex flex-col items-center gap-2 p-4 rounded-2xl border-2 border-border hover:border-orange-200 hover:bg-orange-50 transition-all active:scale-95"
             >
               <c.icon className={`h-8 w-8 ${c.name === "Kertas" ? "rotate-90" : ""}`} />
               <span className="text-xs font-bold">{c.name}</span>
@@ -636,14 +644,14 @@ function SawitAdventureGame({ addCoins, userId, toast, onFinish }: any) {
   };
 
   return (
-    <div className="bg-white rounded-3xl shadow-xl overflow-hidden">
+    <div className="bg-card rounded-3xl shadow-xl overflow-hidden">
       <div className="bg-green-700 p-4 text-white font-bold flex justify-between items-center">
         <div className="flex items-center gap-2">
           <TreePalm className="h-5 w-5" />
           <span>Petualangan Sawit</span>
         </div>
         <div className="flex items-center gap-4">
-          <span className="text-xs bg-white/20 px-2 py-1 rounded-full">Score: {score}</span>
+          <span className="text-xs bg-card/20 px-2 py-1 rounded-full">Score: {score}</span>
           {gameStatus === "playing" && <span className="text-xs font-mono">{Math.max(0, 30 - Math.floor(frameCount.current / 60))}s</span>}
         </div>
       </div>
@@ -662,7 +670,7 @@ function SawitAdventureGame({ addCoins, userId, toast, onFinish }: any) {
 
           {gameStatus === "idle" || gameStatus === "gameover" ? (
             <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-black/40 backdrop-blur-sm text-center p-6 text-white">
-              <div className="bg-white p-4 rounded-3xl mb-4 shadow-2xl">
+              <div className="bg-card p-4 rounded-3xl mb-4 shadow-2xl">
                 <TreePalm className="h-20 w-20 text-green-700 animate-bounce" />
               </div>
               <h2 className="text-3xl font-black mb-2 tracking-tighter uppercase">Petualangan Sawit</h2>
