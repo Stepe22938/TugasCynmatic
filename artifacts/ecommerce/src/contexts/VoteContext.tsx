@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
+import { fetchAllPollsFromVPS, syncPollToVPS } from "../lib/sync";
 
 export interface PollOption {
   id: string;
@@ -26,27 +27,19 @@ interface VoteContextType {
 const VoteContext = createContext<VoteContextType | undefined>(undefined);
 
 export const VoteProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [polls, setPolls] = useState<Poll[]>(() => {
-    const saved = localStorage.getItem("cynmatic_polls");
-    return saved ? JSON.parse(saved) : [
-      {
-        id: "1",
-        title: "Siapa Admin terbaik bulan ini?",
-        options: [
-          { id: "opt1", text: "Zaidan", votes: 0 },
-          { id: "opt2", text: "Pino", votes: 0 },
-          { id: "opt3", text: "Admin AI", votes: 0 }
-        ],
-        isActive: true,
-        votedUserIds: [],
-        createdAt: new Date().toISOString()
-      }
-    ];
-  });
+  const [polls, setPolls] = useState<Poll[]>([]);
 
+  // Initial Fetch from VPS
   useEffect(() => {
-    localStorage.setItem("cynmatic_polls", JSON.stringify(polls));
-  }, [polls]);
+    const init = async () => {
+      const vpsPolls = await fetchAllPollsFromVPS();
+      if (vpsPolls) setPolls(vpsPolls);
+    };
+    init();
+    // Poll every 30s
+    const interval = setInterval(init, 30000);
+    return () => clearInterval(interval);
+  }, []);
 
   const createPoll = (title: string, optionTexts: string[]) => {
     const newPoll: Poll = {
@@ -58,19 +51,22 @@ export const VoteProvider: React.FC<{ children: React.ReactNode }> = ({ children
       createdAt: new Date().toISOString()
     };
     setPolls([newPoll, ...polls]);
+    syncPollToVPS(newPoll);
   };
 
   const vote = (pollId: string, optionId: string, userId: string) => {
     setPolls(prev => prev.map(poll => {
       if (poll.id !== pollId || poll.votedUserIds.includes(userId)) return poll;
       
-      return {
+      const updated = {
         ...poll,
         votedUserIds: [...poll.votedUserIds, userId],
         options: poll.options.map(opt => 
           opt.id === optionId ? { ...opt, votes: opt.votes + 1 } : opt
         )
       };
+      syncPollToVPS(updated);
+      return updated;
     }));
   };
 
@@ -79,7 +75,14 @@ export const VoteProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const togglePollStatus = (pollId: string) => {
-    setPolls(prev => prev.map(p => p.id === pollId ? { ...p, isActive: !p.isActive } : p));
+    setPolls(prev => prev.map(p => {
+      if (p.id === pollId) {
+        const updated = { ...p, isActive: !p.isActive };
+        syncPollToVPS(updated);
+        return updated;
+      }
+      return p;
+    }));
   };
 
   return (

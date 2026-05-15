@@ -1,13 +1,6 @@
 import express, { type Express } from "express";
 import cors from "cors";
 import pinoHttp from "pino-http";
-import { clerkMiddleware } from "@clerk/express";
-import { publishableKeyFromHost } from "@clerk/shared/keys";
-import {
-  CLERK_PROXY_PATH,
-  clerkProxyMiddleware,
-  getClerkProxyHost,
-} from "./middlewares/clerkProxyMiddleware";
 import router from "./routes";
 import aiRouter from "./routes/ai";
 import { logger } from "./lib/logger";
@@ -33,25 +26,27 @@ app.use(
     },
   }),
 );
-// Clerk proxy harus dipasang SEBELUM body parsers — proxy meneruskan raw bytes
-app.use(CLERK_PROXY_PATH, clerkProxyMiddleware());
 
-app.use(cors({ credentials: true, origin: true }));
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(cors());
+app.use(express.json({ limit: "50mb" }));
+app.use(express.urlencoded({ extended: true, limit: "50mb" }));
 
-// AI routes are public — mount BEFORE clerkMiddleware so they don't require auth
+import { migrateData } from "@workspace/db/migrate";
+
+// AI and Database Migration routes are public
 app.use("/api", aiRouter);
 
-// Resolve publishable key dari hostname request (mendukung custom domain)
-app.use(
-  clerkMiddleware((req) => ({
-    publishableKey: publishableKeyFromHost(
-      getClerkProxyHost(req) ?? "",
-      process.env.CLERK_PUBLISHABLE_KEY,
-    ),
-  })),
-);
+// Direct migration endpoint
+app.post("/api/migrate", async (req, res) => {
+  try {
+    const { users, products } = req.body;
+    if (!users || !products) return res.status(400).json({ error: "Data diperlukan." });
+    await migrateData({ users, products });
+    res.json({ message: "Migrasi ke VPS MariaDB Berhasil!" });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
 
 app.use("/api", router);
 

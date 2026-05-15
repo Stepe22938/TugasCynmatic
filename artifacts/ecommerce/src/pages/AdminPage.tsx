@@ -10,7 +10,7 @@ import {
   ShieldCheck, Package, Users, CheckCircle2, XCircle, Trash2, Clock,
   ChevronDown, ToggleLeft, ToggleRight, Bot, Eye, EyeOff, KeyRound,
   CreditCard, Smartphone, QrCode, Tag, Radio, Plus, X, Search, Coins, Ban, Globe, ArrowRight, Gift, Crown,
-  History, Wallet, AlertTriangle, Activity, ShoppingBag, Vote, BarChart3, ListTodo, Palette, Database, Server, Zap, Cpu
+  History, Wallet, AlertTriangle, Activity, ShoppingBag, Vote, BarChart3, ListTodo, Palette, Database, Server, Zap, Cpu, Loader2
 } from "lucide-react";
 import { useAuth, User, UserRole } from "../contexts/AuthContext";
 import { useCosmetics, Cosmetic } from "../contexts/CosmeticContext";
@@ -31,19 +31,19 @@ import { useVote } from "../contexts/VoteContext";
 type Tab = "products" | "users" | "coins" | "ip_list" | "tickets" | "vouchers" | "redeem" | "live" | "sultan" | "voting" | "settings" | "cosmetics" | "database";
 
 const STATUS_BADGE: Record<SellerProduct["status"], string> = {
-  pending: "bg-amber-100 text-amber-700 dark:bg-amber-950/50 dark:text-amber-300", 
-  approved: "bg-green-100 text-green-700 dark:bg-green-950/50 dark:text-green-300", 
-  rejected: "bg-red-100 text-red-700 dark:bg-red-950/50 dark:text-red-300",
+  pending:  "bg-amber-600/10 text-amber-500 border-amber-500/20", 
+  approved: "bg-emerald-600/10 text-emerald-500 border-emerald-500/20", 
+  rejected: "bg-rose-600/10 text-rose-500 border-rose-500/20",
 };
 const STATUS_LABEL: Record<SellerProduct["status"], string> = {
-  pending: "Menunggu", approved: "Disetujui", rejected: "Ditolak",
+  pending: "Matrix Queue", approved: "Verified", rejected: "Terminated",
 };
-const ROLE_LABEL: Record<UserRole, string> = { user: "User", seller: "Seller", admin: "Admin", kurir: "Kurir" };
+const ROLE_LABEL: Record<UserRole, string> = { user: "Node", seller: "Merchant", admin: "Operator", kurir: "Courier" };
 const ROLE_COLOR: Record<UserRole, string> = {
-  user: "bg-blue-100 text-blue-700 dark:bg-blue-950/50 dark:text-blue-300", 
-  seller: "bg-purple-100 text-purple-700 dark:bg-purple-950/50 dark:text-purple-300", 
-  admin: "bg-orange-100 text-orange-700 dark:bg-orange-950/50 dark:text-orange-300", 
-  kurir: "bg-green-100 text-green-700 dark:bg-green-950/50 dark:text-green-300",
+  user: "bg-blue-600/10 text-blue-400 border-blue-500/20", 
+  seller: "bg-purple-600/10 text-purple-400 border-purple-500/20", 
+  admin: "bg-orange-600/10 text-orange-400 border-orange-500/20", 
+  kurir: "bg-emerald-600/10 text-emerald-400 border-emerald-500/20",
 };
 
 function ProductRow({ product, onApprove, onReject, onDelete }: {
@@ -54,57 +54,91 @@ function ProductRow({ product, onApprove, onReject, onDelete }: {
 }) {
   const [expanded, setExpanded] = useState(false);
   return (
-    <div className="bg-card border rounded-2xl overflow-hidden shadow-sm">
-      <div className="flex gap-4 p-4 items-start">
-        <img src={product.image} alt={product.name}
-          className="w-16 h-16 rounded-xl object-cover flex-shrink-0 bg-muted"
-          onError={(e) => { (e.target as HTMLImageElement).src = "https://placehold.co/64x64?text=?"; }} />
+    <div className="glass-card rounded-[2.5rem] overflow-hidden border-white/5 bg-white/5 shadow-xl group hover:border-orange-500/20 transition-all duration-500">
+      <div className="flex flex-col md:flex-row gap-6 p-6 items-start">
+        <div className="relative group/img">
+          <div className="absolute -inset-1 bg-orange-600 rounded-2xl blur opacity-20 group-hover/img:opacity-40 transition duration-500" />
+          <img src={product.image} alt={product.name}
+            className="relative w-24 h-24 rounded-2xl object-cover flex-shrink-0 bg-white/5 border border-white/10"
+            onError={(e) => { (e.target as HTMLImageElement).src = "https://placehold.co/100x100?text=?"; }} />
+        </div>
         <div className="flex-1 min-w-0">
-          <div className="flex flex-wrap items-start gap-2 justify-between">
+          <div className="flex flex-wrap items-start gap-4 justify-between">
             <div>
-              <h3 className="font-bold text-sm">{product.name}</h3>
-              <div className="flex items-center gap-2">
-                <p className="text-xs text-muted-foreground">{product.category}</p>
-                <span className="text-muted-foreground">·</span>
+              <h3 className="font-black text-white uppercase italic tracking-tighter text-xl group-hover:text-orange-500 transition-colors leading-none">{product.name}</h3>
+              <div className="flex items-center gap-3 mt-2">
+                <p className="text-[10px] font-black text-white/30 uppercase tracking-[0.2em]">{product.category}</p>
+                <div className="w-1 h-1 rounded-full bg-white/10" />
                 {product.isFlashSale ? (
-                  <div className="flex items-center gap-1.5">
-                    <p className="text-xs font-bold text-amber-600">{formatPrice(product.price * (1 - (product.discountPercent || 0) / 100))}</p>
-                    <p className="text-[10px] text-muted-foreground line-through opacity-60">{formatPrice(product.price)}</p>
+                  <div className="flex items-center gap-2">
+                    <p className="text-sm font-black text-orange-500 italic">{formatPrice(product.price * (1 - (product.discountPercent || 0) / 100))}</p>
+                    <p className="text-[10px] text-white/20 line-through font-bold italic">{formatPrice(product.price)}</p>
                   </div>
                 ) : (
-                  <p className="text-xs text-muted-foreground">{formatPrice(product.price)}</p>
+                  <p className="text-sm font-black text-orange-500 italic">{formatPrice(product.price)}</p>
                 )}
               </div>
-              <p className="text-xs text-muted-foreground mt-0.5">oleh <span className="font-medium">{product.sellerName}</span></p>
+              <p className="text-[9px] font-black text-white/40 uppercase tracking-widest mt-2 flex items-center gap-2">
+                Merchant Node: <span className="text-orange-500 italic">{product.sellerName}</span>
+              </p>
             </div>
-            <span className={`inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full ${STATUS_BADGE[product.status]}`}>
-              {product.status === "pending"  && <Clock className="h-3 w-3" />}
+            <span className={`inline-flex items-center gap-2 text-[9px] font-black px-5 py-2 rounded-full border shadow-2xl uppercase tracking-[0.2em] ${STATUS_BADGE[product.status]}`}>
+              {product.status === "pending"  && <Clock className="h-3 w-3 animate-pulse" />}
               {product.status === "approved" && <CheckCircle2 className="h-3 w-3" />}
               {product.status === "rejected" && <XCircle className="h-3 w-3" />}
               {STATUS_LABEL[product.status]}
             </span>
           </div>
-          <button className="flex items-center gap-1 text-[11px] text-primary mt-2 hover:underline"
-            onClick={() => setExpanded((v) => !v)}>
-            <ChevronDown className={`h-3 w-3 transition-transform ${expanded ? "rotate-180" : ""}`} />
-            {expanded ? "Sembunyikan" : "Lihat deskripsi"}
-          </button>
-          {expanded && <p className="text-xs text-muted-foreground mt-1 leading-relaxed">{product.longDescription}</p>}
+          
+          <div className="mt-4 flex gap-3">
+             <button className="flex items-center gap-2 text-[9px] font-black uppercase tracking-widest text-white/20 hover:text-white transition-colors italic"
+               onClick={() => setExpanded((v) => !v)}>
+               <ChevronDown className={`h-3 w-3 transition-transform duration-500 ${expanded ? "rotate-180" : ""}`} />
+               {expanded ? "Collapse Specs" : "Expand Data Matrix"}
+             </button>
+          </div>
+
+          <AnimatePresence>
+            {expanded && (
+              <motion.div 
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: "auto", opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                className="overflow-hidden"
+              >
+                <div className="mt-4 p-5 bg-black/20 rounded-2xl border border-white/5 space-y-4">
+                  <p className="text-[11px] font-bold text-white/40 leading-relaxed italic">
+                    {product.longDescription || product.description}
+                  </p>
+                  {product.specs && product.specs.length > 0 && (
+                    <div className="grid grid-cols-2 gap-4 pt-2">
+                      {product.specs.map((s, i) => (
+                        <div key={i} className="flex flex-col gap-1">
+                          <span className="text-[8px] font-black text-white/20 uppercase tracking-widest">{s.label}</span>
+                          <span className="text-[10px] font-black text-white/60 uppercase">{s.value}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
       </div>
-      <div className="flex gap-2 px-4 pb-4 flex-wrap">
+      <div className="flex gap-3 px-6 pb-6 pt-2">
         {product.status !== "approved" && (
-          <Button size="sm" className="h-8 text-xs bg-green-600 hover:bg-green-700" onClick={() => onApprove(product.id)}>
-            <CheckCircle2 className="h-3.5 w-3.5 mr-1" />Setujui
+          <Button size="sm" className="h-11 px-8 rounded-xl bg-orange-600 hover:bg-orange-700 text-white font-black uppercase tracking-widest text-[10px] gap-2 shadow-2xl shadow-orange-600/30" onClick={() => onApprove(product.id)}>
+            <CheckCircle2 className="h-4 w-4" /> Grant Approval
           </Button>
         )}
         {product.status !== "rejected" && (
-          <Button size="sm" variant="outline" className="h-8 text-xs text-red-600 border-red-200 hover:bg-red-50" onClick={() => onReject(product.id)}>
-            <XCircle className="h-3.5 w-3.5 mr-1" />Tolak
+          <Button size="sm" variant="ghost" className="h-11 px-8 rounded-xl bg-white/5 text-white/40 hover:text-rose-500 font-black uppercase tracking-widest text-[10px] gap-2 border border-white/5 transition-all" onClick={() => onReject(product.id)}>
+            <XCircle className="h-4 w-4" /> Reject Protocol
           </Button>
         )}
-        <Button size="sm" variant="ghost" className="h-8 text-xs text-red-500 ml-auto" onClick={() => onDelete(product.id)}>
-          <Trash2 className="h-3.5 w-3.5 mr-1" />Hapus
+        <Button size="sm" variant="ghost" className="h-11 w-11 p-0 rounded-xl bg-white/5 text-white/20 hover:bg-rose-500/20 hover:text-rose-500 ml-auto transition-all" onClick={() => onDelete(product.id)}>
+          <Trash2 className="h-4 w-4" />
         </Button>
       </div>
     </div>
@@ -129,130 +163,181 @@ function UserRow({ user, currentUser, onRoleChange, onBanToggle, onUpdateBalance
   const [balanceInput, setBalanceInput] = useState(user.balance?.toString() || "0");
 
   return (
-    <div className={`flex flex-col gap-2 px-4 py-4 border-b last:border-0 ${user.isBanned ? 'bg-red-50/50 dark:bg-red-950/20' : 'hover:bg-muted/10'}`}>
-      <div className="flex items-center gap-4">
-        <div className="w-12 h-12 rounded-2xl overflow-hidden flex-shrink-0 border-2 border-background shadow-sm">
-          <img src={user.avatar || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(user.name)}&backgroundColor=f97316&fontColor=ffffff&fontSize=40`}
-            alt={user.name} className={`w-full h-full object-cover ${user.isBanned ? 'grayscale' : ''}`} />
+    <div className={`flex flex-col gap-2 px-8 py-8 transition-all duration-500 border-b border-white/5 ${user.isBanned ? 'bg-rose-500/5' : 'hover:bg-white/5'}`}>
+      <div className="flex flex-wrap items-center gap-8">
+        <div className="relative group/avatar">
+          <div className={`absolute -inset-2 rounded-[2rem] blur-xl opacity-10 group-hover/avatar:opacity-30 transition duration-700 ${user.isBanned ? 'bg-rose-600' : 'bg-orange-600'}`} />
+          <div className="relative w-20 h-20 rounded-[2rem] overflow-hidden border-2 border-white/10 shadow-2xl bg-black">
+            <img src={user.avatar || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(user.name)}&backgroundColor=f97316&fontColor=ffffff&fontSize=40`}
+              alt={user.name} className={`w-full h-full object-cover transition-transform duration-700 group-hover/avatar:scale-110 ${user.isBanned ? 'grayscale contrast-125' : ''}`} />
+          </div>
+          {user.isMyCryptoMember && (
+            <div className="absolute -top-1 -right-1 w-6 h-6 bg-blue-600 rounded-full border-2 border-[#050505] flex items-center justify-center shadow-lg">
+              <Zap className="h-3 w-3 text-white fill-white" />
+            </div>
+          )}
         </div>
+
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 mb-0.5">
-            <p className={`text-sm font-black leading-tight truncate ${user.isBanned ? 'text-red-700 line-through' : ''}`}>
+          <div className="flex items-center gap-4 mb-2 flex-wrap">
+            <p className={`text-xl font-black uppercase italic tracking-tighter leading-none ${user.isBanned ? 'text-rose-500/40 line-through' : 'text-white'}`}>
               {user.name}
             </p>
-            {isCurrentUser && <span className="text-[10px] bg-slate-100 px-1.5 py-0.5 rounded font-bold uppercase tracking-widest text-slate-500">YOU</span>}
+            {isCurrentUser && <span className="text-[9px] font-black bg-orange-600 px-3 py-1 rounded-lg uppercase tracking-[0.2em] text-white shadow-xl shadow-orange-600/20">System Operator</span>}
+            {user.isSultan && <Crown className="h-4 w-4 text-yellow-500 fill-yellow-500" />}
           </div>
-          <p className="text-[10px] font-mono text-muted-foreground mb-1">ID: {user.id}</p>
-          <div className="flex items-center gap-3">
-             <span className={`text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-widest ${ROLE_COLOR[user.role]}`}>{ROLE_LABEL[user.role]}</span>
+          <div className="flex flex-wrap items-center gap-4">
+             <span className="text-[10px] font-mono text-white/20 tracking-widest font-black uppercase">NODE::{user.id.slice(0, 8)}</span>
+             <div className="w-1.5 h-1.5 rounded-full bg-white/5" />
+             <span className={`text-[9px] font-black px-4 py-1 rounded-full border uppercase tracking-[0.2em] shadow-2xl ${ROLE_COLOR[user.role]}`}>
+               {ROLE_LABEL[user.role]}
+             </span>
+          </div>
+          <div className="flex flex-wrap items-center gap-2 mt-4">
              {user.isVerifiedSeller && (
-               <span className="text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-widest bg-emerald-100 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300 border border-emerald-200">
-                 Verified Seller
+               <span className="text-[8px] font-black px-3 py-1.5 rounded-lg uppercase tracking-widest bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 shadow-xl">
+                 Matrix Merchant
                </span>
              )}
              {user.isVerifiedReseller && (
-               <span className="text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-widest bg-blue-100 text-blue-700 dark:bg-blue-950/50 dark:text-blue-300 border border-blue-200">
-                 Verified Reseller
+               <span className="text-[8px] font-black px-3 py-1.5 rounded-lg uppercase tracking-widest bg-blue-500/10 text-blue-500 border border-blue-500/20 shadow-xl">
+                 Elite Reseller
                </span>
              )}
              {user.isBanned && (
-               <span className={`text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-widest ${user.banType === 'permanent' ? 'bg-red-600 text-white' : 'bg-amber-500 text-white'}`}>
-                 {user.banType === 'permanent' ? 'Permanent' : 'Trial'} Banned
+               <span className={`text-[8px] font-black px-3 py-1.5 rounded-lg uppercase tracking-widest border shadow-2xl ${user.banType === 'permanent' ? 'bg-rose-600 text-white border-rose-500 shadow-rose-600/20' : 'bg-amber-500 text-white border-amber-400 shadow-amber-500/20'}`}>
+                 {user.banType === 'permanent' ? 'Access Terminated' : 'Trial Suspended'}
                </span>
              )}
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
-          {/* Real-time Stats */}
-          <div className="hidden sm:flex flex-col items-end mr-2">
-            <div className="flex items-center gap-1 text-[11px] font-bold text-amber-600">
-               <Coins className="h-3 w-3" /> {user.coins || 0}
+        <div className="flex items-center gap-5">
+          <div className="hidden lg:flex flex-col items-end gap-2 px-8 border-r border-white/5">
+            <div className="flex items-center gap-2 text-[10px] font-black text-amber-500 italic uppercase tracking-widest opacity-60">
+               <Coins className="h-3.5 w-3.5" /> {user.coins?.toLocaleString() || 0} FREQ
             </div>
-            <div className="flex items-center gap-1 text-[11px] font-bold text-blue-600">
-               <Wallet className="h-3 w-3" /> {formatPrice(user.balance || 0)}
+            <div className="flex items-center gap-2 text-lg font-black text-white italic">
+               <Wallet className="h-4 w-4 text-orange-500" /> {formatPrice(user.balance || 0)}
             </div>
           </div>
 
-          <div className="flex items-center gap-1">
-            <Button size="icon" variant="ghost" className={`h-8 w-8 ${user.isVerifiedSeller ? "text-emerald-500" : "text-muted-foreground"}`} onClick={() => onToggleVerifiedSeller(user.id)} title="Toggle Verified Seller">
-              <CheckCircle2 className="h-4 w-4" />
-            </Button>
-            <Button size="icon" variant="ghost" className={`h-8 w-8 ${user.isVerifiedReseller ? "text-blue-500" : "text-muted-foreground"}`} onClick={() => onToggleVerifiedReseller(user.id)} title="Toggle Verified Reseller">
-              <ShieldCheck className="h-4 w-4" />
-            </Button>
-            <Button size="icon" variant="ghost" className="h-8 w-8 text-blue-500" onClick={() => onViewDetails(user)} title="Detail & Riwayat">
-              <History className="h-4 w-4" />
+          <div className="flex items-center gap-3">
+            <div className="flex bg-white/5 p-1.5 rounded-2xl border border-white/5">
+              <Button size="icon" variant="ghost" className={`h-11 w-11 rounded-xl transition-all ${user.isVerifiedSeller ? "text-emerald-500 bg-emerald-500/20 border border-emerald-500/30" : "text-white/10 hover:text-white"}`} onClick={() => onToggleVerifiedSeller(user.id)} title="Merchant Auth">
+                <CheckCircle2 className="h-4.5 w-4.5" />
+              </Button>
+              <Button size="icon" variant="ghost" className={`h-11 w-11 rounded-xl transition-all ${user.isVerifiedReseller ? "text-blue-500 bg-blue-500/20 border border-blue-500/30" : "text-white/10 hover:text-white"}`} onClick={() => onToggleVerifiedReseller(user.id)} title="Reseller Auth">
+                <ShieldCheck className="h-4.5 w-4.5" />
+              </Button>
+            </div>
+            
+            <Button size="icon" variant="ghost" className="h-11 w-11 rounded-xl bg-white/5 text-blue-500 border border-white/5 hover:bg-blue-600 hover:text-white transition-all" onClick={() => onViewDetails(user)} title="System Logs">
+              <History className="h-4.5 w-4.5" />
             </Button>
             
-            <Button size="icon" variant="ghost" className="h-8 w-8 text-indigo-500" onClick={() => setEditingBalance(true)} title="Edit Saldo">
-              <CreditCard className="h-4 w-4" />
+            <Button size="icon" variant="ghost" className="h-11 w-11 rounded-xl bg-white/5 text-orange-500 border border-white/5 hover:bg-orange-600 hover:text-white transition-all" onClick={() => setEditingBalance(true)} title="Asset Allocation">
+              <CreditCard className="h-4.5 w-4.5" />
             </Button>
 
             {!isMainAdmin && !isCurrentUser && (
               <button onClick={() => user.isBanned ? onBanToggle(user.id, "permanent", "") : setShowBanModal(true)} 
-                className={`p-1.5 rounded-lg transition-colors ${user.isBanned ? 'bg-red-100 text-red-600 hover:bg-red-200' : 'bg-muted text-muted-foreground hover:bg-red-50 hover:text-red-500'}`} 
-                title={user.isBanned ? "Unban User" : "Ban User"}>
-                <Ban className="h-4 w-4" />
+                className={`w-11 h-11 rounded-xl flex items-center justify-center transition-all border ${user.isBanned ? 'bg-rose-600 border-rose-500 text-white shadow-2xl shadow-rose-600/30' : 'bg-white/5 border-white/5 text-white/10 hover:bg-rose-600 hover:text-white hover:border-rose-500'}`} 
+                title={user.isBanned ? "Revoke Access" : "Terminate Connection"}>
+                <Ban className="h-4.5 w-4.5" />
               </button>
             )}
           </div>
         </div>
       </div>
 
-      {/* Balance Edit UI */}
-      {editingBalance && (
-        <div className="mt-2 p-3 bg-blue-50 dark:bg-blue-950/20 rounded-xl flex items-center gap-2 animate-in fade-in slide-in-from-top-1">
-          <Wallet className="h-4 w-4 text-blue-500" />
-          <input 
-            type="number" 
-            value={balanceInput} 
-            onChange={e => setBalanceInput(e.target.value)}
-            className="flex-1 bg-transparent border-b border-blue-200 text-sm font-bold focus:outline-none"
-            placeholder="Set Balance..."
-          />
-          <Button size="sm" className="h-7 text-[10px]" onClick={() => { onUpdateBalance(user.id, Number(balanceInput)); setEditingBalance(false); }}>Update</Button>
-          <Button size="sm" variant="ghost" className="h-7 text-[10px]" onClick={() => setEditingBalance(false)}>Batal</Button>
-        </div>
-      )}
-
-      {/* Ban Reason Modal */}
-      {showBanModal && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-          <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="bg-card border-2 border-red-500 rounded-[2rem] p-8 w-full max-w-md shadow-2xl">
-            <h3 className="text-2xl font-black tracking-tighter mb-4 flex items-center gap-2 text-red-600">
-              <ShieldCheck className="h-6 w-6" /> KONFIGURASI BAN
-            </h3>
-            <div className="space-y-4">
-              <div className="space-y-1">
-                <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Tipe Hukuman</label>
-                <div className="flex gap-2">
-                  <button 
-                    onClick={() => setBanType("permanent")}
-                    className={`flex-1 py-2 rounded-xl text-xs font-bold border-2 transition-all ${banType === 'permanent' ? 'bg-red-600 border-red-600 text-white' : 'border-muted hover:border-red-400'}`}
-                  >
-                    PERMANENT
-                  </button>
-                  <button 
-                    onClick={() => setBanType("trial")}
-                    className={`flex-1 py-2 rounded-xl text-xs font-bold border-2 transition-all ${banType === 'trial' ? 'bg-amber-500 border-amber-500 text-white' : 'border-muted hover:border-amber-400'}`}
-                  >
-                    TRIAL (TEMPORARY)
-                  </button>
-                </div>
+      <AnimatePresence>
+        {editingBalance && (
+          <motion.div 
+            initial={{ height: 0, opacity: 0, y: -10 }}
+            animate={{ height: "auto", opacity: 1, y: 0 }}
+            exit={{ height: 0, opacity: 0, y: -10 }}
+            className="mt-6 p-8 glass-card rounded-[2.5rem] border-orange-500/20 bg-orange-600/5 flex flex-wrap items-center gap-8 shadow-2xl"
+          >
+            <div className="flex items-center gap-5 flex-1 min-w-[200px]">
+              <div className="w-14 h-14 bg-orange-600 rounded-2xl flex items-center justify-center shadow-2xl shadow-orange-600/20">
+                <Wallet className="h-6 w-6 text-white" />
               </div>
-              <div className="space-y-1">
-                <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Alasan Ban</label>
-                <textarea 
-                  value={banReason}
-                  onChange={e => setBanReason(e.target.value)}
-                  placeholder="Misal: Penipuan, Spam, Toxic..."
-                  className="w-full bg-muted/30 border-2 border-muted rounded-2xl p-4 text-sm font-bold focus:border-red-500 transition-colors h-24"
+              <div className="flex-1">
+                <label className="text-[10px] font-black uppercase tracking-[0.3em] text-orange-500 ml-1">Asset Allocation Matrix</label>
+                <input 
+                  type="number" 
+                  value={balanceInput} 
+                  onChange={e => setBalanceInput(e.target.value)}
+                  className="w-full bg-transparent border-none text-2xl font-black text-white italic focus:outline-none placeholder:text-white/10 mt-1"
+                  placeholder="0.00"
+                  autoFocus
                 />
               </div>
-              <div className="flex gap-2 pt-2">
-                <Button variant="ghost" onClick={() => setShowBanModal(false)} className="flex-1 rounded-xl">Batal</Button>
-                <Button onClick={() => { onBanToggle(user.id, banType, banReason); setShowBanModal(false); }} className="flex-[2] rounded-xl bg-red-600 hover:bg-red-700">TERAPKAN HUKUMAN</Button>
+            </div>
+            <div className="flex gap-4 w-full md:w-auto">
+              <Button size="lg" className="flex-1 md:flex-none h-14 px-10 rounded-2xl bg-orange-600 hover:bg-orange-700 text-white font-black uppercase tracking-widest text-[10px] shadow-2xl shadow-orange-600/30" onClick={() => { onUpdateBalance(user.id, Number(balanceInput)); setEditingBalance(false); }}>Commit Allocation</Button>
+              <Button size="lg" variant="ghost" className="flex-1 md:flex-none h-14 px-10 rounded-2xl bg-white/5 text-[10px] font-black uppercase tracking-widest text-white/20 hover:text-white border border-white/5" onClick={() => setEditingBalance(false)}>Abort</Button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {showBanModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-[#000]/90 backdrop-blur-2xl">
+          <motion.div 
+            initial={{ scale: 0.9, opacity: 0, y: 20 }} 
+            animate={{ scale: 1, opacity: 1, y: 0 }} 
+            className="glass-card border-rose-500/20 bg-[#050505] rounded-[3.5rem] p-12 w-full max-w-xl shadow-[0_0_100px_rgba(225,29,72,0.15)] relative overflow-hidden"
+          >
+            <div className="absolute top-0 right-0 p-12 opacity-5 rotate-12">
+              <Ban className="h-48 w-48 text-rose-500" />
+            </div>
+            
+            <div className="relative z-10">
+              <div className="flex items-center gap-8 mb-10">
+                <div className="w-20 h-20 bg-rose-600 rounded-[2rem] flex items-center justify-center shadow-2xl shadow-rose-600/30">
+                  <Ban className="h-10 w-10 text-white" />
+                </div>
+                <div>
+                  <h3 className="text-4xl font-black tracking-tighter text-white italic uppercase">Access Ban</h3>
+                  <p className="text-[10px] font-black text-rose-500 uppercase tracking-[0.4em] mt-1">Security Enforcement Protocol</p>
+                </div>
+              </div>
+
+              <div className="space-y-10">
+                <div className="space-y-4">
+                  <label className="text-[10px] font-black uppercase tracking-[0.3em] text-white/30 ml-2">Select Enforcement Severity</label>
+                  <div className="flex gap-4">
+                    <button 
+                      onClick={() => setBanType("permanent")}
+                      className={`flex-1 py-5 rounded-[1.5rem] text-[10px] font-black uppercase tracking-[0.2em] border-2 transition-all duration-500 ${banType === 'permanent' ? 'bg-rose-600 border-rose-600 text-white shadow-2xl shadow-rose-600/30' : 'border-white/5 text-white/20 hover:border-rose-500/40 hover:text-white'}`}
+                    >
+                      Permanent Null
+                    </button>
+                    <button 
+                      onClick={() => setBanType("trial")}
+                      className={`flex-1 py-5 rounded-[1.5rem] text-[10px] font-black uppercase tracking-[0.2em] border-2 transition-all duration-500 ${banType === 'trial' ? 'bg-amber-600 border-amber-600 text-white shadow-2xl shadow-amber-600/30' : 'border-white/5 text-white/20 hover:border-amber-500/40 hover:text-white'}`}
+                    >
+                      Trial Suspend
+                    </button>
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <label className="text-[10px] font-black uppercase tracking-[0.3em] text-white/30 ml-2">Incidence Violation Log</label>
+                  <textarea 
+                    value={banReason}
+                    onChange={e => setBanReason(e.target.value)}
+                    placeholder="Documenting technical violations..."
+                    className="w-full bg-black/40 border border-white/5 rounded-[2rem] p-8 text-sm font-bold text-white placeholder:text-white/10 focus:border-rose-500/50 transition-all h-40 resize-none italic"
+                  />
+                </div>
+
+                <div className="flex gap-5 pt-4">
+                  <Button variant="ghost" onClick={() => setShowBanModal(false)} className="flex-1 h-16 rounded-2xl text-[10px] font-black uppercase tracking-widest text-white/20 hover:text-white transition-all border border-white/5">Abort Action</Button>
+                  <Button onClick={() => { onBanToggle(user.id, banType, banReason); setShowBanModal(false); }} className="flex-[2] h-16 rounded-2xl bg-rose-600 hover:bg-rose-700 text-white font-black uppercase tracking-widest text-[11px] shadow-2xl shadow-rose-600/40 italic">Execute Protocol</Button>
+                </div>
               </div>
             </div>
           </motion.div>
@@ -262,20 +347,22 @@ function UserRow({ user, currentUser, onRoleChange, onBanToggle, onUpdateBalance
   );
 }
 
+
 function APIKeyInput({ label, value, onChange, placeholder }: { label: string; value: string; onChange: (v: string) => void; placeholder?: string }) {
   const [show, setShow] = useState(false);
   return (
-    <div className="space-y-1.5">
-      <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">{label}</label>
-      <div className="flex items-center gap-2">
-        <div className="relative flex-1">
-          <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+    <div className="space-y-2">
+      <label className="text-[10px] font-black text-white/20 uppercase tracking-[0.3em] ml-1">{label}</label>
+      <div className="flex items-center gap-3">
+        <div className="relative flex-1 group">
+          <div className="absolute inset-0 bg-orange-600/5 rounded-xl blur-lg group-focus-within:bg-orange-600/10 transition-all" />
+          <KeyRound className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-white/20" />
           <input type={show ? "text" : "password"} value={value} onChange={(e) => onChange(e.target.value)}
             placeholder={placeholder ?? "sk-..."}
-            className="w-full pl-8 pr-4 py-2 text-sm border border-input rounded-xl bg-background focus:outline-none focus:ring-2 focus:ring-ring font-mono" />
+            className="relative w-full pl-12 pr-6 py-4 text-sm bg-white/5 border border-white/5 rounded-xl text-white font-mono placeholder:text-white/5 focus:ring-1 focus:ring-orange-500/50 outline-none transition-all" />
         </div>
-        <button type="button" onClick={() => setShow((v) => !v)} className="p-2 text-muted-foreground hover:text-foreground transition-colors">
-          {show ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+        <button type="button" onClick={() => setShow((v) => !v)} className="h-12 w-12 flex items-center justify-center text-white/20 hover:text-white transition-colors bg-white/5 rounded-xl border border-white/5">
+          {show ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
         </button>
       </div>
     </div>
@@ -285,33 +372,37 @@ function APIKeyInput({ label, value, onChange, placeholder }: { label: string; v
 // ─── Voucher row ──────────────────────────────────────────────────────────────
 function VoucherRow({ voucher, onToggle, onDelete }: { voucher: Voucher; onToggle: () => void; onDelete: () => void }) {
   return (
-    <div className={`border rounded-xl p-4 transition-all ${voucher.isActive ? "bg-card" : "bg-muted/20 opacity-60"}`}>
-      <div className="flex items-start justify-between gap-3 flex-wrap">
+    <div className={`glass-card rounded-[2.5rem] p-8 transition-all duration-700 border border-white/5 ${voucher.isActive ? "bg-white/5 shadow-2xl hover:border-orange-500/20" : "bg-white/5 opacity-40 grayscale"}`}>
+      <div className="flex items-start justify-between gap-8 flex-wrap">
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 flex-wrap mb-1">
-            <span className="font-mono font-extrabold text-sm tracking-wider text-primary">{voucher.code}</span>
-            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${voucher.isActive ? "bg-green-100 text-green-700 dark:bg-green-950 dark:text-green-400" : "bg-muted text-muted-foreground"}`}>
-              {voucher.isActive ? "Aktif" : "Nonaktif"}
+          <div className="flex items-center gap-4 flex-wrap mb-4">
+            <div className="bg-orange-600/10 px-6 py-2 rounded-xl border border-orange-500/20 shadow-2xl shadow-orange-600/10">
+              <span className="font-black text-orange-500 text-lg tracking-[0.3em] italic uppercase">{voucher.code}</span>
+            </div>
+            <span className={`text-[10px] font-black px-4 py-1.5 rounded-full border border-white/5 uppercase tracking-widest ${voucher.isActive ? "bg-emerald-600/10 text-emerald-500" : "bg-white/5 text-white/40"}`}>
+              {voucher.isActive ? "Frequency Active" : "Log Decrypted"}
             </span>
-            <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-400">
-              {voucher.type === "percentage" ? `${voucher.value}%` : formatPrice(voucher.value)}
-            </span>
+            <div className="bg-blue-600/10 px-4 py-1.5 rounded-full border border-blue-500/20 shadow-2xl shadow-blue-500/10">
+              <span className="text-[10px] font-black text-blue-400 uppercase tracking-widest italic">
+                {voucher.type === "percentage" ? `${voucher.value}% REDUCTION` : `${formatPrice(voucher.value)} CREDIT`}
+              </span>
+            </div>
           </div>
-          <p className="text-xs text-muted-foreground">{voucher.description}</p>
-          <div className="flex flex-wrap gap-3 mt-1.5 text-[11px] text-muted-foreground">
-            <span>Min: {formatPrice(voucher.minPurchase)}</span>
-            {voucher.maxDiscount && <span>Maks diskon: {formatPrice(voucher.maxDiscount)}</span>}
-            <span>Digunakan: {voucher.usedCount}{voucher.maxUses > 0 ? `/${voucher.maxUses}` : "x"}</span>
+          <p className="text-xs font-bold text-white/40 italic mb-4">"{voucher.description}"</p>
+          <div className="flex flex-wrap gap-6 text-[10px] font-black uppercase tracking-[0.2em] text-white/20">
+            <span className="flex items-center gap-2"><ShoppingBag className="h-3.5 w-3.5" /> Floor: <span className="text-white/40 italic">{formatPrice(voucher.minPurchase)}</span></span>
+            {voucher.maxDiscount && <span className="flex items-center gap-2"><Tag className="h-3.5 w-3.5" /> Cap: <span className="text-white/40 italic">{formatPrice(voucher.maxDiscount)}</span></span>}
+            <span className="flex items-center gap-2"><Activity className="h-3.5 w-3.5" /> Cycles: <span className="text-white/40 italic">{voucher.usedCount}{voucher.maxUses > 0 ? ` / ${voucher.maxUses}` : " (Infinity)"}</span></span>
           </div>
         </div>
-        <div className="flex items-center gap-2 flex-shrink-0">
-          <button onClick={onToggle} title={voucher.isActive ? "Nonaktifkan" : "Aktifkan"}>
+        <div className="flex items-center gap-4 flex-shrink-0">
+          <button onClick={onToggle} title={voucher.isActive ? "Stop Frequency" : "Start Frequency"} className="transition-transform active:scale-90">
             {voucher.isActive
-              ? <ToggleRight className="h-9 w-9 text-green-500" />
-              : <ToggleLeft  className="h-9 w-9 text-muted-foreground" />}
+              ? <ToggleRight className="h-12 w-12 text-emerald-500 filter drop-shadow-[0_0_10px_rgba(16,185,129,0.5)]" />
+              : <ToggleLeft  className="h-12 w-12 text-white/10" />}
           </button>
-          <button onClick={onDelete} className="p-1.5 text-red-400 hover:text-red-600 transition-colors rounded-lg hover:bg-red-50">
-            <Trash2 className="h-4 w-4" />
+          <button onClick={onDelete} className="w-12 h-12 rounded-[1.2rem] bg-rose-500/10 text-rose-500 border border-white/5 hover:bg-rose-500 hover:text-white transition-all shadow-2xl shadow-rose-500/20 flex items-center justify-center">
+            <Trash2 className="h-5 w-5" />
           </button>
         </div>
       </div>
@@ -342,81 +433,81 @@ function VotingAdminTab() {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="bg-card border rounded-[2rem] p-6 shadow-sm space-y-4">
-        <h3 className="font-black tracking-tighter text-sm flex items-center gap-2 uppercase">
-          <Vote className="h-4 w-4" /> Buat Vote Baru
+    <div className="space-y-8">
+      <div className="glass-card border border-white/5 rounded-[2.5rem] p-10 shadow-2xl space-y-6">
+        <h3 className="font-black tracking-tighter text-lg flex items-center gap-3 uppercase italic text-white">
+          <Vote className="h-5 w-5 text-orange-500" /> Initialize New Referendum
         </h3>
-        <div className="space-y-3">
+        <div className="space-y-6">
           <input 
-            placeholder="Judul Vote (Contoh: Siapa admin favoritmu?)" 
+            placeholder="Identity of the Referendum (e.g. Protocol Upgrade Phase 2)" 
             value={newTitle} 
             onChange={e => setNewTitle(e.target.value)}
-            className="w-full px-4 py-3 text-sm border rounded-2xl bg-background font-bold"
+            className="w-full px-6 py-5 text-sm border-none rounded-2xl bg-white/5 text-white font-black uppercase tracking-widest placeholder:text-white/10 focus:ring-1 focus:ring-orange-500/50 outline-none"
           />
-          <div className="space-y-2">
-            <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest ml-1">Opsi Jawaban</p>
+          <div className="space-y-4">
+            <p className="text-[10px] font-black text-white/20 uppercase tracking-[0.3em] ml-2">Response Matrix Options</p>
             {options.map((opt, i) => (
-              <div key={i} className="flex gap-2">
+              <div key={i} className="flex gap-4">
                 <input 
-                  placeholder={`Opsi ${i+1}`} 
+                  placeholder={`Matrix Alpha ${i+1}`} 
                   value={opt} 
                   onChange={e => handleOptionChange(i, e.target.value)}
-                  className="flex-1 px-4 py-2 text-sm border rounded-xl bg-background"
+                  className="flex-1 px-6 py-4 text-xs border-none rounded-xl bg-white/5 text-white font-bold placeholder:text-white/10 focus:ring-1 focus:ring-orange-500/20 outline-none"
                 />
                 {options.length > 2 && (
-                  <Button variant="ghost" size="icon" onClick={() => handleRemoveOption(i)} className="text-red-500">
-                    <X className="h-4 w-4" />
+                  <Button variant="ghost" size="icon" onClick={() => handleRemoveOption(i)} className="h-12 w-12 rounded-xl text-rose-500 hover:bg-rose-500/10">
+                    <X className="h-5 w-5" />
                   </Button>
                 )}
               </div>
             ))}
-            <Button variant="outline" size="sm" onClick={handleAddOption} className="w-full border-dashed rounded-xl">
-              <Plus className="h-3.5 w-3.5 mr-1" /> Tambah Opsi
+            <Button variant="ghost" size="sm" onClick={handleAddOption} className="w-full h-12 border-dashed border-white/5 text-white/20 hover:text-white hover:bg-white/5 rounded-xl text-[10px] font-black uppercase tracking-widest">
+              <Plus className="h-4 w-4 mr-2" /> Append Logic Node
             </Button>
           </div>
-          <Button onClick={handleCreate} className="w-full h-12 rounded-2xl font-black">Rilis Voting</Button>
+          <Button onClick={handleCreate} className="w-full h-16 rounded-[1.5rem] bg-orange-600 hover:bg-orange-700 text-white font-black uppercase tracking-[0.3em] shadow-2xl shadow-orange-600/30 italic">Deploy Referendum Protocol</Button>
         </div>
       </div>
 
-      <div className="space-y-3">
-        <h3 className="font-black tracking-tighter text-sm flex items-center gap-2 uppercase ml-2">
-          <BarChart3 className="h-4 w-4" /> Daftar & Hasil Voting
+      <div className="space-y-6">
+        <h3 className="font-black tracking-tighter text-sm flex items-center gap-3 uppercase italic text-white/40 ml-4">
+          <BarChart3 className="h-4 w-4" /> Active Protocols & Frequency Logs
         </h3>
         {polls.map(poll => (
-          <div key={poll.id} className="bg-card border rounded-[2rem] p-6 shadow-sm">
-            <div className="flex justify-between items-start mb-4">
+          <div key={poll.id} className="glass-card border border-white/5 rounded-[2.5rem] p-10 shadow-2xl">
+            <div className="flex justify-between items-start mb-8">
               <div>
-                <h4 className="font-black text-lg leading-tight mb-1">{poll.title}</h4>
-                <div className="flex items-center gap-2 text-[10px] font-bold uppercase text-muted-foreground">
-                  <span>{poll.votedUserIds.length} Total Suara</span>
-                  <span>•</span>
-                  <span className={poll.isActive ? "text-green-500" : "text-red-500"}>
-                    {poll.isActive ? "Sedang Berjalan" : "Ditutup"}
+                <h4 className="font-black text-xl leading-tight mb-2 text-white italic uppercase tracking-tighter">{poll.title}</h4>
+                <div className="flex items-center gap-4 text-[9px] font-black uppercase tracking-widest">
+                  <span className="text-orange-500">{poll.votedUserIds.length} Data Points</span>
+                  <div className="w-1 h-1 rounded-full bg-white/10" />
+                  <span className={poll.isActive ? "text-emerald-500" : "text-rose-500"}>
+                    {poll.isActive ? "Frequency Active" : "Log Encrypted"}
                   </span>
                 </div>
               </div>
-              <div className="flex gap-2">
-                <Button variant="ghost" size="sm" onClick={() => togglePollStatus(poll.id)}>
-                  {poll.isActive ? "Tutup" : "Buka"}
+              <div className="flex gap-3">
+                <Button size="sm" variant="ghost" className="h-10 px-6 rounded-xl border border-white/5 text-[9px] font-black uppercase tracking-widest text-white/40 hover:text-white" onClick={() => togglePollStatus(poll.id)}>
+                  {poll.isActive ? "Stop" : "Activate"}
                 </Button>
-                <Button variant="ghost" size="sm" onClick={() => deletePoll(poll.id)} className="text-red-500">
+                <Button size="sm" variant="ghost" className="h-10 w-10 p-0 rounded-xl bg-rose-500/10 text-rose-500 hover:bg-rose-500 hover:text-white" onClick={() => deletePoll(poll.id)}>
                   <Trash2 className="h-4 w-4" />
                 </Button>
               </div>
             </div>
 
-            <div className="space-y-3">
+            <div className="space-y-5">
               {poll.options.map(opt => {
                 const percent = poll.votedUserIds.length === 0 ? 0 : Math.round((opt.votes / poll.votedUserIds.length) * 100);
                 return (
-                  <div key={opt.id} className="space-y-1">
-                    <div className="flex justify-between text-xs font-bold">
-                      <span>{opt.text}</span>
-                      <span>{opt.votes} Suara ({percent}%)</span>
+                  <div key={opt.id} className="space-y-2">
+                    <div className="flex justify-between text-[10px] font-black uppercase tracking-widest">
+                      <span className="text-white/60">{opt.text}</span>
+                      <span className="text-orange-500">{opt.votes} <span className="text-white/20 italic">({percent}%)</span></span>
                     </div>
-                    <div className="h-2 bg-muted rounded-full overflow-hidden">
-                      <div className="h-full bg-blue-600 transition-all duration-500" style={{ width: `${percent}%` }} />
+                    <div className="h-3 bg-white/5 rounded-full overflow-hidden border border-white/5 p-0.5">
+                      <div className="h-full bg-gradient-to-r from-orange-600 to-orange-400 rounded-full transition-all duration-1000 shadow-[0_0_15px_rgba(234,88,12,0.3)]" style={{ width: `${percent}%` }} />
                     </div>
                   </div>
                 );
@@ -441,63 +532,66 @@ function SultanAdminTab() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       {/* Stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div className="bg-gradient-to-br from-yellow-500 to-amber-600 p-6 rounded-[2rem] text-white shadow-lg shadow-amber-500/20">
-          <p className="text-[10px] font-black uppercase tracking-widest opacity-80 mb-1">Total Sultan Aktif</p>
-          <p className="text-3xl font-black">{activeUsers} User</p>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+        <div className="glass-card bg-gradient-to-br from-yellow-500/20 to-amber-600/10 p-10 rounded-[2.5rem] border border-yellow-500/20 shadow-2xl relative overflow-hidden group">
+          <div className="absolute -right-4 -top-4 opacity-5 group-hover:scale-110 transition-transform duration-700">
+            <Crown className="h-40 w-40 text-yellow-500" />
+          </div>
+          <p className="text-[10px] font-black uppercase tracking-[0.3em] text-yellow-500/60 mb-2 italic">Total Sultan Active Nodes</p>
+          <p className="text-5xl font-black text-white italic tracking-tighter">{activeUsers} <span className="text-sm font-bold text-white/20 uppercase tracking-widest not-italic ml-2">Users</span></p>
         </div>
-        <div className="bg-white dark:bg-slate-900 border p-6 rounded-[2rem] shadow-sm">
-          <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-1">Harga MySultan / Bulan</p>
-          <p className="text-2xl font-black text-primary">{formatPrice(config.price)}</p>
+        <div className="glass-card p-10 rounded-[2.5rem] border border-white/5 shadow-2xl relative overflow-hidden group">
+          <p className="text-[10px] font-black uppercase tracking-[0.3em] text-white/20 mb-2 italic">Subscription Frequency / Mo</p>
+          <p className="text-3xl font-black text-orange-500 italic tracking-tighter">{formatPrice(config.price)}</p>
         </div>
       </div>
 
       {/* Pricing Control */}
-      <div className="bg-card border rounded-[2rem] p-6 shadow-sm space-y-4">
-        <h3 className="font-black tracking-tighter text-sm flex items-center gap-2">
-          <CreditCard className="h-4 w-4" /> Pengaturan Harga
+      <div className="glass-card border border-white/5 rounded-[2.5rem] p-10 shadow-2xl space-y-6">
+        <h3 className="font-black tracking-tighter text-lg flex items-center gap-3 uppercase italic text-white">
+          <CreditCard className="h-5 w-5 text-orange-500" /> Subscription Protocol
         </h3>
-        <div className="flex gap-2">
+        <div className="flex gap-4">
           <input 
             type="number" 
             value={newPrice} 
             onChange={e => setNewPrice(e.target.value)}
-            className="flex-1 px-4 py-2 text-sm border rounded-xl bg-background" 
+            className="flex-1 px-6 py-4 text-sm border-none rounded-xl bg-white/5 text-white font-black italic focus:ring-1 focus:ring-orange-500/50 outline-none" 
           />
-          <Button onClick={handleUpdatePrice}>Update Harga</Button>
+          <Button onClick={handleUpdatePrice} className="h-14 px-10 rounded-xl bg-orange-600 hover:bg-orange-700 text-white font-black uppercase tracking-widest text-[10px] shadow-2xl shadow-orange-600/30">Update Freq</Button>
         </div>
       </div>
 
       {/* Voucher Management */}
-      <div className="bg-card border rounded-[2rem] p-6 shadow-sm space-y-4">
-        <h3 className="font-black tracking-tighter text-sm flex items-center gap-2">
-          <Tag className="h-4 w-4" /> Voucher Khusus Sultan
+      <div className="glass-card border border-white/5 rounded-[2.5rem] p-10 shadow-2xl space-y-8">
+        <h3 className="font-black tracking-tighter text-lg flex items-center gap-3 uppercase italic text-white">
+          <Tag className="h-5 w-5 text-orange-500" /> Sultan Exclusive Matrix
         </h3>
-        <div className="grid gap-3">
+        <div className="grid gap-4">
           {vouchers.map(v => (
-            <div key={v.id} className="flex items-center justify-between p-4 bg-muted/30 rounded-2xl border border-dashed">
+            <div key={v.id} className="flex items-center justify-between p-6 bg-white/5 rounded-2xl border border-white/5 group hover:border-orange-500/20 transition-all duration-500">
               <div>
-                <p className="text-sm font-black tracking-widest">{v.code}</p>
-                <p className="text-xs text-muted-foreground">{v.type === "percent" ? `${v.discount}%` : formatPrice(v.discount)} off</p>
+                <p className="text-sm font-black tracking-[0.3em] text-white uppercase italic">{v.code}</p>
+                <p className="text-[10px] font-black text-orange-500 uppercase tracking-widest mt-1">{v.type === "percent" ? `${v.discount}%` : formatPrice(v.discount)} off</p>
               </div>
-              <Button size="icon" variant="ghost" className="text-red-500" onClick={() => removeSultanVoucher(v.id)}>
+              <Button size="icon" variant="ghost" className="h-10 w-10 rounded-xl text-rose-500 hover:bg-rose-500/10" onClick={() => removeSultanVoucher(v.id)}>
                 <X className="h-4 w-4" />
               </Button>
             </div>
           ))}
         </div>
-        <div className="pt-4 border-t space-y-3">
-          <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Tambah Voucher Baru</p>
-          <div className="flex gap-2">
-            <input placeholder="KODE" value={vCode} onChange={e => setVCode(e.target.value.toUpperCase())} className="flex-1 px-3 py-2 text-sm border rounded-xl" />
-            <input type="number" placeholder="Diskon (Rp)" value={vDiscount} onChange={e => setVDiscount(e.target.value)} className="flex-1 px-3 py-2 text-sm border rounded-xl" />
+        <div className="pt-8 border-t border-white/5 space-y-6">
+          <p className="text-[10px] font-black text-white/20 uppercase tracking-[0.3em] ml-2">Inject New Voucher Matrix</p>
+          <div className="flex gap-4">
+            <input placeholder="MATRIX_CODE" value={vCode} onChange={e => setVCode(e.target.value.toUpperCase())} className="flex-1 px-6 py-4 text-xs border-none rounded-xl bg-white/5 text-white font-black tracking-widest placeholder:text-white/10 outline-none" />
+            <input type="number" placeholder="Discount Value" value={vDiscount} onChange={e => setVDiscount(e.target.value)} className="flex-1 px-6 py-4 text-xs border-none rounded-xl bg-white/5 text-white font-black tracking-widest placeholder:text-white/10 outline-none" />
             <Button onClick={() => {
               if(!vCode || !vDiscount) return;
               addSultanVoucher({ code: vCode, discount: Number(vDiscount), type: "flat", minPurchase: 0, category: "all" });
               setVCode(""); setVDiscount("");
-            }}>Tambah</Button>
+            }} className="h-14 px-10 rounded-xl bg-white/10 hover:bg-white/20 text-white font-black uppercase tracking-widest text-[10px] border border-white/10">Inject</Button>
           </div>
         </div>
       </div>
@@ -579,11 +673,11 @@ function UserDetailView({ user, onClose }: { user: User; onClose: () => void }) 
 
 
 
-export /**
+/**
  * DatabaseMigrationWizard
  * Komponen untuk simulasi migrasi data dari localStorage ke MySQL.
  */
-function DatabaseMigrationWizard() {
+export function DatabaseMigrationWizard() {
   const { allUsers } = useAuth();
   const { allStoreProducts } = useProducts();
   const [isMigrating, setIsMigrating] = useState(false);
@@ -646,103 +740,130 @@ function DatabaseMigrationWizard() {
     }
 
     setIsMigrating(false);
-    toast({ 
-      title: "Migrasi Berhasil!", 
-      description: `Total ${totalDataCount} entri data telah dipindahkan ke MySQL System.`,
-    });
+    
+    try {
+      // Real Migration Call
+      const response = await fetch("/api/migrate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ users: allUsers, products: allStoreProducts })
+      });
+
+      if (!response.ok) throw new Error("Gagal mengirim data ke server MySQL lokal.");
+
+      toast({ 
+        title: "Migrasi Berhasil!", 
+        description: `Total ${totalDataCount} entri data telah dipindahkan ke MySQL Lokal Anda secara otomatis.`,
+      });
+    } catch (err: any) {
+      toast({
+        variant: "destructive",
+        title: "Migrasi Gagal",
+        description: err.message || "Pastikan server backend jalan dan MySQL lokal aktif."
+      });
+    }
   };
 
   return (
-    <div className="space-y-6">
-      <div className="bg-gradient-to-br from-slate-900 to-slate-800 text-white rounded-[2.5rem] p-8 border border-white/10 shadow-2xl overflow-hidden relative group">
-        <div className="absolute top-0 right-0 p-8 opacity-10 group-hover:opacity-20 transition-opacity">
-          <Cpu className="h-40 w-40" />
+    <div className="space-y-8">
+      <div className="glass-card bg-gradient-to-br from-[#0a0a0b] via-[#111] to-[#0a0a0b] text-white rounded-[3.5rem] p-12 border border-white/5 shadow-[0_0_80px_rgba(255,100,0,0.05)] overflow-hidden relative group">
+        <div className="absolute top-0 right-0 p-12 opacity-5 group-hover:opacity-10 transition-all duration-1000 group-hover:rotate-12 group-hover:scale-110">
+          <Cpu className="h-64 w-64 text-orange-500" />
         </div>
         
         <div className="relative z-10">
-          <div className="flex items-center gap-3 mb-6">
-            <div className="w-12 h-12 bg-primary/20 rounded-2xl flex items-center justify-center backdrop-blur-md border border-primary/30">
-              <Zap className="h-6 w-6 text-primary" />
+          <div className="flex flex-col md:flex-row items-center md:items-start gap-8 mb-12">
+            <div className="w-20 h-20 bg-orange-600 rounded-[2rem] flex items-center justify-center shadow-2xl shadow-orange-600/40 relative overflow-hidden group/icon">
+              <div className="absolute inset-0 bg-white/20 translate-y-full group-hover/icon:translate-y-0 transition-transform duration-500" />
+              <Zap className="h-10 w-10 text-white relative z-10" />
             </div>
             <div>
-              <h2 className="text-2xl font-black tracking-tighter">AI Database Migration</h2>
-              <p className="text-xs text-slate-400 font-bold uppercase tracking-widest">Powered by Cynmatic Intelligence</p>
+              <h2 className="text-4xl font-black tracking-tighter italic uppercase text-white leading-none">Matrix Migration</h2>
+              <p className="text-[10px] text-orange-500 font-black uppercase tracking-[0.4em] mt-3">Advanced Data Synchronization Module</p>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-            <div className="bg-white/5 backdrop-blur-md rounded-2xl p-4 border border-white/10">
-              <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest mb-1">Local Users</p>
-              <p className="text-2xl font-black">{allUsers.length}</p>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-12">
+            <div className="glass-card bg-white/5 border border-white/5 rounded-2xl p-8 hover:bg-white/10 transition-colors">
+              <p className="text-[10px] text-white/20 font-black uppercase tracking-[0.2em] mb-2">Source Nodes</p>
+              <p className="text-3xl font-black italic tracking-tighter">{allUsers.length}</p>
             </div>
-            <div className="bg-white/5 backdrop-blur-md rounded-2xl p-4 border border-white/10">
-              <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest mb-1">Local Products</p>
-              <p className="text-2xl font-black">{allStoreProducts.length}</p>
+            <div className="glass-card bg-white/5 border border-white/5 rounded-2xl p-8 hover:bg-white/10 transition-colors">
+              <p className="text-[10px] text-white/20 font-black uppercase tracking-[0.2em] mb-2">Source Assets</p>
+              <p className="text-3xl font-black italic tracking-tighter">{allStoreProducts.length}</p>
             </div>
-          <div className="bg-white/5 backdrop-blur-md rounded-2xl p-4 border border-white/10">
-              <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest mb-1">Storage Status</p>
-              <p className="text-xs font-bold text-amber-400 flex items-center gap-1.5 mt-2">
-                <AlertTriangle className="h-3 w-3" /> Perlu Migrasi
+            <div className="glass-card bg-orange-600/10 border border-orange-500/20 rounded-2xl p-8 group/status">
+              <p className="text-[10px] text-orange-500/60 font-black uppercase tracking-[0.2em] mb-2">Protocol Status</p>
+              <p className="text-xs font-black text-white flex items-center gap-2 mt-2 uppercase italic">
+                <AlertTriangle className="h-4 w-4 text-orange-500 animate-pulse" /> Sync Required
               </p>
             </div>
           </div>
 
-          <div className="bg-primary/10 border border-primary/20 rounded-2xl p-4 mb-6">
-            <h4 className="text-xs font-black uppercase tracking-widest mb-2 flex items-center gap-2">
-              <ListTodo className="h-4 w-4" /> 3 Langkah Masukin Database ke VPS:
+          <div className="bg-white/5 border border-white/5 rounded-[2.5rem] p-8 mb-12">
+            <h4 className="text-[10px] font-black uppercase tracking-[0.3em] mb-6 flex items-center gap-3 text-orange-500 italic">
+              <ListTodo className="h-4 w-4" /> Migration Execution Steps:
             </h4>
-            <ol className="text-xs space-y-2 text-slate-300 list-decimal pl-4 font-medium">
-              <li>Klik tombol <strong>"Generate SQL"</strong> di bawah dan klik <strong>"Copy SQL"</strong>.</li>
-              <li>Buka terminal VPS Anda (SSH), masuk ke MySQL: <code className="bg-black/50 px-1 rounded text-primary">sudo mysql</code>.</li>
-              <li>Paste (tempel) seluruh script SQL yang tadi di-copy, lalu tekan Enter. <strong>Selesai!</strong> Data Anda sudah masuk ke MySQL server.</li>
-            </ol>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+              {[
+                { step: "01", title: "Generate Logic", desc: "Extract local state into SQL frequency." },
+                { step: "02", title: "Access Node", desc: "Establish terminal connection to VPS." },
+                { step: "03", title: "Commit Script", desc: "Execute SQL matrix on the remote host." }
+              ].map((s, i) => (
+                <div key={i} className="relative group/step">
+                  <span className="text-4xl font-black text-white/5 absolute -top-4 -left-2 group-hover/step:text-orange-500/10 transition-colors">{s.step}</span>
+                  <h5 className="text-[11px] font-black text-white uppercase tracking-widest relative z-10">{s.title}</h5>
+                  <p className="text-[10px] text-white/40 font-bold italic mt-2 leading-relaxed">{s.desc}</p>
+                </div>
+              ))}
+            </div>
           </div>
 
           {isMigrating ? (
-            <div className="space-y-4 animate-in fade-in zoom-in duration-500">
-              <div className="flex justify-between items-end mb-2">
-                <p className="text-sm font-bold text-primary animate-pulse">
-                  {step === 1 && "Analisis Skema..."}
-                  {step === 2 && "Building Tables..."}
-                  {step === 3 && "Verifying Users..."}
-                  {step === 4 && "Normalizing Products..."}
-                  {step === 5 && "Uploading Data..."}
-                  {step === 6 && "Finalizing..."}
+            <div className="space-y-6 animate-in fade-in zoom-in duration-700">
+              <div className="flex justify-between items-end">
+                <p className="text-[10px] font-black text-orange-500 uppercase tracking-[0.3em] animate-pulse">
+                  {step === 1 && "Analyzing Schema Matrix..."}
+                  {step === 2 && "Synthesizing DB Architecture..."}
+                  {step === 3 && "Authenticating Node Identities..."}
+                  {step === 4 && "Normalizing Asset Vectors..."}
+                  {step === 5 && "Transmitting Bitstream..."}
+                  {step === 6 && "Finalizing Sync Protocol..."}
                 </p>
-                <p className="text-xs font-black">{progress}%</p>
+                <p className="text-sm font-black italic">{progress}%</p>
               </div>
-              <div className="h-3 bg-white/10 rounded-full overflow-hidden p-0.5 border border-white/5">
+              <div className="h-4 bg-white/5 rounded-full overflow-hidden p-1 border border-white/5">
                 <motion.div 
                   initial={{ width: 0 }}
                   animate={{ width: `${progress}%` }}
-                  className="h-full bg-gradient-to-r from-primary via-orange-500 to-yellow-400 rounded-full shadow-[0_0_20px_rgba(255,100,0,0.5)]"
+                  className="h-full bg-gradient-to-r from-orange-600 via-orange-400 to-yellow-500 rounded-full shadow-[0_0_30px_rgba(234,88,12,0.5)]"
                 />
               </div>
             </div>
           ) : (
-            <div className="flex flex-wrap gap-4">
+            <div className="flex flex-wrap gap-6">
               <Button 
                 onClick={startMigration}
                 size="lg"
-                className="rounded-2xl px-8 h-14 bg-primary hover:bg-primary/90 text-white font-black shadow-xl shadow-primary/20"
+                className="rounded-2xl px-12 h-16 bg-orange-600 hover:bg-orange-700 text-white font-black uppercase tracking-widest text-[11px] shadow-2xl shadow-orange-600/40 italic"
               >
-                <Cpu className="h-5 w-5 mr-2" /> Start AI Migration
+                <Cpu className="h-5 w-5 mr-3" /> Initialize Sync
               </Button>
               <Button 
-                variant="outline"
+                variant="ghost"
                 size="lg"
                 onClick={() => setShowSQL(!showSQL)}
-                className="rounded-2xl px-8 h-14 border-white/20 text-white hover:bg-white/10 font-bold bg-transparent"
+                className="rounded-2xl px-12 h-16 bg-white/5 text-white/40 border border-white/5 hover:text-white hover:bg-white/10 font-black uppercase tracking-widest text-[11px]"
               >
-                <Server className="h-5 w-5 mr-2" /> {showSQL ? "Hide Schema" : "Generate SQL"}
+                <Server className="h-5 w-5 mr-3" /> {showSQL ? "Hide Matrix" : "View Matrix"}
               </Button>
               <Button 
-                variant="outline"
+                variant="ghost"
                 size="lg"
                 onClick={() => setShowVPS(!showVPS)}
-                className="rounded-2xl px-8 h-14 border-white/20 text-white hover:bg-white/10 font-bold bg-transparent"
+                className="rounded-2xl px-12 h-16 bg-white/5 text-white/40 border border-white/5 hover:text-white hover:bg-white/10 font-black uppercase tracking-widest text-[11px]"
               >
-                <Globe className="h-5 w-5 mr-2" /> VPS Deployment
+                <Globe className="h-5 w-5 mr-3" /> Remote Deployment
               </Button>
             </div>
           )}
@@ -875,20 +996,20 @@ npm run start`}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-1.5">
             <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">DB Host</label>
-            <input type="text" readOnly value="localhost" className="w-full px-4 py-2.5 bg-muted/50 border rounded-xl text-sm font-mono opacity-50" />
+            <input type="text" readOnly value="185.128.227.237" className="w-full px-4 py-2.5 bg-muted/50 border rounded-xl text-sm font-mono" />
           </div>
           <div className="space-y-1.5">
             <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">DB Port</label>
-            <input type="text" readOnly value="3306" className="w-full px-4 py-2.5 bg-muted/50 border rounded-xl text-sm font-mono opacity-50" />
+            <input type="text" readOnly value="3306" className="w-full px-4 py-2.5 bg-muted/50 border rounded-xl text-sm font-mono" />
           </div>
           <div className="space-y-1.5">
             <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Database Name</label>
-            <input type="text" readOnly value="cynmatic_db" className="w-full px-4 py-2.5 bg-muted/50 border rounded-xl text-sm font-mono opacity-50" />
+            <input type="text" readOnly value="cynmatic_db" className="w-full px-4 py-2.5 bg-muted/50 border rounded-xl text-sm font-mono" />
           </div>
           <div className="space-y-1.5">
             <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Status</label>
-            <div className="w-full px-4 py-2.5 bg-amber-500/10 border border-amber-500/20 text-amber-600 rounded-xl text-sm font-black flex items-center gap-2 uppercase tracking-tight">
-              <div className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" /> Local Hybrid Mode
+            <div className="w-full px-4 py-2.5 bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 rounded-xl text-sm font-black flex items-center gap-2 uppercase tracking-tight">
+              <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" /> VPS Remote Mode
             </div>
           </div>
         </div>
@@ -897,7 +1018,7 @@ npm run start`}
   );
 }
 
-function AdminPage() {
+export function AdminPanel() {
   const { user, allUsers, updateUserRole, addCoins, toggleBan, updateBalance, toggleVerifiedSeller, toggleVerifiedReseller } = useAuth();
   const { cosmetics, addCosmetic, deleteCosmetic } = useCosmetics();
   const { sellerProducts, allStoreProducts, autoApprove, setAutoApprove, approveProduct, rejectProduct, deleteProduct } = useProducts();
@@ -1071,32 +1192,58 @@ function AdminPage() {
   ];
 
   return (
-    <div className="container mx-auto px-4 py-8 max-w-4xl">
-      <div className="flex items-center gap-3 mb-6">
-        <div className="w-12 h-12 bg-orange-100 rounded-2xl flex items-center justify-center">
-          <ShieldCheck className="h-6 w-6 text-primary" />
-        </div>
-        <div>
-          <h1 className="text-2xl font-extrabold">Panel Admin</h1>
-          <p className="text-sm text-muted-foreground">Kelola produk, pengguna, voucher, live, dan pengaturan toko</p>
+    <div className="min-h-screen bg-[#050505] pt-24 pb-20">
+      <div className="container mx-auto px-6 max-w-5xl space-y-10">
+      
+      {/* ── Premium Admin Header ─────────────────────────────────── */}
+      <div className="relative overflow-hidden rounded-[3rem] p-10 border border-white/5 bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-orange-950/20 via-background to-background shadow-2xl group">
+        {/* Decorative Background */}
+        <div className="absolute top-0 right-0 w-64 h-64 bg-orange-600/10 blur-[100px] rounded-full -translate-y-1/2 translate-x-1/2 group-hover:scale-150 transition-transform duration-1000" />
+        
+        <div className="relative z-10 flex flex-col md:flex-row items-center gap-8 text-center md:text-left">
+          <div className="w-24 h-24 bg-gradient-to-br from-orange-500 to-orange-700 rounded-[2rem] flex items-center justify-center shadow-2xl shadow-orange-600/30 group-hover:rotate-6 transition-transform">
+            <ShieldCheck className="h-12 w-12 text-white" />
+          </div>
+          <div className="flex-1 space-y-2">
+            <h1 className="text-4xl lg:text-5xl font-black tracking-tighter uppercase italic text-gradient">Command Center</h1>
+            <p className="text-xs font-bold text-muted-foreground uppercase tracking-[0.3em] opacity-60">Authorized Administrative Node v2.5</p>
+          </div>
+          <div className="flex gap-4">
+             <div className="glass-card px-6 py-3 rounded-2xl text-center border-white/5 shadow-xl">
+                <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Server Status</p>
+                <div className="flex items-center gap-2 mt-1">
+                  <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_10px_rgba(16,185,129,0.5)]" />
+                  <p className="text-sm font-black uppercase italic text-emerald-500">Live</p>
+                </div>
+             </div>
+          </div>
         </div>
       </div>
 
-      {/* Tabs */}
-      <div className="flex gap-2 mb-6 bg-muted/60 p-1.5 rounded-xl w-fit flex-wrap border border-border/50">
-        {TABS.map(({ id, icon: Icon, label }) => (
-          <button key={id} onClick={() => setTab(id)}
-            className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-semibold transition-all ${
-              tab === id ? "bg-background shadow-md text-foreground border border-border/20" : "text-muted-foreground hover:text-foreground hover:bg-background/40"
-            }`}>
-            <Icon className="h-4 w-4" />
-            <span className="hidden sm:inline">{label}</span>
-            {id === "live" && isLive && (
-              <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse shadow-sm shadow-red-500/50" />
-            )}
-          </button>
-        ))}
+      {/* ── Premium Scrollable Tabs ──────────────────────────────── */}
+      <div className="relative group">
+        <div className="flex overflow-x-auto pb-4 gap-3 no-scrollbar scroll-smooth px-2">
+          {TABS.map((t) => (
+            <button
+              key={t.id}
+              onClick={() => setTab(t.id)}
+              className={`flex items-center gap-3 px-6 py-4 rounded-2xl border-2 transition-all flex-shrink-0 group/tab relative ${
+                tab === t.id 
+                  ? "bg-orange-600 border-orange-500 text-white shadow-xl shadow-orange-600/20" 
+                  : "glass-card border-white/5 text-muted-foreground hover:border-white/20 hover:text-white"
+              }`}
+            >
+              <t.icon className={`h-4 w-4 transition-transform group-hover/tab:scale-110 ${tab === t.id ? "text-white" : "text-orange-500"}`} />
+              <span className="text-[11px] font-black uppercase tracking-widest">{t.label}</span>
+              {t.id === "live" && isLive && (
+                <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full animate-pulse shadow-lg shadow-red-500/50 border-2 border-background" />
+              )}
+            </button>
+          ))}
+        </div>
       </div>
+
+      <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
 
       {/* ── Tab Produk ─────────────────────────────────────────────────── */}
       {tab === "products" && (
@@ -1120,7 +1267,7 @@ function AdminPage() {
       {/* ── Tab Pengguna ──────────────────────────────────────────────── */}
       {tab === "users" && (
         <div className="space-y-4">
-          <div className="bg-card border-2 border-indigo-100 dark:border-indigo-900/30 rounded-2xl p-2 shadow-sm flex items-center gap-3">
+          <div className="glass-card border-white/5 rounded-[2.5rem] p-6 shadow-2xl space-y-6">
              <div className="pl-4">
                <Search className="h-5 w-5 text-muted-foreground" />
              </div>
@@ -1132,7 +1279,7 @@ function AdminPage() {
              />
           </div>
 
-          <div className="bg-card border rounded-2xl overflow-hidden shadow-sm divide-y">
+          <div className="glass-card border border-white/5 rounded-[2.5rem] overflow-hidden shadow-2xl divide-y divide-white/5">
             {allUsers.filter(u => 
               u.name.toLowerCase().includes(userSearch.toLowerCase()) || 
               u.email.toLowerCase().includes(userSearch.toLowerCase()) ||
@@ -1171,7 +1318,7 @@ function AdminPage() {
       {/* ── Tab Koin ──────────────────────────────────────────────── */}
       {tab === "coins" && (
         <div className="space-y-6">
-          <div className="bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-950/20 dark:to-orange-950/20 border border-amber-200 dark:border-amber-800/50 rounded-2xl p-6">
+          <div className="glass-card bg-gradient-to-br from-amber-600/10 to-orange-600/5 border border-white/5 rounded-[2.5rem] p-10 shadow-2xl">
             <h3 className="font-bold text-amber-800 dark:text-amber-300 text-lg mb-2">Pemberian Koin Global</h3>
             <p className="text-sm text-amber-700 dark:text-amber-400/80 mb-4">Berikan koin dalam jumlah tertentu ke SEMUA pengguna yang terdaftar.</p>
             <div className="flex gap-3 max-w-md">
@@ -1186,7 +1333,7 @@ function AdminPage() {
             </div>
           </div>
 
-          <div className="bg-card border border-border rounded-2xl p-6">
+          <div className="glass-card border border-white/5 rounded-[2.5rem] p-10 shadow-2xl">
             <h3 className="font-bold text-foreground text-lg mb-2">Pemberian Koin Spesifik</h3>
             <p className="text-sm text-muted-foreground mb-4">Berikan koin hanya kepada satu pengguna pilihan.</p>
             <div className="flex flex-col sm:flex-row gap-3 max-w-2xl">
@@ -1196,7 +1343,7 @@ function AdminPage() {
                 className="flex-[2] px-4 py-2 rounded-lg border border-input focus:outline-none focus:ring-2 focus:ring-ring bg-background text-sm"
               >
                 <option value="">-- Pilih Pengguna --</option>
-                {users.map(u => (
+                {allUsers.map(u => (
                   <option key={u.id} value={u.id}>{u.name} ({u.email})</option>
                 ))}
               </select>
@@ -1211,7 +1358,7 @@ function AdminPage() {
             </div>
           </div>
 
-          <div className="bg-card border border-border rounded-2xl p-6">
+          <div className="glass-card border border-white/5 rounded-[2.5rem] p-10 shadow-2xl">
             <h3 className="font-bold text-foreground text-lg mb-2">Manajemen Opsi Tukar Koin</h3>
             <p className="text-sm text-muted-foreground mb-4">Atur daftar hadiah atau diskon yang bisa didapatkan user dengan menukarkan koin mereka.</p>
             
@@ -1287,7 +1434,7 @@ function AdminPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y">
-                  {users.map((u) => (
+                  {allUsers.map((u) => (
                     <tr key={u.id} className="hover:bg-muted/10 transition-colors">
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-2">
@@ -1846,5 +1993,8 @@ function AdminPage() {
         </div>
       )}
     </div>
+    </div>
   );
 }
+
+export default AdminPanel;

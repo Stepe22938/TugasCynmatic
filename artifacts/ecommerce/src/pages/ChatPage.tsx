@@ -10,13 +10,13 @@ import { useToast } from "../hooks/use-toast";
 export function ChatPage() {
   const [, params] = useRoute("/chat/:id");
   const otherUserId = params?.id;
-  const { user, getAllUsers } = useAuth();
+  const { user, allUsers } = useAuth();
   const { sendMessage, getChat } = useMessages();
   const [inputText, setInputText] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
-  const otherUser = getAllUsers().find(u => u.id === otherUserId);
+  const otherUser = allUsers.find(u => u.id === otherUserId);
   const chatMessages = getChat(otherUserId || "");
 
   useEffect(() => {

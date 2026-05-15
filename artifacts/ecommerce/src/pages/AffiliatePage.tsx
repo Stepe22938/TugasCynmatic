@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { 
   Users, Gift, Award, Share2, Copy, 
   CheckCircle, ArrowRight, Sparkles, 
@@ -351,6 +352,3 @@ export function AffiliatePage() {
     </div>
   );
 }
-
-// Re-using motion components
-import { motion, AnimatePresence } from "framer-motion";

@@ -1,448 +1,372 @@
-/**
- * AuthContext.tsx
- * Comprehensive Authentication & User Management Context with Advanced Ban System
- */
 import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
 
-const USERS_KEY = "toko_users";
+// Source of Truth: VPS API
+const API_BASE = "http://localhost:3000/api";
 const SESSION_KEY = "toko_session_id";
 
 export type UserRole = "user" | "seller" | "admin" | "kurir";
 
 export interface User {
   id: string;
-  systemId: number;
+  systemId?: number;
   name: string;
   email: string;
   role: UserRole;
-  createdAt: string;
-  coins: number;
-  isBanned: boolean;
-  banType?: "permanent" | "trial";
+  avatar?: string;
+  isVerifiedSeller?: boolean;
+  isVerifiedReseller?: boolean;
+  coins?: number;
+  balance?: number;
+  points?: number;
+  isBanned?: boolean;
   banReason?: string;
-  banExpiry?: string; // ISO string for trial ban end
+  banType?: "permanent" | "trial";
+  banExpiry?: string;
   friends?: string[];
   friendRequests?: string[];
   sentRequests?: string[];
-  bio?: string;
-  theme?: string;
-  followers?: string[];
-  following?: string[];
-  avatar?: string;
-  youtubeId?: string;
-  useAnimation?: boolean;
-  isSultan?: boolean;
-  sultanExpiry?: string;
-  publicIp?: string;
-  localIp?: string;
-  balance: number;
-  activityLog: { action: string; timestamp: string }[];
-  purchaseHistory: { itemName: string; price: number; timestamp: string }[];
-  ownedCosmetics: string[];
-  equippedCosmetics: string[];
-  profileLayout: "premium" | "simple";
+  activityLog?: any[];
+  purchaseHistory?: any[];
+  ownedCosmetics?: any[];
+  equippedCosmetics?: any[];
+  walletTransactions?: any[];
   sultanBadgeColor?: string;
   sultanGlowEffect?: boolean;
   sultanCustomTag?: string;
-  referralCode: string;
-  referredBy?: string;
-  status?: string;
-  points: number;
   isMyCryptoMember?: boolean;
-  myCryptoExpiry?: string | null;
-  isVerifiedSeller?: boolean;
-  isVerifiedReseller?: boolean;
+  myCryptoExpiry?: string;
+  profileLayout?: "premium" | "simple";
 }
 
-interface StoredUser extends User {
+export interface StoredUser extends User {
   password?: string;
 }
 
 interface AuthContextType {
-  isAuthenticated: boolean;
   user: User | null;
   allUsers: User[];
-  register: (name: string, email: string, password: string, referralCode?: string) => { ok: boolean; error?: string };
+  loading: boolean;
   login: (email: string, password: string) => { ok: boolean; error?: string };
+  register: (name: string, email: string, password: string, referralCode?: string) => { ok: boolean; error?: string };
   logout: () => void;
-  updateName: (newName: string) => void;
   updateUser: (data: Partial<User>) => void;
-  updateCustomization: (data: { bio?: string; theme?: string; avatar?: string; youtubeId?: string; useAnimation?: boolean }) => void;
+  updateCustomization: (data: Partial<User>) => void;
+  updateName: (name: string) => void;
+  updateAvatar: (url: string) => void;
+  toggleBan: (uid: string, type?: "permanent" | "trial", reason?: string, durationHours?: number) => void;
   sendFriendRequest: (targetId: string) => void;
-  acceptFriendRequest: (fromId: string) => void;
-  rejectFriendRequest: (fromId: string) => void;
-  removeFriend: (friendId: string) => void;
-  getAllUsers: () => User[];
-  updateUserRole: (userId: string, role: UserRole) => void;
-  updateUserCoins: (userId: string, amount: number) => void;
-  addCoins: (userId: string | "all", amount: number) => void;
-  updateBalance: (userId: string, amount: number) => void;
-  toggleBan: (userId: string, type?: "permanent" | "trial", reason?: string, durationHours?: number) => void;
-  updateIps: (pub: string, loc: string) => void;
+  acceptFriendRequest: (fid: string) => void;
+  rejectFriendRequest: (fid: string) => void;
+  removeFriend: (fid: string) => void;
+  addCoins: (uid: string | "all", amount: number) => void;
+  updateBalance: (uid: string, amount: number) => void;
+  updateUserRole: (uid: string, role: UserRole) => void;
+  toggleVerifiedSeller: (uid: string) => void;
+  toggleVerifiedReseller: (uid: string) => void;
   toggleLayout: () => void;
-  logActivity: (action: string) => void;
-  logPurchase: (userId: string, itemName: string, price: number) => void;
-  toggleVerifiedSeller: (userId: string) => void;
-  toggleVerifiedReseller: (userId: string) => void;
-}
-
-const getStoredUsers = (): StoredUser[] => {
-  try {
-    return JSON.parse(localStorage.getItem(USERS_KEY) || "[]");
-  } catch {
-    return [];
-  }
-};
-
-const saveUsers = (users: StoredUser[]) => {
-  localStorage.setItem(USERS_KEY, JSON.stringify(users));
-  window.dispatchEvent(new Event("storage_sync"));
-};
-
-const findUserById = (id: string): StoredUser | null => {
-  return getStoredUsers().find((u) => u.id === id) || null;
-};
-
-const toPublic = (u: StoredUser): User => {
-  const { password, ...rest } = u;
-  return rest;
-};
-
-// Advanced Ban Checker: Checks if a trial ban has expired
-const checkBanStatus = (u: StoredUser): StoredUser => {
-  if (u.isBanned && u.banType === "trial" && u.banExpiry) {
-    if (new Date() > new Date(u.banExpiry)) {
-      return { ...u, isBanned: false, banType: undefined, banExpiry: undefined, banReason: undefined };
-    }
-  }
-  return u;
-};
-
-function seedSystemAccounts() {
-  const users = getStoredUsers();
-  const seeds: Partial<StoredUser>[] = [
-    {
-      id: "admin-001",
-      systemId: 1,
-      name: "Admin Toko",
-      email: "alrizalarkan@gmail.com",
-      password: "Admin123",
-      role: "admin",
-      isBanned: false,
-      balance: 0,
-      activityLog: [],
-      purchaseHistory: [],
-      ownedCosmetics: ["tag-beta", "tag-eta", "tag-tester", "visual-beard"],
-      equippedCosmetics: [],
-    },
-    {
-      id: "kurir-001",
-      systemId: 2,
-      name: "Kurir Express",
-      email: "kurir@toko.com",
-      password: "Kurir123",
-      role: "kurir",
-      isBanned: false,
-      balance: 0,
-      activityLog: [],
-      purchaseHistory: [],
-      ownedCosmetics: [],
-      equippedCosmetics: [],
-    },
-  ];
-  let changed = false;
-  const merged = users.map(u => {
-    let uChanged = false;
-    if (!u.referralCode) {
-      u.referralCode = Math.random().toString(36).substring(2, 8).toUpperCase();
-      uChanged = true;
-    }
-    if (u.points === undefined) { u.points = 0; uChanged = true; }
-    
-    // Auto-unban check during seeding/loading
-    const checked = checkBanStatus(u);
-    if (checked.isBanned !== u.isBanned) uChanged = true;
-
-    if (uChanged) changed = true;
-    return checked;
-  });
-
-  for (const seed of seeds) {
-    if (!merged.some((u) => u.id === seed.id)) {
-      merged.push({
-        ...seed,
-        referralCode: Math.random().toString(36).substring(2, 8).toUpperCase(),
-        points: 0,
-        activityLog: seed.activityLog || [],
-        purchaseHistory: seed.purchaseHistory || [],
-        ownedCosmetics: seed.ownedCosmetics || [],
-        equippedCosmetics: seed.equippedCosmetics || [],
-        profileLayout: "premium"
-      } as StoredUser);
-      changed = true;
-    }
-  }
-  if (changed) saveUsers(merged);
+  fetchFreshUser: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [allUsers, setAllUsers] = useState<User[]>(() => getStoredUsers().map(toPublic));
-  
-  const syncAndSetUsers = (updated: StoredUser[]) => {
-    saveUsers(updated);
-    setAllUsers(updated.map(toPublic));
+  const [allUsers, setAllUsers] = useState<User[]>([]);
+  const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  const toPublic = (u: StoredUser): User => {
+    const { password, ...rest } = u;
+    
+    // Ensure array fields are actually arrays (handle JSON strings from VPS)
+    const ensureArray = (val: any) => {
+      if (Array.isArray(val)) return val;
+      if (typeof val === "string") {
+        try { return JSON.parse(val); } catch (e) { return []; }
+      }
+      return [];
+    };
+
+    return {
+      ...rest,
+      balance: Number(rest.balance || 0),
+      coins: Number(rest.coins || 0),
+      points: Number(rest.points || 0),
+      friends: ensureArray(rest.friends),
+      friendRequests: ensureArray(rest.friendRequests),
+      sentRequests: ensureArray(rest.sentRequests),
+      equippedCosmetics: ensureArray(rest.equippedCosmetics),
+      ownedCosmetics: ensureArray(rest.ownedCosmetics),
+      activityLog: ensureArray(rest.activityLog),
+      purchaseHistory: ensureArray(rest.purchaseHistory),
+      walletTransactions: ensureArray(rest.walletTransactions)
+    };
   };
 
-  const [user, setUser] = useState<User | null>(() => {
-    const id = localStorage.getItem(SESSION_KEY);
-    const found = id ? findUserById(id) : null;
-    if (!found) return null;
-    
-    const checked = checkBanStatus(found);
-    if (checked.isBanned !== found.isBanned) {
-      const users = getStoredUsers().map(u => u.id === found.id ? checked : u);
-      saveUsers(users);
+  const syncUserToVPS = async (u: StoredUser) => {
+    try {
+      await fetch(`${API_BASE}/users/sync`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(u)
+      });
+    } catch (e) {
+      console.error("[SYNC] Failed to sync user to VPS:", e);
     }
-    
-    if (checked.isBanned) {
-      localStorage.removeItem(SESSION_KEY);
-      return null;
-    }
+  };
 
-    return toPublic(checked);
-  });
-
-  useEffect(() => {
-    seedSystemAccounts();
-    const handleStorage = () => {
-      const updated = getStoredUsers();
-      setAllUsers(updated.map(toPublic));
-      const id = localStorage.getItem(SESSION_KEY);
-      if (id) {
-        const u = updated.find(x => x.id === id);
-        if (u) {
-          const checked = checkBanStatus(u);
-          if (checked.isBanned) {
-            localStorage.removeItem(SESSION_KEY);
-            setUser(null);
-          } else {
-            setUser(toPublic(checked));
+  const fetchAllUsersFromVPS = async () => {
+    try {
+      const res = await fetch(`${API_BASE}/users`);
+      const data = await res.json();
+      if (data && Array.isArray(data)) {
+        console.log("[AUTH] Fetched users from VPS:", data.length);
+        
+        // Data Migration: Ensure every user has a referralCode
+        let needsResync = false;
+        const processedUsers = data.map((u: any) => {
+          if (!u.referralCode) {
+            needsResync = true;
+            return { 
+              ...u, 
+              referralCode: `CYN-${Math.random().toString(36).substring(2, 7).toUpperCase()}` 
+            };
           }
+          return u;
+        });
+
+        setAllUsers(processedUsers);
+        
+        if (needsResync) {
+          console.log("[AUTH] Some users missing referral codes, re-syncing...");
+          processedUsers.forEach(u => {
+            if (data.find((orig: any) => orig.id === u.id && !orig.referralCode)) {
+              syncUserToVPS(u);
+            }
+          });
+        }
+        
+        // Re-sync current session
+        const sid = localStorage.getItem(SESSION_KEY);
+        if (sid) {
+          const found = processedUsers.find((u: any) => u.id === sid);
+          if (found) setUser(toPublic(found));
         }
       }
-    };
-    window.addEventListener("storage", handleStorage);
-    window.addEventListener("storage_sync", handleStorage);
+    } catch (e) {
+      console.error("[FETCH] Failed to fetch users from VPS:", e);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    console.log("[AUTH] Initializing AuthProvider...");
+    fetchAllUsersFromVPS();
+    
+    // Emergency Timeout: Force loading to false after 5 seconds if still stuck
+    const timeout = setTimeout(() => {
+      setLoading(current => {
+        if (current) {
+          console.warn("[AUTH] Emergency Timeout triggered - forcing loading to false");
+          return false;
+        }
+        return false;
+      });
+    }, 5000);
+
+    const interval = setInterval(fetchAllUsersFromVPS, 30000);
     return () => {
-      window.removeEventListener("storage", handleStorage);
-      window.removeEventListener("storage_sync", handleStorage);
+      clearTimeout(timeout);
+      clearInterval(interval);
     };
   }, []);
 
-  const register = (name: string, email: string, password: string, referralCode?: string) => {
-    const trimName = name.trim();
+  const syncAndSetUsers = async (updated: StoredUser[]) => {
+    setAllUsers(updated);
+    
+    // Update local session user if changed
+    if (user) {
+      const updatedSelf = updated.find(u => u.id === user.id);
+      if (updatedSelf) setUser(toPublic(updatedSelf));
+    }
+
+    // Push changes to VPS
+    updated.forEach(u => syncUserToVPS(u));
+  };
+
+  const register = (name: string, email: string, password: string, referralCodeInput?: string) => {
     const trimEmail = email.trim().toLowerCase();
-    const users = getStoredUsers();
-    if (users.some(u => u.email === trimEmail)) return { ok: false, error: "Email sudah terdaftar." };
+    if (allUsers.some(u => u.email === trimEmail)) return { ok: false, error: "Email sudah terdaftar." };
 
-    const newId = `user-${Date.now()}`;
-    let referralBonus = 0;
-    let inviterId = "";
-
-    if (referralCode) {
-      const inviter = users.find(u => u.referralCode === referralCode.trim().toUpperCase());
-      if (inviter) {
-        inviterId = inviter.id;
-        referralBonus = 500;
-      }
+    // Find who referred this new user
+    let referrerId: string | undefined;
+    if (referralCodeInput) {
+      const referrer = allUsers.find(u => u.referralCode === referralCodeInput.trim().toUpperCase());
+      if (referrer) referrerId = referrer.id;
     }
 
     const newUser: StoredUser = {
-      id: newId,
-      systemId: users.length + 1,
-      name: trimName, email: trimEmail, password,
-      role: "user", createdAt: new Date().toISOString(),
-      coins: referralBonus, balance: 0, points: 0, referredBy: inviterId,
-      isBanned: false, activityLog: [], purchaseHistory: [],
-      ownedCosmetics: [], equippedCosmetics: [], profileLayout: "premium",
-      referralCode: Math.random().toString(36).substring(2, 8).toUpperCase(),
+      id: `user-${Date.now()}`,
+      name: name.trim(),
+      email: trimEmail,
+      password: password,
+      role: "user",
+      coins: 20000 + (referrerId ? 500 : 0), // Bonus 500 coins if using referral
+      balance: 0,
+      points: 0,
+      friends: [],
+      friendRequests: [],
+      sentRequests: [],
+      referralCode: `CYN-${Math.random().toString(36).substring(2, 7).toUpperCase()}`,
+      referredBy: referrerId,
+      createdAt: new Date().toISOString()
     };
 
-    let updated = [...users, newUser];
-    if (inviterId) {
-      updated = updated.map(u => u.id === inviterId ? { 
-        ...u, 
-        coins: (u.coins || 0) + 1000, 
-        points: (u.points || 0) + 100,
-        activityLog: [{ action: `Referral sukses: ${trimName}`, timestamp: new Date().toISOString() }, ...(u.activityLog || [])]
-      } : u);
-      
-      const notifs = JSON.parse(localStorage.getItem(`toko_notifs_${inviterId}`) || "[]");
-      notifs.unshift({ id: `n-${Date.now()}`, type: "points_earned", title: "Bonus Referral!", message: `${trimName} bergabung! +1.000 Koin & +100 Points!`, createdAt: new Date().toISOString(), read: false });
-      localStorage.setItem(`toko_notifs_${inviterId}`, JSON.stringify(notifs.slice(0, 50)));
+    const updated = [...(allUsers as StoredUser[]), newUser];
+    
+    // Give bonus to referrer too
+    if (referrerId) {
+      const referrerIdx = updated.findIndex(u => u.id === referrerId);
+      if (referrerIdx !== -1) {
+        updated[referrerIdx] = {
+          ...updated[referrerIdx],
+          coins: (updated[referrerIdx].coins || 0) + 1000, // Reward for referrer
+          points: (updated[referrerIdx].points || 0) + 100
+        };
+      }
     }
 
     syncAndSetUsers(updated);
-    localStorage.setItem(SESSION_KEY, newUser.id);
-    setUser(toPublic(newUser));
     return { ok: true };
   };
 
   const login = (email: string, password: string) => {
-    const users = getStoredUsers();
-    const found = users.find(u => u.email === email.trim().toLowerCase());
-    if (!found || found.password !== password) return { ok: false, error: "Email atau password salah." };
+    console.log("[AUTH] Attempting login for:", email);
+    console.log("[AUTH] Current allUsers count:", allUsers.length);
     
-    const checked = checkBanStatus(found);
-    if (checked.isBanned) {
-      const reason = checked.banReason || "Pelanggaran kebijakan.";
-      const expiry = checked.banExpiry ? ` sampai ${new Date(checked.banExpiry).toLocaleString()}` : " secara permanen";
-      return { ok: false, error: `Akun diblokir${expiry}. Alasan: ${reason}` };
+    const found = (allUsers as StoredUser[]).find(u => u.email === email.trim().toLowerCase());
+    if (!found) {
+      console.warn("[AUTH] User not found in state.");
+      return { ok: false, error: "Email atau password salah." };
     }
+    
+    console.log("[AUTH] User found:", found.id, "Role:", found.role);
+    if (found.password !== password) {
+      console.warn("[AUTH] Password mismatch.");
+      return { ok: false, error: "Email atau password salah." };
+    }
+    
+    if (found.isBanned) return { ok: false, error: `Akun diblokir: ${found.banReason || "Tanpa alasan"}` };
 
-    localStorage.setItem(SESSION_KEY, checked.id);
-    const updated = users.map(u => u.id === checked.id ? { ...u, activityLog: [{ action: "Login", timestamp: new Date().toISOString() }, ...(u.activityLog || [])] } : u);
-    syncAndSetUsers(updated);
-    setUser(toPublic(updated.find(x => x.id === checked.id)!));
+    localStorage.setItem(SESSION_KEY, found.id);
+    setUser(toPublic(found));
     return { ok: true };
   };
 
-  const logout = () => { localStorage.removeItem(SESSION_KEY); setUser(null); };
+  const logout = () => {
+    localStorage.removeItem(SESSION_KEY);
+    setUser(null);
+  };
 
   const updateUser = (data: Partial<User>) => {
     if (!user) return;
-    const users = getStoredUsers();
-    const updated = users.map(u => u.id === user.id ? { ...u, ...data } : u);
+    const updated = (allUsers as StoredUser[]).map(u => u.id === user.id ? { ...u, ...data } : u);
     syncAndSetUsers(updated);
   };
 
   const updateName = (n: string) => updateUser({ name: n });
-  const updateCustomization = (d: any) => updateUser(d);
+  const updateAvatar = (url: string) => updateUser({ avatar: url });
+  const updateCustomization = (data: Partial<User>) => updateUser(data);
 
-  const sendFriendRequest = (targetId: string) => {
-    if (!user) return;
-    const users = getStoredUsers();
-    const from = users.find(u => u.id === user.id);
-    const to = users.find(u => u.id === targetId);
-    
-    if (!from || !to) return;
-    if (from.friends?.includes(targetId)) return;
-    if (from.sentRequests?.includes(targetId)) return;
+  const addCoins = (uid: string | "all", amount: number) => {
+    const updated = (allUsers as StoredUser[]).map(u => (uid === "all" || u.id === uid) ? { ...u, coins: (u.coins || 0) + amount } : u);
+    syncAndSetUsers(updated);
+  };
 
-    from.sentRequests = [...(from.sentRequests || []), targetId];
-    to.friendRequests = [...(to.friendRequests || []), targetId];
-    saveUsers(users);
-    setUser(toPublic(from));
+  const updateBalance = (uid: string, amount: number) => {
+    const updated = (allUsers as StoredUser[]).map(u => u.id === uid ? { ...u, balance: amount } : u);
+    syncAndSetUsers(updated);
+  };
+
+  const toggleBan = (uid: string, type: "permanent" | "trial" = "permanent", reason?: string, duration?: number) => {
+    const updated = (allUsers as StoredUser[]).map(u => {
+      if (u.id !== uid) return u;
+      const isBanned = !u.isBanned;
+      let expiry;
+      if (isBanned && type === "trial" && duration) {
+        expiry = new Date(Date.now() + duration * 3600000).toISOString();
+      }
+      return { ...u, isBanned, banType: type, banReason: reason, banExpiry: expiry };
+    });
+    syncAndSetUsers(updated);
+  };
+
+  const updateUserRole = (uid: string, role: UserRole) => {
+    const updated = (allUsers as StoredUser[]).map(u => u.id === uid ? { ...u, role } : u);
+    syncAndSetUsers(updated);
+  };
+
+  const toggleVerifiedSeller = (uid: string) => {
+    const updated = (allUsers as StoredUser[]).map(u => u.id === uid ? { ...u, isVerifiedSeller: !u.isVerifiedSeller } : u);
+    syncAndSetUsers(updated);
+  };
+
+  const toggleVerifiedReseller = (uid: string) => {
+    const updated = (allUsers as StoredUser[]).map(u => u.id === uid ? { ...u, isVerifiedReseller: !u.isVerifiedReseller } : u);
+    syncAndSetUsers(updated);
+  };
+
+  const sendFriendRequest = (tid: string) => {
+    if (!user || user.id === tid) return;
+    const updated = (allUsers as StoredUser[]).map(u => {
+      if (u.id === user.id) return { ...u, sentRequests: [...(u.sentRequests || []), tid] };
+      if (u.id === tid) return { ...u, friendRequests: [...(u.friendRequests || []), user.id] };
+      return u;
+    });
+    syncAndSetUsers(updated);
   };
 
   const acceptFriendRequest = (fid: string) => {
     if (!user) return;
-    const users = getStoredUsers();
-    syncAndSetUsers(users.map(u => {
+    const updated = (allUsers as StoredUser[]).map(u => {
       if (u.id === user.id) return { ...u, friends: [...(u.friends || []), fid], friendRequests: (u.friendRequests || []).filter(x => x !== fid) };
-      if (u.id === fid) return { ...u, friends: [...(u.friends || []), user.id] };
+      if (u.id === fid) return { ...u, friends: [...(u.friends || []), user.id], sentRequests: (u.sentRequests || []).filter(x => x !== user.id) };
       return u;
-    }));
+    });
+    syncAndSetUsers(updated);
   };
 
   const rejectFriendRequest = (fid: string) => {
     if (!user) return;
-    const users = getStoredUsers();
-    syncAndSetUsers(users.map(u => u.id === user.id ? { ...u, friendRequests: (u.friendRequests || []).filter(x => x !== fid) } : u));
+    const updated = (allUsers as StoredUser[]).map(u => u.id === user.id ? { ...u, friendRequests: (u.friendRequests || []).filter(x => x !== fid) } : u);
+    syncAndSetUsers(updated);
   };
 
   const removeFriend = (fid: string) => {
     if (!user) return;
-    const users = getStoredUsers();
-    syncAndSetUsers(users.map(u => {
+    const updated = (allUsers as StoredUser[]).map(u => {
       if (u.id === user.id) return { ...u, friends: (u.friends || []).filter(x => x !== fid) };
       if (u.id === fid) return { ...u, friends: (u.friends || []).filter(x => x !== user.id) };
       return u;
-    }));
+    });
+    syncAndSetUsers(updated);
   };
-
-  const getAllUsers = () => allUsers;
-
-  const updateUserRole = (uid: string, role: UserRole) => {
-    if (user?.role !== "admin") return;
-    const users = getStoredUsers();
-    syncAndSetUsers(users.map(u => u.id === uid ? { ...u, role } : u));
-  };
-
-  const updateUserCoins = (uid: string, coins: number) => {
-    if (user?.role !== "admin") return;
-    const users = getStoredUsers();
-    syncAndSetUsers(users.map(u => u.id === uid ? { ...u, coins } : u));
-  };
-
-  const addCoins = (uid: string | "all", amount: number) => {
-    const users = getStoredUsers();
-    syncAndSetUsers(users.map(u => (uid === "all" || u.id === uid) ? { ...u, coins: (u.coins || 0) + amount } : u));
-  };
-
-  const updateBalance = (uid: string, amount: number) => {
-    const users = getStoredUsers();
-    syncAndSetUsers(users.map(u => u.id === uid ? { ...u, balance: amount } : u));
-  };
-
-  const toggleBan = (uid: string, type?: "permanent" | "trial", reason?: string, durationHours?: number) => {
-    if (user?.role !== "admin") return;
-    const users = getStoredUsers();
-    
-    syncAndSetUsers(users.map(u => {
-      if (u.id === uid) {
-        const currentlyBanned = u.isBanned;
-        if (currentlyBanned) {
-          return { ...u, isBanned: false, banType: undefined, banReason: undefined, banExpiry: undefined };
-        } else {
-          let expiry: string | undefined = undefined;
-          if (type === "trial" && durationHours) {
-            expiry = new Date(Date.now() + durationHours * 60 * 60 * 1000).toISOString();
-          }
-          return { ...u, isBanned: true, banType: type || "permanent", banReason: reason || "No reason provided", banExpiry: expiry };
-        }
-      }
-      return u;
-    }));
-  };
-
-  const updateIps = (pub: string, loc: string) => updateUser({ publicIp: pub, localIp: loc });
 
   const toggleLayout = () => {
     if (!user) return;
-    updateUser({ profileLayout: user.profileLayout === "premium" ? "simple" : "premium" });
-  };
-  
-  const logActivity = (action: string) => {
-    if (!user) return;
-    const users = getStoredUsers();
-    const entry = { action, timestamp: new Date().toISOString() };
-    syncAndSetUsers(users.map(u => u.id === user.id ? { ...u, activityLog: [entry, ...(u.activityLog || [])] } : u));
+    const next = user.profileLayout === "premium" ? "simple" : "premium";
+    updateUser({ profileLayout: next });
   };
 
-  const logPurchase = (uid: string, itemName: string, price: number) => {
-    const users = getStoredUsers();
-    const entry = { itemName, price, timestamp: new Date().toISOString() };
-    syncAndSetUsers(users.map(u => u.id === uid ? { ...u, purchaseHistory: [entry, ...(u.purchaseHistory || [])] } : u));
-  };
+  const fetchFreshUser = async () => { await fetchAllUsersFromVPS(); };
+
+  const publicUsers = allUsers.map(u => toPublic(u as StoredUser));
 
   return (
     <AuthContext.Provider value={{ 
-      user, allUsers, isAuthenticated: !!user, register, login, logout, updateName, updateUser, updateCustomization, 
-      sendFriendRequest, acceptFriendRequest, rejectFriendRequest, removeFriend, 
-      getAllUsers, updateUserRole, updateUserCoins, addCoins, updateBalance, toggleBan, updateIps, toggleLayout, logActivity, logPurchase,
-      toggleVerifiedSeller: (uid: string) => {
-        if (user?.role !== "admin") return;
-        const users = getStoredUsers();
-        syncAndSetUsers(users.map(u => u.id === uid ? { ...u, isVerifiedSeller: !u.isVerifiedSeller } : u));
-      },
-      toggleVerifiedReseller: (uid: string) => {
-        if (user?.role !== "admin") return;
-        const users = getStoredUsers();
-        syncAndSetUsers(users.map(u => u.id === uid ? { ...u, isVerifiedReseller: !u.isVerifiedReseller } : u));
-      }
+      user, allUsers: publicUsers, loading, login, register, logout, updateUser, updateCustomization, updateName, updateAvatar, 
+      toggleBan, sendFriendRequest, acceptFriendRequest, rejectFriendRequest, removeFriend,
+      addCoins, updateBalance, updateUserRole, toggleVerifiedSeller, toggleVerifiedReseller, toggleLayout, fetchFreshUser
     }}>
       {children}
     </AuthContext.Provider>
@@ -450,7 +374,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 }
 
 export function useAuth() {
-  const ctx = useContext(AuthContext);
-  if (!ctx) throw new Error("useAuth must be used within AuthProvider");
-  return ctx;
+  const context = useContext(AuthContext);
+  if (context === undefined) throw new Error("useAuth must be used within an AuthProvider");
+  return context;
 }

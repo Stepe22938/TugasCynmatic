@@ -41,7 +41,7 @@ import { CheckoutSuccessPage } from "./pages/CheckoutSuccessPage";
 import { ProductDetailPage } from "./pages/ProductDetailPage";
 import { ProfilePage } from "./pages/ProfilePage";
 import { SellerPage } from "./pages/SellerPage";
-import { AdminPage } from "./pages/AdminPage";
+import { AdminPanel } from "./pages/AdminPage";
 import { LivePage } from "./pages/LivePage";
 import { CourierPage } from "./pages/CourierPage";
 import { TicketDashboardPage } from "./pages/TicketDashboardPage";
@@ -75,14 +75,15 @@ import NotFound from "@/pages/not-found";
 const queryClient = new QueryClient();
 
 function ProtectedRoute({ component: Component }: { component: React.ComponentType }) {
-  const { isAuthenticated } = useAuth();
+  const { user, loading } = useAuth();
   const [location, setLocation] = useLocation();
   
   useEffect(() => {
-    if (!isAuthenticated) setLocation("/login");
-  }, [isAuthenticated, setLocation]);
+    if (!loading && !user) setLocation("/login");
+  }, [loading, user, setLocation]);
 
-  if (!isAuthenticated) return null;
+  if (loading) return <FullPageLoader />;
+  if (!user) return null;
 
   return (
     <div className="flex flex-col min-h-screen bg-background text-foreground overflow-x-hidden">
@@ -106,15 +107,18 @@ function ProtectedRoute({ component: Component }: { component: React.ComponentTy
 }
 
 function RoleRoute({ component: Component, roles }: { component: React.ComponentType; roles: string[] }) {
-  const { user, isAuthenticated } = useAuth();
+  const { user, loading } = useAuth();
   const [location, setLocation] = useLocation();
 
   useEffect(() => {
-    if (!isAuthenticated) setLocation("/login");
-    else if (!user || !roles.includes(user.role)) setLocation("/");
-  }, [isAuthenticated, user, roles, setLocation]);
+    if (!loading) {
+      if (!user) setLocation("/login");
+      else if (!roles.includes(user.role)) setLocation("/");
+    }
+  }, [loading, user, roles, setLocation]);
 
-  if (!isAuthenticated || !user || !roles.includes(user.role)) return null;
+  if (loading) return <FullPageLoader />;
+  if (!user || !roles.includes(user.role)) return null;
 
   return (
     <div className="flex flex-col min-h-screen bg-background text-foreground overflow-x-hidden">
@@ -137,15 +141,31 @@ function RoleRoute({ component: Component, roles }: { component: React.Component
   );
 }
 
+function FullPageLoader() {
+  return (
+    <div className="fixed inset-0 bg-slate-950 z-[999] flex flex-col items-center justify-center">
+      <div className="relative">
+        <div className="w-20 h-20 border-4 border-primary/20 rounded-full animate-pulse" />
+        <div className="absolute inset-0 border-t-4 border-primary rounded-full animate-spin" />
+        <div className="absolute inset-0 flex items-center justify-center">
+          <div className="w-8 h-8 bg-primary/20 rounded-lg animate-bounce" />
+        </div>
+      </div>
+      <p className="mt-8 text-xs font-black text-white/40 uppercase tracking-[0.4em] animate-pulse">Menghubungkan ke VPS MariaDB...</p>
+    </div>
+  );
+}
+
 function LiveRoute() {
-  const { isAuthenticated } = useAuth();
+  const { user, loading } = useAuth();
   const [, setLocation] = useLocation();
 
   useEffect(() => {
-    if (!isAuthenticated) setLocation("/login");
-  }, [isAuthenticated, setLocation]);
+    if (!loading && !user) setLocation("/login");
+  }, [loading, user, setLocation]);
 
-  if (!isAuthenticated) return null;
+  if (loading) return <FullPageLoader />;
+  if (!user) return null;
 
   return (
     <div className="flex flex-col min-h-screen bg-gray-950 text-foreground">
@@ -259,7 +279,7 @@ function Router() {
         <RoleRoute component={SellerPage} roles={["seller", "admin"]} />
       </Route>
       <Route path="/admin">
-        <RoleRoute component={AdminPage} roles={["admin"]} />
+        <RoleRoute component={AdminPanel} roles={["admin"]} />
       </Route>
       <Route path="/courier">
         <RoleRoute component={CourierPage} roles={["kurir", "admin"]} />

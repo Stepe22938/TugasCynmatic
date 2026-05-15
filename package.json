@@ -15,5 +15,8 @@
     "concurrently": "^9.2.1",
     "prettier": "^3.8.1",
     "typescript": "~5.9.2"
+  },
+  "dependencies": {
+    "mysql2": "^3.22.3"
   }
 }

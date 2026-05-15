@@ -1,8 +1,6 @@
-import { drizzle } from "drizzle-orm/node-postgres";
-import pg from "pg";
+import { drizzle } from "drizzle-orm/mysql2";
+import mysql from "mysql2/promise";
 import * as schema from "./schema";
-
-const { Pool } = pg;
 
 if (!process.env.DATABASE_URL) {
   throw new Error(
@@ -10,7 +8,12 @@ if (!process.env.DATABASE_URL) {
   );
 }
 
-export const pool = new Pool({ connectionString: process.env.DATABASE_URL });
-export const db = drizzle(pool, { schema });
+// Support for mysql:// and mysql2:// URLs
+const connectionString = process.env.DATABASE_URL.replace(/^mysql:/, "mysql2:");
+
+// We create a pool instead of a single connection for better stability
+export const pool = mysql.createPool(connectionString);
+
+export const db = drizzle(pool, { schema, mode: "default" });
 
 export * from "./schema";

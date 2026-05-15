@@ -57,7 +57,7 @@ function FriendProfileCard({
   handleSendRequest: (id: string, name: string) => void
 }) {
   const { cosmetics } = useCosmetics();
-  const equippedTags = (selectedUser.equippedCosmetics || [])
+  const equippedTags = (Array.isArray(selectedUser.equippedCosmetics) ? selectedUser.equippedCosmetics : [])
     .map(id => cosmetics.find(c => c.id === id))
     .filter(c => c?.type === "tag");
   
@@ -254,7 +254,7 @@ function FriendProfileCard({
 
 export function FriendsPage() {
   const { 
-    user, getAllUsers, sendFriendRequest, acceptFriendRequest, rejectFriendRequest, removeFriend 
+    user, allUsers: contextAllUsers, sendFriendRequest, acceptFriendRequest, rejectFriendRequest, removeFriend 
   } = useAuth();
   const { cosmetics } = useCosmetics();
   const { getAllOrders } = useOrderHistory();
@@ -265,7 +265,7 @@ export function FriendsPage() {
   const [tab, setTab] = useState<"friends" | "followers" | "following" | "discover">("friends");
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
 
-  const allUsers = useMemo(() => getAllUsers(), [user]);
+  const allUsers = contextAllUsers;
   const myFriends = user?.friends || [];
   const myRequests = user?.friendRequests || [];
   const mySent = user?.sentRequests || [];
@@ -370,29 +370,40 @@ export function FriendsPage() {
   if (!user) return null;
 
   return (
-    <div className="min-h-[calc(100vh-80px)] bg-[#f9fafb] pb-24">
-      {/* Header */}
-      <div className="bg-gradient-to-br from-violet-600 via-purple-600 to-indigo-700 text-white pb-14 pt-8 px-4">
-        <div className="max-w-3xl mx-auto">
-          <Link href="/profile" className="inline-flex items-center text-purple-200 hover:text-white transition-colors mb-6 font-medium text-sm">
-            <ChevronLeft className="h-5 w-5 mr-1" /> Kembali ke Profil
+    <div className="min-h-[calc(100vh-80px)] bg-[#050505] pb-24">
+      {/* Header Area */}
+      <div className="bg-[#050505] text-white pb-14 pt-24 px-6 relative overflow-hidden">
+        <div className="absolute top-0 right-0 p-12 opacity-5 rotate-12">
+          <Sparkles className="h-48 w-48 text-violet-500" />
+        </div>
+        
+        <div className="max-w-4xl mx-auto relative z-10">
+          <Link href="/profile">
+            <button className="inline-flex items-center text-white/40 hover:text-white transition-all mb-8 font-black uppercase tracking-[0.3em] text-[9px] group">
+              <ChevronLeft className="h-4 w-4 mr-1 group-hover:-translate-x-1 transition-transform" /> Back to Matrix
+            </button>
           </Link>
-          <div className="flex items-center justify-between">
+          
+          <div className="flex flex-col md:flex-row md:items-end justify-between gap-8">
             <div>
-              <h1 className="text-3xl font-extrabold mb-1 flex items-center gap-2">
-                <Sparkles className="h-7 w-7 text-purple-200" /> Teman Saya
+              <div className="flex items-center gap-3 mb-2">
+                <Sparkles className="h-5 w-5 text-violet-500 animate-pulse" />
+                <h3 className="text-[10px] font-black uppercase tracking-[0.4em] text-white/40 italic">Social Matrix Protocol</h3>
+              </div>
+              <h1 className="text-4xl md:text-6xl font-black italic tracking-tighter uppercase text-white drop-shadow-2xl">
+                Network <span className="text-violet-500">Node</span>
               </h1>
-              <p className="text-purple-200 font-medium">Kelola pertemanan dan permintaan di Toko Online!</p>
             </div>
-            <div className="flex gap-2">
-              <div className="bg-white/10 px-5 py-3 rounded-2xl border border-white/20 backdrop-blur-md text-center shadow-lg transition-transform hover:scale-105 duration-300">
-                <p className="text-3xl font-black text-white drop-shadow-md">{displayFriends}</p>
-                <p className="text-[9px] text-purple-200 font-bold uppercase tracking-widest">Teman</p>
+            
+            <div className="flex gap-4">
+              <div className="glass-card bg-white/5 border-white/10 px-8 py-4 rounded-[2rem] text-center shadow-2xl backdrop-blur-xl group hover:border-violet-500/50 transition-colors">
+                <p className="text-4xl font-black text-white italic">{displayFriends}</p>
+                <p className="text-[9px] text-white/30 font-black uppercase tracking-widest mt-1">Connections</p>
               </div>
               {myRequests.length > 0 && (
-                <div className="bg-orange-500/30 px-5 py-3 rounded-2xl border border-orange-400/50 backdrop-blur-md text-center shadow-lg animate-pulse transition-transform hover:scale-105 duration-300">
-                  <p className="text-3xl font-black text-orange-400 drop-shadow-md">{displayRequests}</p>
-                  <p className="text-[9px] text-orange-200 font-bold uppercase tracking-widest">Request</p>
+                <div className="glass-card bg-orange-600/10 border-orange-500/20 px-8 py-4 rounded-[2rem] text-center shadow-2xl backdrop-blur-xl animate-pulse">
+                  <p className="text-4xl font-black text-orange-500 italic">{displayRequests}</p>
+                  <p className="text-[9px] text-orange-400/60 font-black uppercase tracking-widest mt-1">Signals</p>
                 </div>
               )}
             </div>
@@ -401,28 +412,33 @@ export function FriendsPage() {
       </div>
 
       <div className="max-w-3xl mx-auto px-4 -mt-8 relative z-10 space-y-5">
-        {/* Search & Tabs */}
-        <div className="bg-card rounded-2xl shadow-sm border border-border p-4 space-y-3">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        {/* Search & Tabs Console */}
+        <div className="glass-card bg-white/5 border-white/5 rounded-[2.5rem] p-6 space-y-6 shadow-2xl backdrop-blur-2xl">
+          <div className="relative group">
+            <Search className="absolute left-6 top-1/2 -translate-y-1/2 h-4 w-4 text-white/20 group-focus-within:text-violet-500 transition-colors" />
             <input
               value={search}
               onChange={e => setSearch(e.target.value)}
-              placeholder="Cari berdasarkan nama atau email..."
-              className="w-full pl-10 pr-4 py-2.5 text-sm border-2 border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 bg-background text-foreground"
+              placeholder="Search by Identity or Frequency..."
+              className="w-full pl-14 pr-8 py-5 text-xs bg-black/40 border border-white/5 rounded-[1.5rem] text-white focus:outline-none focus:border-violet-500/50 transition-all font-bold uppercase tracking-widest placeholder:text-white/10"
             />
           </div>
-          <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
+          
+          <div className="flex gap-3 overflow-x-auto pb-2 custom-scrollbar">
             {(["friends", "followers", "following", "discover"] as const).map(t => (
               <button
                 key={t}
                 onClick={() => { setTab(t); setSelectedUser(null); }}
-                className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all whitespace-nowrap ${tab === t ? "bg-purple-600 text-white shadow-md" : "bg-muted text-muted-foreground hover:bg-muted/70"}`}
+                className={`px-6 py-3 rounded-xl text-[9px] font-black uppercase tracking-[0.2em] transition-all whitespace-nowrap italic ${
+                  tab === t 
+                    ? "bg-violet-600 text-white shadow-xl shadow-violet-600/20" 
+                    : "bg-white/5 text-white/40 hover:text-white hover:bg-white/10"
+                }`}
               >
-                {t === "friends" ? `Teman (${friendUsers.length})` : 
-                 t === "followers" ? `Pengikut (${followerUsers.length})` : 
-                 t === "following" ? `Mengikuti (${followingUsers.length})` : 
-                 "Jelajahi"}
+                {t === "friends" ? `Mutuals (${friendUsers.length})` : 
+                 t === "followers" ? `Inbound (${followerUsers.length})` : 
+                 t === "following" ? `Outbound (${followingUsers.length})` : 
+                 "Discovery"}
               </button>
             ))}
           </div>
@@ -444,149 +460,122 @@ export function FriendsPage() {
           />
         )}
 
-        {/* User List */}
-        <div className="bg-card rounded-2xl shadow-sm border border-border overflow-hidden">
+        {/* Network Node List */}
+        <div className="space-y-4">
           {filtered.length === 0 ? (
-            <div className="text-center py-16">
-              <UserIcon className="h-10 w-10 text-muted-foreground/30 mx-auto mb-3" />
-              <p className="font-semibold text-muted-foreground">
-                {tab === "friends" ? "Belum ada teman." : 
-                 tab === "followers" ? "Tidak ada pengikut baru." : 
-                 tab === "following" ? "Anda tidak sedang mengikuti siapapun." : 
-                 "Tidak ada user ditemukan."}
+            <div className="glass-card bg-white/5 border-white/5 rounded-[3rem] py-24 text-center">
+              <UserIcon className="h-16 w-16 text-white/5 mx-auto mb-6" />
+              <p className="font-black text-white/20 uppercase tracking-[0.3em] text-[10px]">
+                {tab === "friends" ? "No Mutual Nodes Detected" : 
+                 tab === "followers" ? "No Inbound Signals" : 
+                 tab === "following" ? "No Outbound Frequency" : 
+                 "Matrix Scanning Empty"}
               </p>
               {tab !== "discover" && (
-                <Button onClick={() => setTab("discover")} variant="link" className="text-purple-600 mt-2">
-                  Jelajahi User Lain
+                <Button onClick={() => setTab("discover")} variant="link" className="text-violet-500 mt-4 font-black uppercase tracking-widest text-[9px] hover:text-violet-400">
+                  Initialize Discovery
                 </Button>
               )}
             </div>
           ) : (
-            <div className="divide-y">
+            <div className="grid grid-cols-1 gap-4">
               {filtered.map(u => {
                 const isFriend = myFriends.includes(u.id);
                 const isRequest = myRequests.includes(u.id);
                 const isSent = mySent.includes(u.id);
 
                 return (
-                  <div
+                  <motion.div
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
                     key={u.id}
-                    className="flex items-center gap-3 px-4 py-3 hover:bg-muted/80 transition-colors cursor-pointer relative"
                     onClick={() => setSelectedUser(u)}
+                    className="glass-card bg-white/5 border-white/5 hover:border-white/10 p-5 rounded-[2rem] transition-all duration-500 cursor-pointer group/node relative overflow-hidden"
                   >
-                    <div className="relative flex-shrink-0">
-                      {/* Friend Sultan Aura */}
-                      {u.isSultan && u.sultanGlowEffect && (
-                        <div className={`absolute -inset-2 bg-${u.sultanBadgeColor || 'amber'}-500/20 rounded-full blur-md animate-pulse z-0`} />
-                      )}
-                      <img
-                        src={u.avatar || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(u.name)}&backgroundColor=6d28d9&fontColor=ffffff&fontSize=40`}
-                        alt={u.name}
-                        className="w-11 h-11 rounded-xl object-cover bg-white relative z-10 border border-muted"
-                      />
-                      {u.isSultan && (
-                        <div className={`absolute -top-1 -right-1 bg-${u.sultanBadgeColor || 'amber'}-500 text-white p-0.5 rounded-md shadow-sm border border-white z-20`}>
-                          <Crown className="h-2 w-2 fill-white" />
-                        </div>
-                      )}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <p className="text-sm font-bold truncate">{u.name}</p>
-                        {u.isSultan && u.sultanCustomTag && (
-                          <span className={`text-[8px] font-black px-1.5 py-0.5 rounded bg-${u.sultanBadgeColor || 'amber'}-500/10 text-${u.sultanBadgeColor || 'amber'}-600 border border-${u.sultanBadgeColor || 'amber'}-500/20 uppercase tracking-widest`}>
-                            {u.sultanCustomTag}
-                          </span>
+                    <div className="absolute inset-0 bg-gradient-to-r from-violet-600/0 via-violet-600/0 to-violet-600/0 group-hover/node:from-violet-600/5 transition-all duration-700 pointer-events-none" />
+                    
+                    <div className="flex items-center gap-5 relative z-10">
+                      <div className="relative flex-shrink-0">
+                        {u.isSultan && u.sultanGlowEffect && (
+                          <div className={`absolute -inset-3 bg-${u.sultanBadgeColor || 'yellow'}-500/20 rounded-full blur-xl animate-pulse z-0`} />
                         )}
-                        {u.isMyCryptoMember && <CryptoBadge className="scale-75 origin-left" />}
-                        {(u.equippedCosmetics || []).map(cid => {
-                          const c = cosmetics.find(cosm => cosm.id === cid);
-                          return c?.type === "tag" ? (
-                            <span key={cid} className="text-[9px] font-black px-1.5 py-0.5 rounded bg-primary/10 text-primary uppercase tracking-widest border border-primary/10">
-                              {c.value}
-                            </span>
-                          ) : null;
-                        })}
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${ROLE_COLOR[u.role]}`}>
-                          {ROLE_LABEL[u.role]}
-                        </span>
+                        <img
+                          src={u.avatar || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(u.name)}&backgroundColor=6d28d9&fontColor=ffffff&fontSize=40`}
+                          alt={u.name}
+                          className="w-16 h-16 rounded-2xl object-cover bg-slate-900 relative z-10 border border-white/10 group-hover/node:scale-105 transition-transform duration-500"
+                        />
                         {u.isSultan && (
-                           <div className="flex items-center gap-1.5">
-                             <span className={`text-[9px] font-black text-${u.sultanBadgeColor || 'amber'}-600 uppercase tracking-widest bg-${u.sultanBadgeColor || 'amber'}-50 px-1 rounded border border-${u.sultanBadgeColor || 'amber'}-200 flex items-center gap-0.5`}>
-                               <Crown className="h-2 w-2" /> Sultan
-                             </span>
-                             {u.sultanExpiry && (
-                               <span className="text-[8px] font-black text-muted-foreground bg-muted/30 px-1.5 py-0.5 rounded-full flex items-center gap-1">
-                                 <Clock className="h-2 w-2" /> {(() => {
-                                   const diff = new Date(u.sultanExpiry).getTime() - Date.now();
-                                   const days = Math.ceil(diff / (1000 * 60 * 60 * 24));
-                                   return days > 0 ? `${days}h` : "Habis";
-                                 })()}
-                               </span>
-                             )}
-                           </div>
-                        )}
-                        {u.isMyCryptoMember && (
-                            <div className="flex items-center gap-1.5">
-                              <span className={`text-[9px] font-black text-blue-600 uppercase tracking-widest bg-blue-50 px-1 rounded border border-blue-200 flex items-center gap-0.5`}>
-                                <TrendingUp className="h-2 w-2" /> Crypto
-                              </span>
-                              {u.myCryptoExpiry && (
-                                <span className="text-[8px] font-black text-muted-foreground bg-muted/30 px-1.5 py-0.5 rounded-full flex items-center gap-1">
-                                  <Clock className="h-2 w-2" /> {(() => {
-                                    const diff = new Date(u.myCryptoExpiry).getTime() - Date.now();
-                                    const days = Math.ceil(diff / (1000 * 60 * 60 * 24));
-                                    return days > 0 ? `${days}h` : "Habis";
-                                  })()}
-                                </span>
-                              )}
-                            </div>
+                          <div className={`absolute -top-1 -right-1 bg-${u.sultanBadgeColor || 'yellow'}-500 text-white p-1 rounded-lg shadow-xl border border-white/20 z-20`}>
+                            <Crown className="h-3 w-3 fill-white" />
+                          </div>
                         )}
                       </div>
-                    </div>
-                    <div className="flex items-center gap-2 flex-shrink-0" onClick={e => e.stopPropagation()}>
-                      {isFriend ? (
-                        <div className="flex gap-1">
-                          <Link href={`/chat/${u.id}`}>
-                            <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-blue-600 hover:bg-blue-50">
-                              <MessageSquare className="h-4 w-4" />
+
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-3 mb-1.5 flex-wrap">
+                          <p className="text-sm font-black text-white uppercase italic tracking-tight group-hover/node:text-violet-400 transition-colors">{u.name}</p>
+                          {u.isSultan && u.sultanCustomTag && (
+                            <span className={`text-[8px] font-black px-2 py-0.5 rounded-md bg-${u.sultanBadgeColor || 'yellow'}-500/10 text-${u.sultanBadgeColor || 'yellow'}-400 border border-${u.sultanBadgeColor || 'yellow'}-500/20 uppercase tracking-widest`}>
+                              {u.sultanCustomTag}
+                            </span>
+                          )}
+                          {u.isMyCryptoMember && <CryptoBadge className="scale-75 origin-left" />}
+                        </div>
+                        
+                        <div className="flex items-center gap-2">
+                          <span className={`text-[9px] font-black px-2 py-0.5 rounded-md uppercase tracking-widest ${ROLE_COLOR[u.role].replace('bg-', 'bg-opacity-10 bg-').replace('text-', 'text-opacity-80 text-')}`}>
+                            {ROLE_LABEL[u.role]}
+                          </span>
+                          {u.isSultan && (
+                             <span className="text-[8px] font-black text-white/20 uppercase tracking-[0.2em] flex items-center gap-1">
+                               <div className="w-1 h-1 bg-violet-500 rounded-full" /> Sultan Protocol
+                             </span>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-3 flex-shrink-0" onClick={e => e.stopPropagation()}>
+                        {isFriend ? (
+                          <div className="flex gap-2">
+                            <Link href={`/chat/${u.id}`}>
+                              <Button size="sm" className="h-10 w-10 p-0 rounded-xl bg-violet-600/10 hover:bg-violet-600 text-violet-400 hover:text-white border border-violet-500/20 transition-all">
+                                <MessageSquare className="h-4 w-4" />
+                              </Button>
+                            </Link>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="h-10 px-4 rounded-xl text-[9px] font-black uppercase tracking-widest text-red-500/40 hover:text-red-500 hover:bg-red-500/10 transition-all"
+                              onClick={() => removeFriend(u.id)}
+                            >
+                              Disconnect
                             </Button>
-                          </Link>
+                          </div>
+                        ) : isRequest ? (
+                          <div className="flex gap-2">
+                            <Button size="sm" className="h-10 px-6 rounded-xl bg-emerald-600 text-white font-black uppercase tracking-widest text-[9px] shadow-lg shadow-emerald-600/20 hover:scale-105 active:scale-95 transition-all" onClick={() => handleAccept(u.id, u.name)}>
+                              Accept Node
+                            </Button>
+                            <Button size="sm" variant="ghost" className="h-10 w-10 p-0 rounded-xl text-white/20 hover:text-white hover:bg-white/5 transition-all" onClick={() => rejectFriendRequest(u.id)}>
+                              <CloseIcon className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        ) : isSent ? (
+                          <div className="px-6 py-2.5 rounded-xl bg-white/5 border border-white/5 text-[9px] font-black text-white/20 uppercase tracking-widest italic">
+                            Syncing...
+                          </div>
+                        ) : (
                           <Button
                             size="sm"
-                            variant="outline"
-                            className="h-8 text-xs border-red-100 text-red-500 hover:bg-red-50"
-                            onClick={() => removeFriend(u.id)}
+                            className="h-10 px-6 rounded-xl bg-white text-black hover:bg-white/90 font-black uppercase tracking-widest text-[9px] shadow-xl hover:scale-105 active:scale-95 transition-all flex items-center gap-2"
+                            onClick={() => handleSendRequest(u.id, u.name)}
                           >
-                            <UserMinus className="h-3.5 w-3.5" />
+                            <UserPlus className="h-3.5 w-3.5" /> Initialize
                           </Button>
-                        </div>
-                      ) : isRequest ? (
-                        <div className="flex gap-1">
-                          <Button size="sm" className="h-8 w-8 p-0 bg-green-600" onClick={() => handleAccept(u.id, u.name)}>
-                            <Check className="h-3.5 w-3.5" />
-                          </Button>
-                          <Button size="sm" variant="outline" className="h-8 w-8 p-0 border-red-200 text-red-500" onClick={() => rejectFriendRequest(u.id)}>
-                            <CloseIcon className="h-3.5 w-3.5" />
-                          </Button>
-                        </div>
-                      ) : isSent ? (
-                        <span className="text-[9px] font-black text-red-600/70 bg-black border border-red-900/40 px-3 py-1.5 rounded-xl uppercase tracking-tighter shadow-sm">
-                          Menunggu
-                        </span>
-                      ) : (
-                        <Button
-                          size="sm"
-                          className="h-8 text-xs bg-purple-600 hover:bg-purple-700 text-white"
-                          onClick={() => handleSendRequest(u.id, u.name)}
-                        >
-                          <UserPlus className="h-3.5 w-3.5 mr-1" /> Tambah
-                        </Button>
-                      )}
+                        )}
+                      </div>
                     </div>
-                  </div>
+                  </motion.div>
                 );
               })}
             </div>

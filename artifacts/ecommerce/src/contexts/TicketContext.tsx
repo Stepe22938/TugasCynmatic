@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { useAuth } from "./AuthContext";
+import { fetchAllTicketsFromVPS, syncTicketToVPS } from "../lib/sync";
 
 export type TicketType = "rank_up" | "order_problem" | "other";
 export type TicketStatus = "open" | "resolved" | "rejected";
@@ -34,21 +35,23 @@ interface TicketContextType {
   getUserTickets: () => Ticket[];
 }
 
-const TICKETS_KEY = "toko_tickets";
-
 const TicketContext = createContext<TicketContextType | undefined>(undefined);
 
 export function TicketProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
-  
-  const [tickets, setTickets] = useState<Ticket[]>(() => {
-    try { return JSON.parse(localStorage.getItem(TICKETS_KEY) ?? "[]"); }
-    catch { return []; }
-  });
+  const [tickets, setTickets] = useState<Ticket[]>([]);
 
+  // Initial Fetch from VPS
   useEffect(() => {
-    localStorage.setItem(TICKETS_KEY, JSON.stringify(tickets));
-  }, [tickets]);
+    const init = async () => {
+      const vpsTickets = await fetchAllTicketsFromVPS();
+      if (vpsTickets) setTickets(vpsTickets);
+    };
+    init();
+    // Poll every 30s
+    const interval = setInterval(init, 30000);
+    return () => clearInterval(interval);
+  }, []);
 
   const createTicket = (type: TicketType, description: string, orderId?: string) => {
     if (!user) return;
@@ -65,10 +68,18 @@ export function TicketProvider({ children }: { children: ReactNode }) {
       messages: []
     };
     setTickets((prev) => [newTicket, ...prev]);
+    syncTicketToVPS(newTicket);
   };
 
   const updateTicket = (ticketId: string, status: TicketStatus) => {
-    setTickets((prev) => prev.map((t) => t.id === ticketId ? { ...t, status } : t));
+    setTickets((prev) => prev.map((t) => {
+      if (t.id === ticketId) {
+        const updated = { ...t, status };
+        syncTicketToVPS(updated);
+        return updated;
+      }
+      return t;
+    }));
   };
 
   const addMessage = (ticketId: string, text: string) => {
@@ -81,7 +92,14 @@ export function TicketProvider({ children }: { children: ReactNode }) {
       text,
       createdAt: new Date().toISOString(),
     };
-    setTickets((prev) => prev.map((t) => t.id === ticketId ? { ...t, messages: [...(t.messages || []), msg] } : t));
+    setTickets((prev) => prev.map((t) => {
+      if (t.id === ticketId) {
+        const updated = { ...t, messages: [...(t.messages || []), msg] };
+        syncTicketToVPS(updated);
+        return updated;
+      }
+      return t;
+    }));
   };
 
   const getUserTickets = () => {

@@ -1,24 +1,26 @@
 /**
  * OrderHistoryContext.tsx
- * Global order store — semua pesanan disimpan di satu key.
- * Seller & kurir bisa lihat semua pesanan.
- * Buyer hanya lihat pesanan miliknya.
+ * Global order store — Fully synced to VPS MariaDB.
  */
 import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { CartItem } from "./CartContext";
 import { useAuth } from "./AuthContext";
-
-// ─── Types ────────────────────────────────────────────────────────────────────
+import { 
+  fetchAllOrdersFromVPS, 
+  fetchAllReviewsFromVPS, 
+  syncOrderToVPS, 
+  syncReviewToVPS 
+} from "../lib/sync";
 
 export type OrderStatus =
-  | "placed"       // Pesanan masuk
-  | "processing"   // Seller sedang memproses
-  | "pending_po"   // Menunggu waktu rilis PO
-  | "shipped"      // Dikirim ke kurir
-  | "in_delivery"  // Kurir sedang mengantar
-  | "delivered"    // Sudah sampai
-  | "completed"    // Buyer konfirmasi terima
-  | "problem";     // Buyer lapor masalah
+  | "placed"       
+  | "processing"   
+  | "pending_po"   
+  | "shipped"      
+  | "in_delivery"  
+  | "delivered"    
+  | "completed"    
+  | "problem";     
 
 export interface OrderMessage {
   id: string;
@@ -87,83 +89,61 @@ interface OrderHistoryContextType {
   reportProblem: (orderId: string, report: string) => void;
 }
 
-// ─── Storage ─────────────────────────────────────────────────────────────────
-
-const ALL_ORDERS_KEY  = "toko_all_orders_v2";
-const ALL_REVIEWS_KEY = "toko_all_reviews";
-
-function loadAllOrders(): PurchasedOrder[] {
-  try {
-    const data = JSON.parse(localStorage.getItem(ALL_ORDERS_KEY) ?? "[]");
-    return data.map((o: any) => ({
-      ...o,
-      status: o.status || "placed",
-      messages: o.messages || []
-    }));
-  }
-  catch { return []; }
-}
-
-function saveAllOrders(orders: PurchasedOrder[]) {
-  localStorage.setItem(ALL_ORDERS_KEY, JSON.stringify(orders));
-}
-
-function loadAllReviews(): Review[] {
-  try { return JSON.parse(localStorage.getItem(ALL_REVIEWS_KEY) ?? "[]"); }
-  catch { return []; }
-}
-
-function saveAllReviews(reviews: Review[]) {
-  localStorage.setItem(ALL_REVIEWS_KEY, JSON.stringify(reviews));
-}
-
-function upsertGlobalReview(review: Review) {
-  const all = loadAllReviews();
-  const filtered = all.filter((r) => !(r.orderId === review.orderId && r.productId === review.productId));
-  saveAllReviews([...filtered, review]);
-}
-
-// ─── Context ─────────────────────────────────────────────────────────────────
-
 const OrderHistoryContext = createContext<OrderHistoryContextType | undefined>(undefined);
 
 export function OrderHistoryProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
-  const [orders, setOrders] = useState<PurchasedOrder[]>(loadAllOrders);
+  const [allOrders, setAllOrders] = useState<PurchasedOrder[]>([]);
+  const [allReviews, setAllReviews] = useState<Review[]>([]);
 
-  // Sync to localStorage on every change
+  // Initial Fetch from VPS
   useEffect(() => {
-    saveAllOrders(orders);
-  }, [orders]);
+    const init = async () => {
+      const orders = await fetchAllOrdersFromVPS();
+      const reviews = await fetchAllReviewsFromVPS();
+      if (orders) setAllOrders(orders);
+      if (reviews) setAllReviews(reviews);
+    };
+    init();
+  }, []);
 
-  const addOrder = (order: PurchasedOrder) =>
-    setOrders((prev) => [order, ...prev]);
-
-  const addReview = (orderId: string, review: Review) => {
-    setOrders((prev) =>
-      prev.map((o) =>
-        o.id === orderId ? { ...o, reviews: { ...o.reviews, [review.productId]: review } } : o
-      )
-    );
-    upsertGlobalReview(review);
+  const addOrder = (order: PurchasedOrder) => {
+    setAllOrders((prev) => [order, ...prev]);
+    syncOrderToVPS(order);
   };
 
-  const getOrder = (orderId: string) => orders.find((o) => o.id === orderId);
+  const addReview = (orderId: string, review: Review) => {
+    const updatedOrders = allOrders.map((o) =>
+      o.id === orderId ? { ...o, reviews: { ...o.reviews, [review.productId]: review } } : o
+    );
+    setAllOrders(updatedOrders);
+    
+    const targetOrder = updatedOrders.find(o => o.id === orderId);
+    if (targetOrder) syncOrderToVPS(targetOrder);
+
+    setAllReviews(prev => [...prev, review]);
+    syncReviewToVPS(review);
+  };
+
+  const getOrder = (orderId: string) => allOrders.find((o) => o.id === orderId);
 
   const getProductReviews = (productId: number): Review[] =>
-    loadAllReviews()
+    allReviews
       .filter((r) => r.productId === productId)
       .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
   const updateOrderStatus = (orderId: string, status: OrderStatus, note?: string) => {
-    setOrders((prev) =>
-      prev.map((o) => {
+    setAllOrders((prev) => {
+      const updated = prev.map((o) => {
         if (o.id !== orderId) return o;
         const update: Partial<PurchasedOrder> = { status };
         if (note && status === "in_delivery") update.courierNote = note;
-        return { ...o, ...update };
-      })
-    );
+        const newOrder = { ...o, ...update };
+        syncOrderToVPS(newOrder); // Sync changes to VPS
+        return newOrder;
+      });
+      return updated;
+    });
   };
 
   const addMessage = (orderId: string, msg: Omit<OrderMessage, "id" | "createdAt">) => {
@@ -172,26 +152,32 @@ export function OrderHistoryProvider({ children }: { children: ReactNode }) {
       id: `msg-${Date.now()}-${Math.random().toString(36).slice(2)}`,
       createdAt: new Date().toISOString(),
     };
-    setOrders((prev) =>
-      prev.map((o) =>
-        o.id === orderId ? { ...o, messages: [...(o.messages ?? []), message] } : o
-      )
+    setAllOrders((prev) =>
+      prev.map((o) => {
+        if (o.id !== orderId) return o;
+        const newOrder = { ...o, messages: [...(o.messages ?? []), message] };
+        syncOrderToVPS(newOrder);
+        return newOrder;
+      })
     );
   };
 
-  const getAllOrders = () => orders;
+  const getAllOrders = () => allOrders;
 
   const reportProblem = (orderId: string, report: string) => {
-    setOrders((prev) =>
-      prev.map((o) =>
-        o.id === orderId ? { ...o, status: "problem", problemReport: report } : o
-      )
+    setAllOrders((prev) =>
+      prev.map((o) => {
+        if (o.id !== orderId) return o;
+        const newOrder = { ...o, status: "problem", problemReport: report } as PurchasedOrder;
+        syncOrderToVPS(newOrder);
+        return newOrder;
+      })
     );
   };
 
-  // Buyer's own orders
+  // Buyer's own orders view
   const myOrders = user
-    ? orders.filter((o) => o.userId === user.id)
+    ? allOrders.filter((o) => o.userId === user.id)
     : [];
 
   return (

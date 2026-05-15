@@ -6,10 +6,10 @@ import { useAuth } from "../contexts/AuthContext";
 import { formatPrice } from "../utils/formatPrice";
 
 export function BanLeaderboardPage() {
-  const { getAllUsers } = useAuth();
+  const { allUsers } = useAuth();
   const [search, setSearch] = useState("");
   
-  const bannedUsers = getAllUsers()
+  const bannedUsers = allUsers
     .filter(u => u.isBanned)
     .filter(u => 
       u.name.toLowerCase().includes(search.toLowerCase()) || 

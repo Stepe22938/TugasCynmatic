@@ -1,10 +1,10 @@
 /**
  * HomePage.tsx
- * Halaman utama: live banner, search, filter kategori, filter harga, dan sort produk.
+ * Premium Landing Experience - High-end Aesthetics.
  */
 import React, { useState, useMemo } from "react";
 import { Link } from "wouter";
-import { ShoppingBag, Star, Truck, Shield, Search, X, SlidersHorizontal, ChevronDown, Radio, Eye, Zap, Sparkles } from "lucide-react";
+import { ShoppingBag, Star, Truck, Shield, ShieldCheck, Package, Search, X, SlidersHorizontal, ChevronDown, Radio, Eye, Zap, Sparkles, Trophy, Target, Award } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ProductCard } from "../components/ProductCard";
 import { useAuth } from "../contexts/AuthContext";
@@ -12,9 +12,9 @@ import { useProducts } from "../contexts/ProductsContext";
 import { useLive } from "../contexts/LiveContext";
 
 const PERKS = [
-  { icon: Truck,  label: "Gratis Ongkir",  desc: "Untuk pembelian pertama" },
-  { icon: Shield, label: "Belanja Aman",    desc: "Jaminan uang kembali" },
-  { icon: Star,   label: "Produk Terpilih", desc: "Kualitas terjamin" },
+  { icon: Award,  label: "Authentic Luxury",  desc: "100% Produk Original" },
+  { icon: Target, label: "Precision Delivery", desc: "Pengiriman Cepat & Tepat" },
+  { icon: Trophy, label: "Top-Tier Support",   desc: "Layanan Bantuan 24/7" },
 ];
 
 type SortKey = "newest" | "price_asc" | "price_desc" | "name_asc";
@@ -48,8 +48,7 @@ export function HomePage() {
   const [showFilters,    setShowFilters]    = useState(false);
 
   const categories = useMemo(() => {
-    const cats = ["Semua", ...Array.from(new Set(allStoreProducts.map((p) => p.category)))];
-    return cats;
+    return ["Semua", ...Array.from(new Set(allStoreProducts.map((p) => p.category)))];
   }, [allStoreProducts]);
 
   const filtered = useMemo(() => {
@@ -69,389 +68,242 @@ export function HomePage() {
       case "name_asc":   result = [...result].sort((a, b) => a.name.localeCompare(b.name, "id")); break;
       default:           result = [...result].reverse(); break;
     }
-
     return result;
   }, [allStoreProducts, query, activeCategory, priceRange, sort]);
 
   const firstName = user?.name?.split(" ")[0] ?? null;
   const isFiltering = query || activeCategory !== "Semua" || priceRange !== "all" || sort !== "newest";
 
-  const clearAll = () => {
-    setQuery(""); setCategory("Semua"); setPriceRange("all"); setSort("newest");
-  };
-
   return (
     <div className="min-h-screen bg-background">
+      
+      {/* ── High-End Hero Section ─────────────────────────────────── */}
+      <section className="relative min-h-[90vh] flex items-center pt-10 overflow-hidden border-b border-white/5 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-orange-950/20 via-background to-background">
+        
+        {/* Animated Orbs */}
+        <div className="absolute top-0 left-1/4 w-[500px] h-[500px] bg-orange-600/10 blur-[150px] rounded-full -translate-y-1/2" />
+        <div className="absolute bottom-0 right-1/4 w-[500px] h-[500px] bg-primary/10 blur-[150px] rounded-full translate-y-1/2" />
 
-      {/* ── Live Banner — shown when live is active ─────────────────────── */}
-      {liveCount > 0 && (
-        <Link href="/live">
-          <motion.div 
-            initial={{ y: -50, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            className="bg-gradient-to-r from-red-600 via-rose-600 to-orange-500 text-white px-4 py-3 cursor-pointer relative overflow-hidden group"
-          >
-            <div className="absolute inset-0 bg-white/10 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000" />
-            <div className="container mx-auto flex items-center justify-between gap-4 relative z-10">
-              <div className="flex items-center gap-3 min-w-0">
-                <div className="flex items-center gap-2 bg-white/20 px-3 py-1 rounded-full flex-shrink-0 border border-white/20">
-                  <span className="w-2 h-2 bg-white rounded-full animate-ping" />
-                  <span className="text-[10px] font-black tracking-[0.2em]">LIVE</span>
-                </div>
-                <div className="min-w-0">
-                  <p className="font-black text-sm truncate tracking-tight">{mainLive.title}</p>
-                  <p className="text-[10px] text-white/80 font-bold uppercase tracking-widest mt-0.5">
-                    {liveCount > 1 ? `+${liveCount - 1} Siaran Lainnya` : `oleh ${mainLive.hostName}`} · Gabung Sekarang
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-center gap-3 flex-shrink-0">
-                <div className="hidden sm:flex items-center gap-1.5 text-white/90 text-[10px] font-black uppercase bg-black/20 px-3 py-1 rounded-full">
-                  <Eye className="h-3 w-3" />
-                  <span>Sedang Ramai</span>
-                </div>
-                <Zap className="h-5 w-5 text-yellow-300 animate-pulse" />
-              </div>
-            </div>
-          </motion.div>
-        </Link>
-      )}
-      {/* Hero */}
-      <section className="relative overflow-hidden bg-gradient-to-br from-primary/10 via-background to-orange-50/30 dark:to-orange-950/20 border-b">
-        {/* Animated Background Blobs */}
-        <motion.div 
-          animate={{ 
-            scale: [1, 1.2, 1],
-            rotate: [0, 90, 0],
-            x: [0, 50, 0],
-            y: [0, -30, 0]
-          }}
-          transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
-          className="absolute top-[-10%] right-[-5%] w-[30%] h-[50%] bg-primary/5 blur-[120px] rounded-full"
-        />
-        <motion.div 
-          animate={{ 
-            scale: [1.2, 1, 1.2],
-            rotate: [0, -90, 0],
-            x: [0, -50, 0],
-            y: [0, 30, 0]
-          }}
-          transition={{ duration: 15, repeat: Infinity, ease: "linear" }}
-          className="absolute bottom-[-10%] left-[-5%] w-[30%] h-[50%] bg-orange-500/5 blur-[120px] rounded-full"
-        />
-
-        <div className="container mx-auto px-4 py-20 relative z-10">
-          <div className="flex flex-col md:flex-row items-center gap-12">
-            <div className="flex-1 text-center md:text-left">
+        <div className="container mx-auto px-6 relative z-10">
+          <div className="flex flex-col lg:flex-row items-center gap-16">
+            
+            <div className="flex-1 text-center lg:text-left space-y-8">
               <motion.div
-                initial={{ opacity: 0, y: 20 }}
+                initial={{ opacity: 0, y: 30 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6 }}
+                transition={{ duration: 0.8 }}
               >
-                <span className="inline-flex items-center gap-2 px-3 py-1 bg-primary/10 text-primary text-[10px] font-black uppercase tracking-[0.2em] rounded-full mb-6 border border-primary/20">
-                  <Sparkles className="h-3 w-3" /> Edisi Terbatas 2026
-                </span>
-                <h1 className="text-5xl md:text-7xl font-black text-foreground leading-[1.1] mb-6 tracking-tighter">
-                  {firstName
-                    ? <>Halo, <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-orange-600">{firstName}!</span><br />Waktunya Belanja.</>
-                    : <>Gaya Hidup <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-orange-600">Premium</span><br />Mulai dari Sini.</>}
+                <div className="inline-flex items-center gap-2 px-4 py-2 bg-white/5 border border-white/10 rounded-2xl mb-8">
+                  <Sparkles className="h-4 w-4 text-orange-500" />
+                  <span className="text-[10px] font-black uppercase tracking-[0.3em] text-orange-500/80">Ecosystem VPS v2.0</span>
+                </div>
+                
+                <h1 className="text-6xl md:text-8xl font-black tracking-tighter leading-[0.9] mb-8 uppercase italic italic-shadow">
+                  {firstName ? (
+                    <>Welcome Back, <br/><span className="text-gradient">{firstName}.</span></>
+                  ) : (
+                    <>Elevate Your <br/><span className="text-gradient">Style.</span></>
+                  )}
                 </h1>
-                <p className="text-muted-foreground text-xl max-w-lg mb-8 leading-relaxed opacity-80 font-medium">
-                  Koleksi pilihan berkualitas dengan standar internasional. Belanja cerdas, cepat, dan 100% terjamin aman.
+                
+                <p className="text-xl text-muted-foreground font-medium max-w-xl mx-auto lg:mx-0 leading-relaxed opacity-70">
+                  Temukan koleksi eksklusif yang dirancang khusus untuk Anda. Keamanan transaksi terjamin oleh sistem VPS MariaDB tercanggih.
                 </p>
-                <div className="flex flex-wrap gap-4 justify-center md:justify-start">
+
+                <div className="flex flex-wrap gap-5 justify-center lg:justify-start pt-6">
                   <motion.a 
-                    whileHover={{ scale: 1.05, y: -2 }}
+                    whileHover={{ scale: 1.05, y: -5 }}
                     whileTap={{ scale: 0.95 }}
                     href="#products"
-                    className="inline-flex items-center gap-3 bg-gradient-to-br from-primary to-orange-600 text-white px-8 py-4 rounded-2xl font-black shadow-2xl shadow-primary/30 transition-all hover:shadow-primary/50"
+                    className="h-16 px-10 bg-gradient-to-br from-orange-500 to-orange-700 text-white rounded-2xl font-black uppercase tracking-widest text-xs flex items-center gap-3 shadow-[0_20px_50px_-15px_rgba(249,115,22,0.5)]"
                   >
-                    <ShoppingBag className="h-5 w-5" />
-                    Mulai Belanja
+                    <ShoppingBag className="h-5 w-5" /> Start Shopping
                   </motion.a>
-                  <Link href="/live">
+                  
+                  <Link href="/auctions">
                     <motion.button 
-                      whileHover={{ scale: 1.05, y: -2 }}
+                      whileHover={{ scale: 1.05, y: -5 }}
                       whileTap={{ scale: 0.95 }}
-                      className={`inline-flex items-center gap-3 px-8 py-4 rounded-2xl font-black border-2 transition-all ${
-                        liveCount > 0
-                          ? "bg-red-600 border-red-600 text-white shadow-xl shadow-red-600/30"
-                          : "border-primary/20 text-primary bg-primary/5 hover:bg-primary/10"
-                      }`}
+                      className="h-16 px-10 bg-white/5 border border-white/10 hover:bg-white/10 text-white rounded-2xl font-black uppercase tracking-widest text-xs flex items-center gap-3 transition-all"
                     >
-                      <Radio className={`h-5 w-5 ${liveCount > 0 ? 'animate-pulse' : ''}`} />
-                      {liveCount > 0 ? "Tonton Live Sekarang" : "Jadwal Live"}
+                      <Trophy className="h-5 w-5 text-orange-500" /> Join Auction
                     </motion.button>
                   </Link>
                 </div>
               </motion.div>
+
+              {/* Perks Row */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 pt-12 border-t border-white/5">
+                {PERKS.map((p, i) => (
+                  <motion.div 
+                    key={p.label}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.5 + i * 0.1 }}
+                    className="flex flex-col items-center lg:items-start gap-2"
+                  >
+                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-orange-500">{p.label}</p>
+                    <p className="text-xs text-muted-foreground font-bold">{p.desc}</p>
+                  </motion.div>
+                ))}
+              </div>
             </div>
 
+            {/* Visual Element */}
             <motion.div 
-              initial={{ opacity: 0, scale: 0.8, rotate: -5 }}
-              animate={{ opacity: 1, scale: 1, rotate: 0 }}
-              transition={{ duration: 0.8, delay: 0.2, type: "spring" }}
-              className="flex-shrink-0 hidden lg:block"
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 1, delay: 0.3 }}
+              className="flex-1 relative hidden lg:block"
             >
-              <div className="relative">
-                <div className="w-80 h-80 bg-gradient-to-br from-primary/20 to-orange-500/20 rounded-[3rem] rotate-12 absolute inset-0 blur-2xl" />
-                <div className="w-80 h-80 bg-card border border-white/20 rounded-[3rem] flex items-center justify-center shadow-2xl relative z-10 backdrop-blur-md">
-                  <motion.div
-                    animate={{ y: [0, -20, 0] }}
-                    transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-                  >
-                    <ShoppingBag className="w-40 h-40 text-primary opacity-20" strokeWidth={0.5} />
-                  </motion.div>
-                  <div className="absolute -bottom-6 -right-6 bg-white dark:bg-slate-900 p-6 rounded-3xl shadow-2xl border border-border/50 animate-bounce duration-[3000ms]">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-green-500/10 rounded-xl flex items-center justify-center">
-                        <Zap className="h-5 w-5 text-green-500" />
-                      </div>
-                      <div>
-                        <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Stok Ready</p>
-                        <p className="text-sm font-black">99+ Produk</p>
-                      </div>
+              <div className="relative w-full aspect-square max-w-[500px] mx-auto">
+                {/* Floating Glass Card */}
+                <motion.div 
+                  animate={{ y: [0, -30, 0] }}
+                  transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
+                  className="absolute inset-0 glass-card rounded-[4rem] shadow-2xl p-12 flex flex-col justify-between"
+                >
+                  <div className="flex justify-between items-start">
+                    <div className="w-20 h-20 rounded-[2rem] bg-orange-600/20 flex items-center justify-center border border-orange-500/30 shadow-[0_0_30px_rgba(249,115,22,0.3)]">
+                      <ShieldCheck className="h-10 w-10 text-orange-500" />
                     </div>
+                    <div className="text-right">
+                      <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Platform Status</p>
+                      <p className="text-2xl font-black text-emerald-500 tracking-tighter">SECURE VPS</p>
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-4">
+                    <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden">
+                      <motion.div 
+                        initial={{ width: 0 }}
+                        animate={{ width: "85%" }}
+                        transition={{ duration: 2, delay: 1 }}
+                        className="h-full bg-gradient-to-r from-orange-500 to-orange-700" 
+                      />
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">System Sync</p>
+                      <p className="text-xs font-black text-orange-500">85% REAL-TIME</p>
+                    </div>
+                  </div>
+                </motion.div>
+
+                {/* Decorative Elements */}
+                <div className="absolute -top-10 -right-10 w-32 h-32 bg-orange-600/20 blur-3xl rounded-full animate-pulse" />
+                <div className="absolute -bottom-10 -left-10 w-32 h-32 bg-primary/20 blur-3xl rounded-full animate-pulse" />
+              </div>
+            </motion.div>
+
+          </div>
+        </div>
+      </section>
+
+      {/* ── Products Section ────────────────────────────────────────── */}
+      <section id="products" className="container mx-auto px-6 py-24">
+        
+        <div className="flex flex-col md:flex-row items-end justify-between gap-8 mb-16">
+          <div className="space-y-4">
+            <h2 className="text-5xl font-black tracking-tighter uppercase italic">The Collection</h2>
+            <p className="text-muted-foreground font-medium flex items-center gap-2">
+              <span className="w-8 h-px bg-orange-500/50" />
+              Showing {filtered.length} curated products
+            </p>
+          </div>
+          
+          {/* Controls */}
+          <div className="flex items-center gap-3">
+            <div className="relative group">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within:text-orange-500 transition-colors" />
+              <input
+                type="text"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Search elite items..."
+                className="w-64 h-14 pl-12 pr-6 bg-white/5 border border-white/10 rounded-2xl text-sm font-bold focus:outline-none focus:border-orange-500/50 transition-all"
+              />
+            </div>
+            
+            <button
+              onClick={() => setShowFilters(!showFilters)}
+              className={`h-14 px-6 rounded-2xl border transition-all flex items-center gap-3 text-sm font-bold ${
+                showFilters ? "bg-orange-600 border-orange-600 text-white" : "bg-white/5 border-white/10 text-muted-foreground hover:text-white"
+              }`}
+            >
+              <SlidersHorizontal className="h-4 w-4" /> Filters
+            </button>
+          </div>
+        </div>
+
+        {/* Filter Panel */}
+        <AnimatePresence>
+          {showFilters && (
+            <motion.div 
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: "auto", opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              className="overflow-hidden mb-12"
+            >
+              <div className="p-8 bg-white/5 border border-white/10 rounded-[2.5rem] grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div className="space-y-4">
+                  <p className="text-[10px] font-black uppercase tracking-[0.2em] text-orange-500">Categories</p>
+                  <div className="flex flex-wrap gap-2">
+                    {categories.map(c => (
+                      <button 
+                        key={c} 
+                        onClick={() => setCategory(c)}
+                        className={`px-5 py-2 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all ${
+                          activeCategory === c ? "bg-orange-600 text-white" : "bg-white/5 text-muted-foreground hover:bg-white/10 hover:text-white"
+                        }`}
+                      >
+                        {c}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div className="space-y-4">
+                  <p className="text-[10px] font-black uppercase tracking-[0.2em] text-orange-500">Price Range</p>
+                  <div className="flex flex-wrap gap-2">
+                    {PRICE_RANGES.map(r => (
+                      <button 
+                        key={r.key} 
+                        onClick={() => setPriceRange(r.key)}
+                        className={`px-5 py-2 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all ${
+                          priceRange === r.key ? "bg-orange-600 text-white" : "bg-white/5 text-muted-foreground hover:bg-white/10 hover:text-white"
+                        }`}
+                      >
+                        {r.label}
+                      </button>
+                    ))}
                   </div>
                 </div>
               </div>
             </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Product Grid */}
+        {filtered.length === 0 ? (
+          <div className="py-40 text-center border-2 border-dashed border-white/5 rounded-[4rem] bg-white/5">
+            <Package className="h-16 w-16 text-muted-foreground/20 mx-auto mb-6" />
+            <p className="text-2xl font-black tracking-tighter uppercase italic opacity-50">No items found in our vault</p>
           </div>
-
-          <div className="mt-20">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-              {PERKS.map(({ icon: Icon, label, desc }, idx) => (
-                <motion.div 
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.4 + idx * 0.1 }}
-                  key={label} 
-                  className="flex items-center gap-4 group p-4 rounded-2xl hover:bg-white/50 dark:hover:bg-white/5 transition-colors"
-                >
-                  <div className="w-14 h-14 bg-primary/10 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform duration-500 border border-primary/10 shadow-lg shadow-primary/5">
-                    <Icon className="h-6 w-6 text-primary" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-black text-foreground tracking-tight">{label}</p>
-                    <p className="text-xs text-muted-foreground font-medium">{desc}</p>
-                  </div>
-                </motion.div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Produk + Filter */}
-      <section id="products" className="container mx-auto px-4 py-10">
-
-        {/* ── Search + Filter toggle row ─────────────────────────────── */}
-        <div className="flex gap-3 mb-4">
-          <div className="relative flex-1 max-w-xl">
-            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
-            <input
-              type="text"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Cari produk, kategori…"
-              data-testid="input-search"
-              className="w-full h-11 pl-10 pr-10 border border-input rounded-xl bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 transition"
-            />
-            {query && (
-              <button onClick={() => setQuery("")}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
-                <X className="h-4 w-4" />
-              </button>
-            )}
-          </div>
-
-          {/* Filter toggle button */}
-          <button
-            onClick={() => setShowFilters((v) => !v)}
-            className={`flex items-center gap-2 h-11 px-4 rounded-xl border text-sm font-semibold transition-all ${
-              showFilters || priceRange !== "all"
-                ? "bg-primary text-primary-foreground border-primary"
-                : "bg-background border-input text-muted-foreground hover:border-primary/50"
-            }`}>
-            <SlidersHorizontal className="h-4 w-4" />
-            <span className="hidden sm:inline">Filter</span>
-            {priceRange !== "all" && (
-              <span className="w-5 h-5 rounded-full bg-white/30 text-[10px] font-bold flex items-center justify-center">1</span>
-            )}
-          </button>
-
-          {/* Sort dropdown */}
-          <div className="relative">
-            <select
-              value={sort}
-              onChange={(e) => setSort(e.target.value as SortKey)}
-              className="h-11 pl-4 pr-8 rounded-xl border border-input bg-background text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-primary/50 appearance-none cursor-pointer text-foreground"
-            >
-              {SORT_OPTIONS.map((s) => <option key={s.key} value={s.key}>{s.label}</option>)}
-            </select>
-            <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
-          </div>
-        </div>
-
-        {/* ── Expanded filter panel ──────────────────────────────────── */}
-        {showFilters && (
-          <div className="bg-card border rounded-2xl p-4 mb-4 space-y-4 shadow-sm">
-            {/* Kategori */}
-            <div>
-              <p className="text-xs font-bold text-muted-foreground uppercase tracking-wide mb-2">Kategori</p>
-              <div className="flex gap-2 flex-wrap">
-                {categories.map((cat) => (
-                  <button key={cat} onClick={() => setCategory(cat)}
-                    className={`px-3.5 py-1.5 rounded-full text-xs font-semibold border transition-all ${
-                      activeCategory === cat
-                        ? "bg-primary text-primary-foreground border-primary"
-                        : "bg-background text-muted-foreground border-border hover:border-primary/50"
-                    }`}>
-                    {cat}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Range Harga */}
-            <div>
-              <p className="text-xs font-bold text-muted-foreground uppercase tracking-wide mb-2">Rentang Harga</p>
-              <div className="flex gap-2 flex-wrap">
-                {PRICE_RANGES.map((pr) => (
-                  <button key={pr.key} onClick={() => setPriceRange(pr.key)}
-                    className={`px-3.5 py-1.5 rounded-full text-xs font-semibold border transition-all ${
-                      priceRange === pr.key
-                        ? "bg-primary text-primary-foreground border-primary"
-                        : "bg-background text-muted-foreground border-border hover:border-primary/50"
-                    }`}>
-                    {pr.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* ── Category pills (always visible when filter panel is closed) */}
-        {!showFilters && (
-          <div className="flex gap-2 flex-wrap mb-8">
-            {categories.map((cat) => (
-              <button 
-                key={cat} 
-                onClick={() => setCategory(cat)}
-                className={`relative px-5 py-2 rounded-2xl text-[11px] font-black uppercase tracking-wider transition-all duration-300 ${
-                  activeCategory === cat
-                    ? "text-white"
-                    : "bg-muted/30 text-muted-foreground border border-border/50 hover:bg-primary/5 hover:text-primary hover:border-primary/30"
-                }`}
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10">
+            {filtered.map((p, idx) => (
+              <motion.div
+                key={p.id}
+                initial={{ opacity: 0, y: 30 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: idx * 0.1 }}
               >
-                <span className="relative z-10">{cat}</span>
-                {activeCategory === cat && (
-                  <motion.div
-                    layoutId="active-pill"
-                    className="absolute inset-0 bg-gradient-to-r from-primary to-orange-600 rounded-2xl shadow-lg shadow-primary/20 z-0"
-                    transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
-                  />
-                )}
-              </button>
+                <ProductCard product={p} />
+              </motion.div>
             ))}
           </div>
         )}
-
-        {/* ── Active filter chips ────────────────────────────────────── */}
-        {isFiltering && (
-          <div className="flex items-center gap-2 flex-wrap mb-4">
-            <span className="text-xs text-muted-foreground font-medium">Filter aktif:</span>
-            {activeCategory !== "Semua" && (
-              <span className="inline-flex items-center gap-1 bg-primary/10 text-primary text-xs font-semibold px-2.5 py-1 rounded-full">
-                {activeCategory}
-                <button onClick={() => setCategory("Semua")} className="ml-0.5 hover:text-primary/70"><X className="h-3 w-3" /></button>
-              </span>
-            )}
-            {priceRange !== "all" && (
-              <span className="inline-flex items-center gap-1 bg-primary/10 text-primary text-xs font-semibold px-2.5 py-1 rounded-full">
-                {PRICE_RANGES.find((r) => r.key === priceRange)?.label}
-                <button onClick={() => setPriceRange("all")} className="ml-0.5 hover:text-primary/70"><X className="h-3 w-3" /></button>
-              </span>
-            )}
-            {query && (
-              <span className="inline-flex items-center gap-1 bg-primary/10 text-primary text-xs font-semibold px-2.5 py-1 rounded-full">
-                "{query}"
-                <button onClick={() => setQuery("")} className="ml-0.5 hover:text-primary/70"><X className="h-3 w-3" /></button>
-              </span>
-            )}
-            <button onClick={clearAll} className="text-xs text-muted-foreground hover:text-foreground underline underline-offset-2 ml-1">
-              Reset semua
-            </button>
-          </div>
-        )}
-
-        {/* ── Header ─────────────────────────────────────────────────── */}
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h2 className="text-2xl font-bold text-foreground">Koleksi Terbaru</h2>
-            <p className="text-muted-foreground text-sm mt-1">
-              {filtered.length} produk{isFiltering ? " ditemukan" : " tersedia"}
-            </p>
-          </div>
-          {!isFiltering && (
-            <span className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 bg-primary/10 text-primary text-xs font-semibold rounded-full">
-              <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
-              Produk Terpilih
-            </span>
-          )}
-        </div>
-
-        {/* ── Grid produk ────────────────────────────────────────────── */}
-        {filtered.length === 0 ? (
-          <motion.div 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="text-center py-32 border-2 border-dashed border-border/50 rounded-[3rem] bg-muted/10"
-          >
-            <div className="w-20 h-20 bg-muted rounded-full flex items-center justify-center mx-auto mb-4">
-              <Search className="h-8 w-8 text-muted-foreground opacity-30" />
-            </div>
-            <p className="font-black text-xl tracking-tight">Ups! Tidak Ada Hasil</p>
-            <p className="text-muted-foreground text-sm mt-2 max-w-xs mx-auto opacity-70">
-              Kami tidak bisa menemukan produk yang cocok dengan pencarian atau filter kamu.
-            </p>
-            <button 
-              onClick={clearAll} 
-              className="mt-6 px-6 py-2.5 bg-foreground text-background rounded-full text-[11px] font-black uppercase tracking-wider hover:opacity-90 transition-opacity"
-            >
-              Reset Semua Filter
-            </button>
-          </motion.div>
-        ) : (
-          <motion.div 
-            layout
-            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-8" 
-            data-testid="product-grid"
-          >
-            <AnimatePresence mode="popLayout">
-              {filtered.map((product, idx) => (
-                <motion.div
-                  layout
-                  key={product.id}
-                  initial={{ opacity: 0, y: 30, scale: 0.9 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.9, transition: { duration: 0.2 } }}
-                  transition={{ 
-                    duration: 0.5, 
-                    delay: idx * 0.05,
-                    type: "spring",
-                    stiffness: 260,
-                    damping: 20 
-                  }}
-                >
-                  <ProductCard product={product} />
-                </motion.div>
-              ))}
-            </AnimatePresence>
-          </motion.div>
-        )}
       </section>
+
     </div>
   );
 }

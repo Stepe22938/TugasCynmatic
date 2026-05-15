@@ -70,176 +70,223 @@ export function ProfileCustomizePage() {
   };
 
   return (
-    <div className="min-h-[calc(100vh-80px)] bg-background pb-24">
-      {/* Live Preview Banner */}
-      <div className="relative overflow-hidden">
-        {/* YouTube Background Layer */}
-        {useAnimation && extractYoutubeId(youtubeUrl).length === 11 ? (
-          <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
-            <iframe
-              className="absolute top-1/2 left-1/2 w-[110%] h-[110%] -translate-x-1/2 -translate-y-1/2 aspect-video object-cover brightness-[0.6] blur-[2px]"
-              src={`https://www.youtube.com/embed/${extractYoutubeId(youtubeUrl)}?autoplay=1&mute=1&controls=0&loop=1&playlist=${extractYoutubeId(youtubeUrl)}&showinfo=0&rel=0`}
-              allow="autoplay; encrypted-media"
-            />
-          </div>
-        ) : (
-          <div className={`absolute inset-0 z-0 bg-gradient-to-br ${theme} transition-all duration-500`} />
-        )}
-
-        <div className="relative z-10 text-white pb-24 pt-10 px-6 transition-all duration-500 min-h-[300px] flex items-end bg-gradient-to-t from-black/60 to-transparent">
-          <div className="max-w-3xl mx-auto w-full">
-            <Link href="/profile" className="inline-flex items-center text-white/70 hover:text-white transition-colors mb-8 font-medium text-sm">
-              <ChevronLeft className="h-5 w-5 mr-1" /> Kembali ke Profil
-            </Link>
-            <div className="flex items-center gap-6">
-              <div className="relative group">
-                <img
-                  src={avatar || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(user.name)}&backgroundColor=ffffff&fontColor=6d28d9&fontSize=40`}
-                  alt={user.name}
-                  className="w-24 h-24 rounded-3xl border-4 border-white/40 shadow-xl object-cover bg-white"
-                />
-                <button 
-                  onClick={() => fileInputRef.current?.click()}
-                  className="absolute inset-0 bg-black/40 rounded-2xl flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
-                >
-                  <Upload className="h-6 w-6 text-white" />
-                </button>
-                <input 
-                  type="file" 
-                  ref={fileInputRef} 
-                  onChange={handleAvatarUpload} 
-                  accept="image/*" 
-                  className="hidden" 
-                />
-              </div>
-              <div className="drop-shadow-lg">
-                <h1 className="text-3xl font-extrabold mb-1 text-white">{user.name}</h1>
-                {bio ? (
-                  <p className="text-white/90 text-sm italic font-medium">"{bio}"</p>
-                ) : (
-                  <p className="text-white/70 text-sm">Belum ada bio...</p>
-                )}
-              </div>
-            </div>
-            <p className="text-white/50 text-xs mt-4 flex items-center gap-1">
-              <Sparkles className="h-3 w-3" /> Preview langsung — ubah pengaturan di bawah
-            </p>
-          </div>
-        </div>
-      </div>
-
-      <div className="max-w-3xl mx-auto px-4 -mt-10 relative z-10 space-y-6">
-        {/* Avatar Section */}
-        <div className="bg-card rounded-2xl shadow-sm border border-border p-6">
-          <h2 className="text-lg font-bold mb-1 flex items-center gap-2">
-            <ImageIcon className="h-5 w-5 text-blue-500" /> Foto Profil
-          </h2>
-          <p className="text-sm text-muted-foreground mb-4">Unggah foto profil kustom dari komputer/laptop kamu.</p>
-          <div className="flex items-center gap-4">
-            <img 
-              src={avatar || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(user.name)}&backgroundColor=ffffff&fontColor=6d28d9&fontSize=40`} 
-              className="w-16 h-16 rounded-xl border border-border object-cover bg-white"
-              alt="Preview"
-            />
-            <div className="flex-1">
-              <Button onClick={() => fileInputRef.current?.click()} variant="outline" className="h-10 text-xs gap-2 border-dashed border-2">
-                <Upload className="h-4 w-4" /> Pilih File Gambar
-              </Button>
-              <p className="text-[10px] text-muted-foreground mt-2 italic">*Format: JPG, PNG. Maks: 2MB.</p>
-            </div>
-            {avatar && (
-              <button onClick={() => setAvatar("")} className="text-[10px] font-bold text-red-500 hover:underline">Hapus Foto</button>
-            )}
-          </div>
-        </div>
-
-        {/* Bio Section */}
-        <div className="bg-card rounded-2xl shadow-sm border border-border p-6">
-          <h2 className="text-lg font-bold mb-1 flex items-center gap-2">
-            <Type className="h-5 w-5 text-purple-500" /> Bio Profil
-          </h2>
-          <p className="text-sm text-muted-foreground mb-4">Tulis sesuatu tentang dirimu yang bisa dilihat teman-temanmu.</p>
-          <textarea
-            value={bio}
-            onChange={e => setBio(e.target.value)}
-            placeholder="Contoh: Penggemar tech gadget & sneakers lover 🔥"
-            maxLength={150}
-            rows={3}
-            className="w-full px-4 py-3 text-sm border-2 border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 resize-none bg-background text-foreground"
-          />
-          <p className="text-[11px] text-muted-foreground text-right mt-1">{bio.length}/150 karakter</p>
-        </div>
-
-        {/* Animated Background Section */}
-        <div className={`bg-card rounded-2xl shadow-sm border p-6 transition-all ${useAnimation ? "border-amber-400 ring-1 ring-amber-100" : "border-border"}`}>
-          <div className="flex items-center justify-between gap-4 mb-4">
-            <div className="flex-1">
-              <h2 className="text-lg font-bold flex items-center gap-2">
-                <Video className="h-5 w-5 text-amber-500" /> Custom Animated Background
-              </h2>
-              <p className="text-sm text-muted-foreground">Aktifkan latar belakang bergerak menggunakan video YouTube.</p>
-            </div>
-            <button onClick={() => setUseAnimation(!useAnimation)}>
-              {useAnimation ? <ToggleRight className="h-10 w-10 text-amber-500" /> : <ToggleLeft className="h-10 w-10 text-muted-foreground" />}
-            </button>
-          </div>
-
-          {useAnimation && (
-            <div className="space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
-              <div className="relative">
-                <Youtube className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-red-500" />
-                <input
-                  value={youtubeUrl}
-                  onChange={e => setYoutubeUrl(e.target.value)}
-                  placeholder="Paste URL YouTube: https://www.youtube.com/watch?v=..."
-                  className="w-full pl-10 pr-4 py-3 text-sm border-2 border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500 bg-background text-foreground"
-                />
-              </div>
-              <p className="text-[10px] text-muted-foreground italic px-2">
-                Tips: Gunakan video dengan resolusi landscape (16:9) seperti video "Lo-fi Hip Hop" atau "Nature Relaxing" untuk hasil terbaik.
-              </p>
-            </div>
-          )}
-        </div>
-
-        {/* Theme Section */}
-        {!useAnimation && (
-          <div className="bg-card rounded-2xl shadow-sm border border-border p-6 animate-in fade-in duration-500">
-            <h2 className="text-lg font-bold mb-1 flex items-center gap-2">
-              <Palette className="h-5 w-5 text-purple-500" /> Tema Banner Statis
-            </h2>
-            <p className="text-sm text-muted-foreground mb-4">Pilih warna gradien jika animasi dimatikan.</p>
-            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-3">
-              {THEME_OPTIONS.map(t => (
-                <button
-                  key={t.id}
-                  onClick={() => setTheme(t.id)}
-                  className={`group relative rounded-xl overflow-hidden transition-all ${theme === t.id ? "ring-3 ring-purple-500 ring-offset-2 scale-105" : "hover:scale-105"}`}
-                >
-                  <div className={`${t.preview} h-16 w-full`} />
-                  <div className="absolute inset-0 flex items-end justify-center pb-1.5">
-                    <span className="text-[10px] font-bold text-white drop-shadow-md bg-black/20 px-1.5 py-0.5 rounded">
-                      {t.label}
-                    </span>
-                  </div>
-                  {theme === t.id && (
-                    <div className="absolute top-1.5 right-1.5 bg-card rounded-full p-0.5">
-                      <CheckCircle2 className="h-3.5 w-3.5 text-purple-600" />
-                    </div>
-                  )}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Save Button */}
-        <Button
-          onClick={handleSave}
-          className={`w-full h-12 text-base font-bold transition-all ${saved ? "bg-green-600 hover:bg-green-700" : "bg-purple-600 hover:bg-purple-700"} text-white shadow-lg`}
+    <div className="min-h-screen bg-[#050505] pb-24 pt-24">
+      <div className="max-w-4xl mx-auto px-6 space-y-10">
+        
+        {/* Elite Customization Header */}
+        <motion.div 
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="glass-card rounded-[3rem] p-10 relative overflow-hidden border-white/5 shadow-2xl bg-gradient-to-br from-indigo-600/10 via-background to-background"
         >
-          {saved ? <><CheckCircle2 className="h-5 w-5 mr-2" /> Tersimpan!</> : <><Save className="h-5 w-5 mr-2" /> Simpan Perubahan</>}
-        </Button>
+          <div className="absolute top-0 right-0 p-8 opacity-5">
+            <Palette className="h-32 w-32 text-indigo-500" />
+          </div>
+          
+          <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-6">
+            <div className="flex flex-col md:flex-row items-center gap-6 text-center md:text-left">
+              <Link href="/profile">
+                <button className="w-12 h-12 bg-white/5 hover:bg-white/10 rounded-2xl flex items-center justify-center transition-all border border-white/5 group">
+                  <ChevronLeft className="h-5 w-5 text-white/40 group-hover:text-white group-hover:-translate-x-1 transition-all" />
+                </button>
+              </Link>
+              <div>
+                <h1 className="text-3xl md:text-5xl font-black tracking-tighter uppercase italic text-white drop-shadow-xl">
+                  Identity Forge
+                </h1>
+                <p className="text-xs font-bold text-white/40 uppercase tracking-[0.3em] mt-2">
+                  Customize your digital presence
+                </p>
+              </div>
+            </div>
+            
+            <div className="flex -space-x-4">
+              <div className="w-16 h-16 bg-indigo-600/20 rounded-2xl flex items-center justify-center shadow-lg border border-indigo-500/20 rotate-6">
+                <Sparkles className="h-8 w-8 text-indigo-400" />
+              </div>
+              <div className="w-16 h-16 bg-orange-600/20 rounded-2xl flex items-center justify-center shadow-lg border border-orange-500/20 -rotate-6">
+                <Palette className="h-8 w-8 text-orange-400" />
+              </div>
+            </div>
+          </div>
+        </motion.div>
+
+        {/* Live Preview Console */}
+        <div className="glass-card rounded-[3rem] overflow-hidden border-white/10 shadow-2xl relative group">
+          <div className="relative h-72 overflow-hidden">
+            {useAnimation && extractYoutubeId(youtubeUrl).length === 11 ? (
+              <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
+                <iframe
+                  className="absolute top-1/2 left-1/2 w-[120%] h-[120%] -translate-x-1/2 -translate-y-1/2 aspect-video object-cover brightness-[0.6] blur-[1px]"
+                  src={`https://www.youtube.com/embed/${extractYoutubeId(youtubeUrl)}?autoplay=1&mute=1&controls=0&loop=1&playlist=${extractYoutubeId(youtubeUrl)}&showinfo=0&rel=0`}
+                  allow="autoplay; encrypted-media"
+                />
+              </div>
+            ) : (
+              <div className={`absolute inset-0 z-0 bg-gradient-to-br ${theme} transition-all duration-700`} />
+            )}
+            <div className="absolute inset-0 bg-gradient-to-t from-[#0a0a0b] via-transparent to-black/20" />
+          </div>
+
+          <div className="relative px-10 pb-10 -mt-20 z-10 flex flex-col md:flex-row items-center md:items-end gap-8">
+            <div className="relative group/avatar">
+              <div className="absolute -inset-4 bg-white/10 rounded-[2.5rem] blur-xl opacity-0 group-hover/avatar:opacity-100 transition-all duration-700" />
+              <img
+                src={avatar || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(user.name)}&backgroundColor=ffffff&fontColor=6d28d9&fontSize=40`}
+                alt={user.name}
+                className="relative w-32 h-32 md:w-40 md:h-40 rounded-[2.5rem] border-4 border-white/20 shadow-2xl object-cover bg-slate-900 group-hover/avatar:scale-105 transition-transform duration-500"
+              />
+              <button 
+                onClick={() => fileInputRef.current?.click()}
+                className="absolute inset-0 bg-black/40 rounded-[2.5rem] flex items-center justify-center opacity-0 group-hover/avatar:opacity-100 transition-all cursor-pointer z-20"
+              >
+                <Upload className="h-8 w-8 text-white animate-bounce" />
+              </button>
+            </div>
+            
+            <div className="flex-1 text-center md:text-left pb-4">
+              <h2 className="text-4xl font-black text-white italic tracking-tighter drop-shadow-2xl">{user.name}</h2>
+              <div className="mt-3 flex flex-wrap justify-center md:justify-start gap-3">
+                <span className="px-4 py-1 rounded-full bg-white/5 border border-white/10 text-[9px] font-black uppercase tracking-widest text-white/40 italic">
+                  Live Preview Mode
+                </span>
+                {bio && <p className="text-sm font-medium italic text-white/60">"{bio}"</p>}
+              </div>
+            </div>
+          </div>
+          <input type="file" ref={fileInputRef} onChange={handleAvatarUpload} accept="image/*" className="hidden" />
+        </div>
+
+        {/* Configuration Matrix */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          {/* Visual Identity */}
+          <div className="glass-card rounded-[2.5rem] p-8 border-white/5 bg-white/5 space-y-6">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-lg bg-orange-600/10 flex items-center justify-center">
+                <ImageIcon className="h-4 w-4 text-orange-500" />
+              </div>
+              <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-white/60 italic">Visual Identity</h3>
+            </div>
+            
+            <div className="space-y-6">
+              <div className="flex items-center gap-6 p-4 bg-white/5 rounded-2xl border border-white/5">
+                <img 
+                  src={avatar || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(user.name)}&backgroundColor=ffffff&fontColor=6d28d9&fontSize=40`} 
+                  className="w-14 h-14 rounded-xl object-cover bg-white/5 border border-white/10"
+                  alt=""
+                />
+                <div className="flex-1 space-y-2">
+                  <Button onClick={() => fileInputRef.current?.click()} variant="ghost" className="h-10 w-full rounded-xl border border-dashed border-white/20 text-[9px] font-black uppercase tracking-widest hover:border-orange-500 hover:text-orange-500 transition-all">
+                    Update Imagery
+                  </Button>
+                  <p className="text-[8px] font-bold text-white/20 uppercase tracking-widest">*Max 2MB — JPG/PNG</p>
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                <label className="text-[9px] font-black text-white/20 uppercase tracking-[0.3em] ml-1">Asset Bio</label>
+                <textarea
+                  value={bio}
+                  onChange={e => setBio(e.target.value)}
+                  placeholder="Define your digital signature..."
+                  maxLength={150}
+                  rows={3}
+                  className="w-full px-6 py-4 text-xs bg-white/5 border border-white/10 rounded-2xl text-white focus:outline-none focus:border-orange-500 transition-all font-bold uppercase tracking-widest placeholder:text-white/10 resize-none"
+                />
+                <div className="flex justify-between items-center px-1">
+                  <p className="text-[8px] font-black text-white/10 uppercase italic">Signature Protocol</p>
+                  <p className="text-[9px] font-black text-white/20">{bio.length}/150</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Dynamic Background */}
+          <div className="glass-card rounded-[2.5rem] p-8 border-white/5 bg-white/5 space-y-6">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-lg bg-orange-600/10 flex items-center justify-center">
+                  <Video className="h-4 w-4 text-orange-500" />
+                </div>
+                <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-white/60 italic">Dynamic Engine</h3>
+              </div>
+              <button onClick={() => setUseAnimation(!useAnimation)} className="transition-transform active:scale-90">
+                {useAnimation ? <ToggleRight className="h-8 w-8 text-orange-500" /> : <ToggleLeft className="h-8 w-8 text-white/10" />}
+              </button>
+            </div>
+
+            <div className="space-y-6">
+              <div className={`p-6 rounded-[2rem] border transition-all duration-500 ${useAnimation ? "bg-orange-600/5 border-orange-500/20" : "bg-white/5 border-white/5 opacity-40"}`}>
+                <div className="space-y-4">
+                  <div className="relative">
+                    <Youtube className={`absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 transition-colors ${useAnimation ? "text-red-500" : "text-white/10"}`} />
+                    <input
+                      disabled={!useAnimation}
+                      value={youtubeUrl}
+                      onChange={e => setYoutubeUrl(e.target.value)}
+                      placeholder="YouTube Protocol Link..."
+                      className="w-full pl-12 pr-6 py-4 text-[10px] bg-white/5 border border-white/10 rounded-2xl text-white focus:outline-none focus:border-orange-500 transition-all font-bold uppercase tracking-widest placeholder:text-white/10 disabled:cursor-not-allowed"
+                    />
+                  </div>
+                  <p className="text-[9px] font-medium text-white/20 italic leading-relaxed px-1">
+                    *Select 16:9 cinematic visuals for optimal atmospheric integration.
+                  </p>
+                </div>
+              </div>
+
+              {!useAnimation && (
+                <motion.div 
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="space-y-4"
+                >
+                  <label className="text-[9px] font-black text-white/20 uppercase tracking-[0.3em] ml-1">Static Core Theme</label>
+                  <div className="grid grid-cols-4 gap-2">
+                    {THEME_OPTIONS.slice(0, 12).map(t => (
+                      <button
+                        key={t.id}
+                        onClick={() => setTheme(t.id)}
+                        className={`group relative h-10 rounded-xl overflow-hidden transition-all ${theme === t.id ? "ring-2 ring-orange-500 scale-105" : "opacity-40 hover:opacity-100"}`}
+                      >
+                        <div className={`${t.preview} h-full w-full`} />
+                        {theme === t.id && (
+                          <div className="absolute inset-0 flex items-center justify-center bg-black/20">
+                            <CheckCircle2 className="h-4 w-4 text-white" />
+                          </div>
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                </motion.div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Execution Protocol */}
+        <div className="pt-6">
+          <Button
+            onClick={handleSave}
+            disabled={saved}
+            className={`w-full h-20 rounded-[2.5rem] text-sm font-black uppercase tracking-[0.4em] italic transition-all duration-500 shadow-2xl ${
+              saved 
+                ? "bg-emerald-600 text-white shadow-emerald-600/20" 
+                : "bg-orange-600 hover:bg-orange-700 text-white shadow-orange-600/20 hover:scale-[1.02] active:scale-[0.98]"
+            }`}
+          >
+            {saved ? (
+              <div className="flex items-center gap-3">
+                <CheckCircle2 className="h-6 w-6" />
+                <span>Protocol Synchronized</span>
+              </div>
+            ) : (
+              <div className="flex items-center gap-3">
+                <Save className="h-6 w-6" />
+                <span>Execute Modifications</span>
+              </div>
+            )}
+          </Button>
+        </div>
       </div>
     </div>
   );

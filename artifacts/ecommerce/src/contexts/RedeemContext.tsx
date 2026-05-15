@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { useAuth } from "./AuthContext";
 import { useWallet } from "./WalletContext";
+import { fetchAllRedeemCodesFromVPS, syncRedeemCodeToVPS } from "../lib/sync";
 
 export interface RedeemCode {
   id: string;
@@ -8,7 +9,7 @@ export interface RedeemCode {
   type: "coin" | "balance";
   value: number;
   maxUses: number;
-  usedBy: string[]; // List of user IDs who have used this code
+  usedBy: string[]; 
   isActive: boolean;
   createdAt: string;
 }
@@ -21,8 +22,6 @@ interface RedeemContextType {
   redeemCode: (codeStr: string) => { success: boolean; message: string };
 }
 
-const STORAGE_KEY = "toko_redeem_codes";
-
 const RedeemContext = createContext<RedeemContextType | undefined>(undefined);
 
 export function RedeemProvider({ children }: { children: React.ReactNode }) {
@@ -30,22 +29,20 @@ export function RedeemProvider({ children }: { children: React.ReactNode }) {
   const { topUp } = useWallet();
   const [codes, setCodes] = useState<RedeemCode[]>([]);
 
-  // Load from local storage
+  // Initial Fetch from VPS
   useEffect(() => {
-    try {
-      const stored = localStorage.getItem(STORAGE_KEY);
-      if (stored) {
-        setCodes(JSON.parse(stored));
+    const init = async () => {
+      const vpsCodes = await fetchAllRedeemCodesFromVPS();
+      if (vpsCodes) {
+        setCodes(vpsCodes.map((c: any) => ({
+          ...c,
+          value: Number(c.value),
+          usedBy: c.usedBy || []
+        })));
       }
-    } catch (error) {
-      console.error("Failed to parse redeem codes:", error);
-    }
+    };
+    init();
   }, []);
-
-  // Save to local storage whenever it changes
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(codes));
-  }, [codes]);
 
   const addCode = (code: Omit<RedeemCode, "id" | "usedBy" | "createdAt">) => {
     const newCode: RedeemCode = {
@@ -55,6 +52,7 @@ export function RedeemProvider({ children }: { children: React.ReactNode }) {
       createdAt: new Date().toISOString(),
     };
     setCodes((prev) => [newCode, ...prev]);
+    syncRedeemCodeToVPS(newCode);
   };
 
   const deleteCode = (id: string) => {
@@ -62,9 +60,14 @@ export function RedeemProvider({ children }: { children: React.ReactNode }) {
   };
 
   const toggleCode = (id: string) => {
-    setCodes((prev) =>
-      prev.map((c) => (c.id === id ? { ...c, isActive: !c.isActive } : c))
-    );
+    setCodes((prev) => prev.map((c) => {
+      if (c.id === id) {
+        const updated = { ...c, isActive: !c.isActive };
+        syncRedeemCodeToVPS(updated);
+        return updated;
+      }
+      return c;
+    }));
   };
 
   const redeemCode = (codeStr: string) => {
@@ -96,12 +99,9 @@ export function RedeemProvider({ children }: { children: React.ReactNode }) {
     }
 
     // Update code usage
-    setCodes(prev => prev.map(c => {
-      if (c.id === targetCode.id) {
-        return { ...c, usedBy: [...c.usedBy, user.id] };
-      }
-      return c;
-    }));
+    const updated = { ...targetCode, usedBy: [...targetCode.usedBy, user.id] };
+    setCodes(prev => prev.map(c => c.id === targetCode.id ? updated : c));
+    syncRedeemCodeToVPS(updated);
 
     return { 
       success: true, 

@@ -8,7 +8,8 @@ import {
   PlusCircle, Package, Clock, CheckCircle2, XCircle, Trash2,
   ChevronDown, ChevronUp, Store, Plus, X, ShieldCheck,
   ShoppingBag, Truck, Radio, Camera, CameraOff, Search,
-  MessageSquare, Send, ToggleLeft, ToggleRight, Zap, Pencil, Crown
+  MessageSquare, Send, ToggleLeft, ToggleRight, Zap, Pencil, Crown,
+  Gavel, Heart, Bot, ClipboardList
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "../contexts/AuthContext";
@@ -16,11 +17,12 @@ import { useProducts, SellerProduct, AdminProduct } from "../contexts/ProductsCo
 import { useOrderHistory, PurchasedOrder, OrderStatus } from "../contexts/OrderHistoryContext";
 import { useLive, GIFT_TYPES } from "../contexts/LiveContext";
 import { useAuction } from "../contexts/AuctionContext";
-import { Gavel } from "lucide-react";
 import { formatPrice } from "../utils/formatPrice";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
+import { formatDate } from "../utils/formatDate";
+import { STATUS_CONFIG, ORDER_STATUS_CONFIG } from "../constants/statusConfigs";
 import { useToast } from "../hooks/use-toast";
 import { useSultan } from "../contexts/MySultanContext";
 import { useWishlist } from "../contexts/WishlistContext";
@@ -28,20 +30,20 @@ import { useWishlist } from "../contexts/WishlistContext";
 const CATEGORIES = ["Sepatu","Tas","Pakaian","Aksesori","Elektronik","Makanan","Pre-Order","Lainnya"];
 
 const STATUS_CONFIG: Record<SellerProduct["status"], { label: string; color: string; icon: React.ReactNode }> = {
-  pending:  { label: "Menunggu Review", color: "bg-amber-100 text-amber-700 dark:bg-amber-950/50 dark:text-amber-300",  icon: <Clock className="h-3 w-3" /> },
-  approved: { label: "Disetujui",       color: "bg-green-100 text-green-700 dark:bg-green-950/50 dark:text-green-300",  icon: <CheckCircle2 className="h-3 w-3" /> },
-  rejected: { label: "Ditolak",         color: "bg-red-100 text-red-700 dark:bg-red-950/50 dark:text-red-300",      icon: <XCircle className="h-3 w-3" /> },
+  pending:  { label: "Matrix Review", color: "bg-amber-600/10 text-amber-500 border-amber-500/20",  icon: <Clock className="h-3 w-3" /> },
+  approved: { label: "Verified",      color: "bg-emerald-600/10 text-emerald-500 border-emerald-500/20",  icon: <CheckCircle2 className="h-3 w-3" /> },
+  rejected: { label: "Terminated",    color: "bg-rose-600/10 text-rose-500 border-rose-500/20",      icon: <XCircle className="h-3 w-3" /> },
 };
 
 const ORDER_STATUS_CONFIG: Record<OrderStatus, { label: string; color: string; bg: string }> = {
-  placed:      { label: "Pesanan Masuk",      color: "text-blue-700 dark:text-blue-300",   bg: "bg-blue-100 dark:bg-blue-950/50" },
-  processing:  { label: "Sedang Diproses",    color: "text-amber-700 dark:text-amber-300",  bg: "bg-amber-100 dark:bg-amber-950/50" },
-  pending_po:  { label: "Pending Pre-Order",  color: "text-cyan-700 dark:text-cyan-300", bg: "bg-cyan-100 dark:bg-cyan-950/50" },
-  shipped:     { label: "Dikirim ke Kurir",   color: "text-orange-700 dark:text-orange-300", bg: "bg-orange-100 dark:bg-orange-950/50" },
-  in_delivery: { label: "Dalam Pengiriman",   color: "text-purple-700 dark:text-purple-300", bg: "bg-purple-100 dark:bg-purple-950/50" },
-  delivered:   { label: "Terkirim",           color: "text-green-700 dark:text-green-300",  bg: "bg-green-100 dark:bg-green-950/50" },
-  completed:   { label: "Selesai",            color: "text-green-800 dark:text-green-400",  bg: "bg-green-200 dark:bg-green-950/70" },
-  problem:     { label: "Bermasalah",         color: "text-red-700 dark:text-red-300",    bg: "bg-red-100 dark:bg-red-950/50" },
+  placed:      { label: "Inbound Signal",      color: "text-blue-400",   bg: "bg-blue-600/10 border-blue-500/20" },
+  processing:  { label: "Matrix Processing",   color: "text-amber-400",  bg: "bg-amber-600/10 border-amber-500/20" },
+  pending_po:  { label: "Delayed Protocol",    color: "text-cyan-400",   bg: "bg-cyan-600/10 border-cyan-500/20" },
+  shipped:     { label: "Assets Deployed",     color: "text-orange-400", bg: "bg-orange-600/10 border-orange-500/20" },
+  in_delivery: { label: "Frequency Active",    color: "text-purple-400", bg: "bg-purple-600/10 border-purple-500/20" },
+  delivered:   { label: "Node Arrival",        color: "text-emerald-400", bg: "bg-emerald-600/10 border-emerald-500/20" },
+  completed:   { label: "Sync Complete",       color: "text-emerald-500", bg: "bg-emerald-600/20 border-emerald-500/30" },
+  problem:     { label: "Anomaly Detected",    color: "text-rose-400",    bg: "bg-rose-600/10 border-rose-500/20" },
 };
 
 function formatDate(iso: string) {
@@ -58,7 +60,6 @@ function SellerProductCard({ product, onDelete, onEdit, canAlwaysDelete = false 
   const [discount, setDiscount] = useState(product.discountPercent || 10);
   const wishlistCount = getWishlistCountForProduct(product.id);
 
-  // Sync state if prop changes (important for UI consistency)
   useEffect(() => {
     if (product.discountPercent !== undefined) {
       setDiscount(product.discountPercent);
@@ -66,48 +67,55 @@ function SellerProductCard({ product, onDelete, onEdit, canAlwaysDelete = false 
   }, [product.discountPercent]);
 
   return (
-    <div className="p-4 bg-card border rounded-2xl shadow-sm space-y-4">
-      <div className="flex gap-4 items-start">
-        <img src={product.image} alt={product.name}
-          className="w-16 h-16 rounded-xl object-cover flex-shrink-0 bg-muted"
-          onError={(e) => { (e.target as HTMLImageElement).src = "https://placehold.co/64x64?text=?"; }} />
-        <div className="flex-1 min-w-0">
-          <div className="flex items-start justify-between gap-2">
+    <div className="group relative glass-card p-6 rounded-[2.5rem] border-white/5 bg-white/5 hover:border-orange-500/20 transition-all duration-500 shadow-xl">
+      <div className="flex gap-6 items-start">
+        <div className="relative">
+          <div className="absolute -inset-1 bg-gradient-to-br from-orange-500 to-orange-700 rounded-2xl blur opacity-0 group-hover:opacity-20 transition duration-500" />
+          <img src={product.image} alt={product.name}
+            className="relative w-24 h-24 rounded-2xl object-cover flex-shrink-0 bg-white/5 border border-white/10"
+            onError={(e) => { (e.target as HTMLImageElement).src = "https://placehold.co/100x100?text=?"; }} />
+        </div>
+        
+        <div className="flex-1 min-w-0 space-y-2">
+          <div className="flex items-start justify-between gap-4">
             <div>
-              <h3 className="font-bold text-sm truncate">{product.name}</h3>
-              <div className="flex items-center gap-2">
-                <p className="text-xs text-muted-foreground">{product.category}</p>
-                <span className="text-muted-foreground">·</span>
+              <h3 className="text-lg font-black tracking-tight text-white group-hover:text-orange-500 transition-colors uppercase italic">{product.name}</h3>
+              <div className="flex items-center gap-3 mt-1">
+                <span className="text-[10px] font-black text-white/40 uppercase tracking-widest">{product.category}</span>
+                <div className="w-1 h-1 bg-white/10 rounded-full" />
                 {product.isFlashSale ? (
-                  <div className="flex items-center gap-1.5">
-                    <p className="text-xs font-bold text-amber-600">{formatPrice(product.price * (1 - (product.discountPercent || 0) / 100))}</p>
-                    <p className="text-[10px] text-muted-foreground line-through opacity-60">{formatPrice(product.price)}</p>
+                  <div className="flex items-center gap-2">
+                    <p className="text-sm font-black text-orange-500 italic">{formatPrice(product.price * (1 - (product.discountPercent || 0) / 100))}</p>
+                    <p className="text-[10px] text-white/20 line-through font-bold">{formatPrice(product.price)}</p>
                   </div>
                 ) : (
-                  <p className="text-xs text-muted-foreground">{formatPrice(product.price)}</p>
+                  <p className="text-sm font-black text-white/60 italic">{formatPrice(product.price)}</p>
                 )}
               </div>
             </div>
-            <span className={`inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full flex-shrink-0 ${cfg.color}`}>
-              {cfg.icon}{cfg.label}
-            </span>
+            <div className={`px-4 py-1 rounded-full text-[9px] font-black uppercase tracking-widest border ${cfg.color.replace("dark:bg-", "bg-").replace("dark:text-", "text-")}`}>
+               {cfg.label}
+            </div>
           </div>
-          <div className="flex items-center gap-2 mt-1">
-            <p className="text-xs text-muted-foreground line-clamp-1">{product.description}</p>
+          
+          <div className="flex items-center gap-4">
+            <p className="text-xs font-bold text-white/30 line-clamp-1">{product.description}</p>
             {wishlistCount > 0 && (
-              <span className="inline-flex items-center gap-1 text-[10px] font-bold text-red-500 bg-red-50 dark:bg-red-950/30 px-1.5 py-0.5 rounded-lg border border-red-100 dark:border-red-900/50">
-                <Heart className="h-2.5 w-2.5 fill-current" /> {wishlistCount}
-              </span>
+              <div className="flex items-center gap-1.5 px-2 py-0.5 bg-red-500/10 text-red-500 rounded-lg border border-red-500/20">
+                <Heart className="h-2.5 w-2.5 fill-current" />
+                <span className="text-[10px] font-black">{wishlistCount}</span>
+              </div>
             )}
           </div>
         </div>
-        <div className="flex flex-col gap-2 flex-shrink-0">
-          <Button variant="ghost" size="icon" className="h-8 w-8 text-primary hover:bg-primary/10"
+
+        <div className="flex flex-col gap-2">
+          <Button variant="ghost" size="icon" className="h-10 w-10 rounded-xl bg-white/5 hover:bg-orange-500/10 text-orange-500"
             onClick={() => onEdit(product)}>
-            <Pencil className="h-3.5 w-3.5" />
+            <Pencil className="h-4 w-4" />
           </Button>
           {(canAlwaysDelete || product.status !== "approved") && (
-            <Button variant="ghost" size="icon" className="h-8 w-8 text-red-500 hover:bg-red-50"
+            <Button variant="ghost" size="icon" className="h-10 w-10 rounded-xl bg-white/5 hover:bg-red-500/10 text-red-500"
               onClick={() => onDelete(product.id)}>
               <Trash2 className="h-4 w-4" />
             </Button>
@@ -116,33 +124,37 @@ function SellerProductCard({ product, onDelete, onEdit, canAlwaysDelete = false 
       </div>
 
       {product.status === "approved" && (
-        <div className="flex items-center justify-between pt-3 border-t gap-4">
-          <div className="flex items-center gap-2">
-            <Zap className={`h-4 w-4 ${product.isFlashSale ? "text-amber-500 fill-amber-500" : "text-muted-foreground"}`} />
-            <span className="text-xs font-bold">Flash Sale</span>
+        <div className="mt-6 pt-6 border-t border-white/5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="flex items-center justify-between px-4 py-2 bg-white/5 rounded-2xl border border-white/5">
+            <div className="flex items-center gap-3">
+              <Zap className={`h-4 w-4 ${product.isFlashSale ? "text-orange-500 fill-orange-500" : "text-white/20"}`} />
+              <span className="text-[10px] font-black uppercase tracking-widest text-white/60">Flash Sale</span>
+            </div>
             <button 
               onClick={() => toggleFlashSale(product.id, !product.isFlashSale, discount)}
               className="transition-transform active:scale-90"
             >
-              {product.isFlashSale ? <ToggleRight className="h-6 w-6 text-amber-500" /> : <ToggleLeft className="h-6 w-6 text-muted-foreground opacity-30" />}
+              {product.isFlashSale ? <ToggleRight className="h-7 w-7 text-orange-500" /> : <ToggleLeft className="h-7 w-7 text-white/10" />}
             </button>
           </div>
           
-          <div className="flex items-center gap-2 bg-muted/30 px-3 py-1.5 rounded-xl border border-border shadow-sm">
-            <span className="text-[10px] font-black text-muted-foreground uppercase tracking-tight">Stok</span>
-            <input 
-              type="number" 
-              value={product.stock} 
-              min="0"
-              onChange={(e) => updateStock(product.id, Number(e.target.value))}
-              className="w-12 h-7 text-center text-sm font-black bg-white dark:bg-slate-950 text-slate-900 dark:text-white border border-border rounded-lg focus:outline-none focus:border-primary transition-colors"
-            />
-            {product.stock === 0 && <span className="text-[9px] font-black text-red-500 uppercase ml-1 animate-pulse">Habis!</span>}
+          <div className="flex items-center justify-between px-4 py-2 bg-white/5 rounded-2xl border border-white/5">
+            <span className="text-[10px] font-black uppercase tracking-widest text-white/60">Stok Assets</span>
+            <div className="flex items-center gap-3">
+              <input 
+                type="number" 
+                value={product.stock} 
+                min="0"
+                onChange={(e) => updateStock(product.id, Number(e.target.value))}
+                className="w-12 bg-transparent text-center text-xs font-black text-white focus:outline-none"
+              />
+              {product.stock === 0 && <span className="text-[9px] font-black text-red-500 uppercase animate-pulse">Out!</span>}
+            </div>
           </div>
 
           {product.isFlashSale && (
-            <div className="flex items-center gap-2 bg-amber-50 dark:bg-amber-950/30 px-3 py-1.5 rounded-xl border-2 border-amber-200 dark:border-amber-800/50 shadow-sm animate-in zoom-in-95 duration-200">
-              <span className="text-[10px] font-black text-amber-700 dark:text-amber-400 uppercase tracking-tight">Diskon</span>
+            <div className="flex items-center justify-between px-4 py-2 bg-orange-600/10 rounded-2xl border border-orange-500/20 animate-in zoom-in-95">
+              <span className="text-[10px] font-black uppercase tracking-widest text-orange-500">Discount %</span>
               <div className="flex items-center gap-1">
                 <input 
                   type="number" 
@@ -155,14 +167,8 @@ function SellerProductCard({ product, onDelete, onEdit, canAlwaysDelete = false 
                     setDiscount(val);
                     toggleFlashSale(product.id, true, val);
                   }}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      (e.target as HTMLInputElement).blur();
-                    }
-                  }}
-                  className="w-12 h-7 text-center text-sm font-black bg-white dark:bg-slate-950 text-slate-900 dark:text-white border-2 border-amber-300 dark:border-amber-700 rounded-lg focus:outline-none focus:border-amber-500 transition-colors"
+                  className="w-10 bg-transparent text-center text-xs font-black text-orange-500 focus:outline-none"
                 />
-                <span className="text-xs font-black text-amber-700 dark:text-amber-400">%</span>
               </div>
             </div>
           )}
@@ -183,73 +189,82 @@ function AdminProductCard({ product, onDelete, onEdit }: { product: AdminProduct
   }, [product.discountPercent]);
 
   return (
-    <div className="p-4 bg-card border rounded-2xl shadow-sm space-y-4">
-      <div className="flex gap-4 items-start">
-        <img src={product.image} alt={product.name}
-          className="w-16 h-16 rounded-xl object-cover flex-shrink-0 bg-muted"
-          onError={(e) => { (e.target as HTMLImageElement).src = "https://placehold.co/64x64?text=?"; }} />
-        <div className="flex-1 min-w-0">
-          <div className="flex items-start justify-between gap-2">
+    <div className="group relative glass-card p-6 rounded-[2.5rem] border-white/5 bg-white/5 hover:border-orange-500/20 transition-all duration-500 shadow-xl">
+      <div className="flex gap-6 items-start">
+        <div className="relative">
+          <div className="absolute -inset-1 bg-gradient-to-br from-orange-500 to-orange-700 rounded-2xl blur opacity-0 group-hover:opacity-20 transition duration-500" />
+          <img src={product.image} alt={product.name}
+            className="relative w-24 h-24 rounded-2xl object-cover flex-shrink-0 bg-white/5 border border-white/10"
+            onError={(e) => { (e.target as HTMLImageElement).src = "https://placehold.co/100x100?text=?"; }} />
+        </div>
+        
+        <div className="flex-1 min-w-0 space-y-2">
+          <div className="flex items-start justify-between gap-4">
             <div>
-              <h3 className="font-bold text-sm truncate">{product.name}</h3>
-              <div className="flex items-center gap-2">
-                <p className="text-xs text-muted-foreground">{product.category}</p>
-                <span className="text-muted-foreground">·</span>
+              <h3 className="text-lg font-black tracking-tight text-white group-hover:text-orange-500 transition-colors uppercase italic">{product.name}</h3>
+              <div className="flex items-center gap-3 mt-1">
+                <span className="text-[10px] font-black text-white/40 uppercase tracking-widest">{product.category}</span>
+                <div className="w-1 h-1 bg-white/10 rounded-full" />
                 {product.isFlashSale ? (
-                  <div className="flex items-center gap-1.5">
-                    <p className="text-xs font-bold text-amber-600">{formatPrice(product.price * (1 - (product.discountPercent || 0) / 100))}</p>
-                    <p className="text-[10px] text-muted-foreground line-through opacity-60">{formatPrice(product.price)}</p>
+                  <div className="flex items-center gap-2">
+                    <p className="text-sm font-black text-orange-500 italic">{formatPrice(product.price * (1 - (product.discountPercent || 0) / 100))}</p>
+                    <p className="text-[10px] text-white/20 line-through font-bold">{formatPrice(product.price)}</p>
                   </div>
                 ) : (
-                  <p className="text-xs text-muted-foreground">{formatPrice(product.price)}</p>
+                  <p className="text-sm font-black text-white/60 italic">{formatPrice(product.price)}</p>
                 )}
               </div>
             </div>
-            <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 dark:bg-blue-950/50 dark:text-blue-300">
-              <ShieldCheck className="h-3 w-3" />Admin Toko
-            </span>
+            <div className="px-4 py-1 rounded-full text-[9px] font-black uppercase tracking-widest border border-orange-500/20 bg-orange-600/10 text-orange-500 flex items-center gap-2">
+              <ShieldCheck className="h-3 w-3" /> Admin Asset
+            </div>
           </div>
-          <p className="text-xs text-muted-foreground mt-1 line-clamp-1">{product.description}</p>
+          <p className="text-xs font-bold text-white/30 line-clamp-1">{product.description}</p>
         </div>
-        <div className="flex flex-col gap-2 flex-shrink-0">
-          <Button variant="ghost" size="icon" className="h-8 w-8 text-primary hover:bg-primary/10"
+
+        <div className="flex flex-col gap-2">
+          <Button variant="ghost" size="icon" className="h-10 w-10 rounded-xl bg-white/5 hover:bg-orange-500/10 text-orange-500"
             onClick={() => onEdit(product)}>
-            <Pencil className="h-3.5 w-3.5" />
+            <Pencil className="h-4 w-4" />
           </Button>
-          <Button variant="ghost" size="icon" className="h-8 w-8 text-red-500 hover:bg-red-50"
+          <Button variant="ghost" size="icon" className="h-10 w-10 rounded-xl bg-white/5 hover:bg-red-500/10 text-red-500"
             onClick={() => onDelete(product.id)}>
             <Trash2 className="h-4 w-4" />
           </Button>
         </div>
       </div>
 
-      <div className="flex items-center justify-between pt-3 border-t gap-4">
-        <div className="flex items-center gap-2">
-          <Zap className={`h-4 w-4 ${product.isFlashSale ? "text-amber-500 fill-amber-500" : "text-muted-foreground"}`} />
-          <span className="text-xs font-bold">Flash Sale</span>
-          <button 
-            onClick={() => toggleFlashSale(product.id, !product.isFlashSale, discount)}
-            className="transition-transform active:scale-90"
-          >
-            {product.isFlashSale ? <ToggleRight className="h-6 w-6 text-amber-500" /> : <ToggleLeft className="h-6 w-6 text-muted-foreground opacity-30" />}
-          </button>
-        </div>
-
-        <div className="flex items-center gap-2 bg-muted/30 px-3 py-1.5 rounded-xl border border-border shadow-sm">
-          <span className="text-[10px] font-black text-muted-foreground uppercase tracking-tight">Stok</span>
-          <input 
-            type="number" 
-            value={product.stock} 
-            min="0"
-            onChange={(e) => updateStock(product.id, Number(e.target.value))}
-            className="w-12 h-7 text-center text-sm font-black bg-white dark:bg-slate-950 text-slate-900 dark:text-white border border-border rounded-lg focus:outline-none focus:border-primary transition-colors"
-          />
-          {product.stock === 0 && <span className="text-[9px] font-black text-red-500 uppercase ml-1 animate-pulse">Habis!</span>}
-        </div>
-        
-        {product.isFlashSale && (
-            <div className="flex items-center gap-2 bg-amber-50 dark:bg-amber-950/30 px-3 py-1.5 rounded-xl border-2 border-amber-200 dark:border-amber-800/50 shadow-sm animate-in zoom-in-95 duration-200">
-              <span className="text-[10px] font-black text-amber-700 dark:text-amber-400 uppercase tracking-tight">Diskon</span>
+      <div className="mt-6 pt-6 border-t border-white/5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="flex items-center justify-between px-4 py-2 bg-white/5 rounded-2xl border border-white/5">
+            <div className="flex items-center gap-3">
+              <Zap className={`h-4 w-4 ${product.isFlashSale ? "text-orange-500 fill-orange-500" : "text-white/20"}`} />
+              <span className="text-[10px] font-black uppercase tracking-widest text-white/60">Flash Sale</span>
+            </div>
+            <button 
+              onClick={() => toggleFlashSale(product.id, !product.isFlashSale, discount)}
+              className="transition-transform active:scale-90"
+            >
+              {product.isFlashSale ? <ToggleRight className="h-7 w-7 text-orange-500" /> : <ToggleLeft className="h-7 w-7 text-white/10" />}
+            </button>
+          </div>
+          
+          <div className="flex items-center justify-between px-4 py-2 bg-white/5 rounded-2xl border border-white/5">
+            <span className="text-[10px] font-black uppercase tracking-widest text-white/60">Stok Assets</span>
+            <div className="flex items-center gap-3">
+              <input 
+                type="number" 
+                value={product.stock} 
+                min="0"
+                onChange={(e) => updateStock(product.id, Number(e.target.value))}
+                className="w-12 bg-transparent text-center text-xs font-black text-white focus:outline-none"
+              />
+              {product.stock === 0 && <span className="text-[9px] font-black text-red-500 uppercase animate-pulse">Out!</span>}
+            </div>
+          </div>
+          
+          {product.isFlashSale && (
+            <div className="flex items-center justify-between px-4 py-2 bg-orange-600/10 rounded-2xl border border-orange-500/20 animate-in zoom-in-95">
+              <span className="text-[10px] font-black uppercase tracking-widest text-orange-500">Discount %</span>
               <div className="flex items-center gap-1">
                 <input 
                   type="number" 
@@ -262,17 +277,11 @@ function AdminProductCard({ product, onDelete, onEdit }: { product: AdminProduct
                     setDiscount(val);
                     toggleFlashSale(product.id, true, val);
                   }}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      (e.target as HTMLInputElement).blur();
-                    }
-                  }}
-                  className="w-12 h-7 text-center text-sm font-black bg-white dark:bg-slate-950 text-slate-900 dark:text-white border-2 border-amber-300 dark:border-amber-700 rounded-lg focus:outline-none focus:border-amber-500 transition-colors"
+                  className="w-10 bg-transparent text-center text-xs font-black text-orange-500 focus:outline-none"
                 />
-                <span className="text-xs font-black text-amber-700 dark:text-amber-400">%</span>
               </div>
             </div>
-        )}
+          )}
       </div>
     </div>
   );
@@ -378,88 +387,148 @@ function ProductForm({ onSuccess, isAdmin, product }: { onSuccess: () => void; i
     setSpecs((p) => p.map((s, j) => j === i ? { ...s, [field]: val } : s));
 
   const field = (id: keyof FormState, label: string, node: React.ReactNode, err?: string) => (
-    <div className="space-y-1.5"><Label htmlFor={id} className="text-sm font-semibold">{label}</Label>{node}{err && <p className="text-xs text-red-500">{err}</p>}</div>
+    <div className="space-y-2">
+      <Label htmlFor={id} className="text-[10px] font-black uppercase tracking-widest text-white/40 ml-1">{label}</Label>
+      {node}
+      {err && <p className="text-[10px] font-bold text-rose-500 ml-1 uppercase tracking-tight">/! {err}</p>}
+    </div>
   );
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      {field("name", "Nama Produk", <Input id="name" placeholder="Nama produk" value={form.name} onChange={set("name")} className="h-10" />, errors.name)}
-      <div className="grid grid-cols-2 gap-4">
-        {field("category", "Kategori",
-          <select id="category" value={form.category} onChange={set("category")} className="w-full h-10 border border-input rounded-md px-3 text-sm bg-background focus:outline-none focus:ring-2 focus:ring-ring">
-            {CATEGORIES.map((c) => <option key={c}>{c}</option>)}
-          </select>)}
-        {field("price", "Harga (Rp)", <Input id="price" type="number" min="1" placeholder="150000" value={form.price} onChange={set("price")} className="h-10" />, errors.price)}
-      </div>
-      <div className="grid grid-cols-2 gap-4">
-        {field("stock", "Jumlah Stok", <Input id="stock" type="number" min="0" placeholder="50" value={form.stock} onChange={set("stock")} className="h-10" />, errors.stock)}
-        <div className="pt-8 text-[10px] text-muted-foreground italic leading-tight">
-          Stok akan berkurang otomatis saat pembeli melakukan checkout.
-        </div>
-      </div>
-      {field("description", "Deskripsi Singkat", <Input id="description" placeholder="1–2 kalimat ringkasan" value={form.description} onChange={set("description")} className="h-10" />, errors.description)}
-      {field("longDescription", "Deskripsi Lengkap",
-        <textarea id="longDescription" rows={3} placeholder="Jelaskan produk secara lengkap…" value={form.longDescription} onChange={set("longDescription")}
-          className="w-full border border-input rounded-md px-3 py-2 text-sm bg-background focus:outline-none focus:ring-2 focus:ring-ring resize-none" />, errors.longDescription)}
-      {field("image", "URL Gambar Produk", <Input id="image" type="url" placeholder="https://…" value={form.image} onChange={set("image")} className="h-10" />, errors.image)}
-      {form.image && (
-        <div className="rounded-xl overflow-hidden border w-24 h-24">
-          <img src={form.image} alt="preview" className="w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).src = "https://placehold.co/96x96?text=Error"; }} />
-        </div>
-      )}
-      <div className="border rounded-xl p-4 space-y-3">
-        <label className="flex items-center gap-2 cursor-pointer select-none">
-          <input type="checkbox" checked={useSpecs} onChange={(e) => setUseSpecs(e.target.checked)} className="h-4 w-4 rounded border-input accent-primary" />
-          <span className="text-sm font-semibold">Tambah Spesifikasi</span><span className="text-xs text-muted-foreground">(opsional)</span>
-        </label>
-        {useSpecs && (
-          <div className="space-y-2">
-            {specs.map((spec, i) => (
-              <div key={i} className="flex gap-2 items-center">
-                <Input placeholder="Label" value={spec.label} onChange={(e) => setSpec(i, "label", e.target.value)} className="h-9 flex-1 text-xs" />
-                <Input placeholder="Nilai" value={spec.value} onChange={(e) => setSpec(i, "value", e.target.value)} className="h-9 flex-1 text-xs" />
-                {specs.length > 1 && <Button type="button" variant="ghost" size="icon" className="h-9 w-9 text-red-500 flex-shrink-0" onClick={() => removeSpec(i)}><X className="h-4 w-4" /></Button>}
-              </div>
-            ))}
-            <Button type="button" variant="outline" size="sm" className="text-xs h-8" onClick={addSpec}><Plus className="h-3.5 w-3.5 mr-1" />Tambah Baris</Button>
+    <form onSubmit={handleSubmit} className="space-y-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <div className="space-y-8">
+          {field("name", "Asset Identity", <Input id="name" placeholder="Rare Item Name" value={form.name} onChange={set("name")} className="glass-input h-14 rounded-2xl border-white/10" />, errors.name)}
+          
+          <div className="grid grid-cols-2 gap-6">
+            {field("category", "Asset Category",
+              <select id="category" value={form.category} onChange={set("category")} className="w-full h-14 bg-white/5 border border-white/10 rounded-2xl text-xs font-black text-white px-4 focus:outline-none focus:border-orange-500 appearance-none">
+                {CATEGORIES.map((c) => <option key={c} className="bg-background">{c}</option>)}
+              </select>)}
+            {field("price", "Valuation (Rp)", <Input id="price" type="number" min="1" placeholder="0" value={form.price} onChange={set("price")} className="glass-input h-14 rounded-2xl border-white/10" />, errors.price)}
           </div>
-        )}
+
+          <div className="grid grid-cols-2 gap-6">
+            {field("stock", "Asset Inventory", <Input id="stock" type="number" min="0" placeholder="0" value={form.stock} onChange={set("stock")} className="glass-input h-14 rounded-2xl border-white/10" />, errors.stock)}
+            <div className="flex items-center">
+               <p className="text-[9px] text-white/20 font-bold uppercase tracking-widest leading-tight italic">Inventory levels synchronize automatically post-transaction.</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="space-y-8">
+          {field("image", "Visualization Link", <Input id="image" type="url" placeholder="https://..." value={form.image} onChange={set("image")} className="glass-input h-14 rounded-2xl border-white/10" />, errors.image)}
+          
+          <div className="flex gap-6 items-center">
+            {form.image ? (
+              <div className="relative group/img">
+                <div className="absolute -inset-1 bg-orange-600 rounded-2xl blur opacity-20 group-hover/img:opacity-40 transition duration-500" />
+                <img src={form.image} alt="preview" className="relative w-28 h-28 rounded-2xl object-cover border border-white/10 bg-white/5" onError={(e) => { (e.target as HTMLImageElement).src = "https://placehold.co/112x112?text=Error"; }} />
+              </div>
+            ) : (
+              <div className="w-28 h-28 rounded-2xl border-2 border-dashed border-white/5 flex items-center justify-center text-white/10 italic text-[10px] font-black uppercase text-center px-4">Waiting for visual...</div>
+            )}
+            <div className="flex-1">
+              {field("description", "Brief Intel", <Input id="description" placeholder="Short asset overview" value={form.description} onChange={set("description")} className="glass-input h-14 rounded-2xl border-white/10" />, errors.description)}
+            </div>
+          </div>
+
+          {field("longDescription", "Detailed Specification",
+            <textarea id="longDescription" rows={3} placeholder="Provide comprehensive technical details and history..." value={form.longDescription} onChange={set("longDescription")}
+              className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-xs font-medium text-white/80 focus:outline-none focus:border-orange-500 resize-none min-h-[112px]" />, errors.longDescription)}
+        </div>
       </div>
 
-      <div className="border rounded-xl p-4 space-y-4 bg-blue-50/30 dark:bg-blue-950/10 border-blue-100 dark:border-blue-900/30">
-        <label className="flex items-center gap-2 cursor-pointer select-none">
-          <input 
-            type="checkbox" 
-            checked={form.isPreOrder} 
-            onChange={(e) => setForm(f => ({ ...f, isPreOrder: e.target.checked }))} 
-            className="h-4 w-4 rounded border-input accent-primary" 
-          />
-          <span className="text-sm font-bold flex items-center gap-2">
-            <Clock className="h-4 w-4 text-blue-500" /> Aktifkan Pre-Order
-          </span>
-        </label>
-        
-        {form.isPreOrder && (
-          <div className="space-y-2 animate-in fade-in slide-in-from-top-2 duration-300">
-            <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Waktu Perilisan</Label>
-            <Input 
-              type="datetime-local" 
-              value={form.releaseDate} 
-              onChange={e => setForm(f => ({ ...f, releaseDate: e.target.value }))}
-              className="h-10"
-            />
-            <p className="text-[10px] text-blue-600 dark:text-blue-400 font-medium italic">
-              * MySultan dapat membeli 30 menit sebelum waktu ini.
-            </p>
-          </div>
-        )}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pt-4">
+        {/* Specs Protocol */}
+        <div className="glass-card rounded-[2.5rem] p-8 border-white/5 bg-white/5 space-y-6">
+          <label className="flex items-center justify-between cursor-pointer group">
+            <div className="flex items-center gap-3">
+              <div className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${useSpecs ? "bg-orange-600 text-white" : "bg-white/5 text-white/20"}`}>
+                <ClipboardList className="h-4 w-4" />
+              </div>
+              <span className="text-xs font-black uppercase tracking-widest text-white italic group-hover:text-orange-500 transition-colors">Advanced Specs Protocol</span>
+            </div>
+            <input type="checkbox" checked={useSpecs} onChange={(e) => setUseSpecs(e.target.checked)} className="hidden" />
+            <div className={`w-10 h-5 rounded-full relative transition-colors ${useSpecs ? "bg-orange-600" : "bg-white/10"}`}>
+              <div className={`absolute top-1 w-3 h-3 rounded-full bg-white transition-all ${useSpecs ? "left-6" : "left-1"}`} />
+            </div>
+          </label>
+          
+          {useSpecs && (
+            <motion.div 
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: "auto", opacity: 1 }}
+              className="space-y-4 pt-2"
+            >
+              {specs.map((spec, i) => (
+                <div key={i} className="flex gap-3 items-center group/spec">
+                  <Input placeholder="Label" value={spec.label} onChange={(e) => setSpec(i, "label", e.target.value)} className="h-10 rounded-xl bg-white/5 border-white/5 text-[10px] font-bold uppercase tracking-widest focus:border-orange-500/50" />
+                  <Input placeholder="Val" value={spec.value} onChange={(e) => setSpec(i, "value", e.target.value)} className="h-10 rounded-xl bg-white/5 border-white/5 text-[10px] font-bold uppercase tracking-widest focus:border-orange-500/50" />
+                  {specs.length > 1 && (
+                    <button type="button" onClick={() => removeSpec(i)} className="p-2 text-white/10 hover:text-rose-500 transition-colors">
+                      <X className="h-4 w-4" />
+                    </button>
+                  )}
+                </div>
+              ))}
+              <Button type="button" variant="ghost" className="w-full h-10 rounded-xl border border-white/5 text-[9px] font-black uppercase tracking-widest text-white/20 hover:text-white" onClick={addSpec}>
+                <Plus className="h-3.5 w-3.5 mr-2" /> Append Data Row
+              </Button>
+            </motion.div>
+          )}
+        </div>
+
+        {/* Pre-Order Protocol */}
+        <div className={`glass-card rounded-[2.5rem] p-8 border-white/5 transition-colors duration-500 ${form.isPreOrder ? "bg-orange-600/5 border-orange-500/20" : "bg-white/5"}`}>
+          <label className="flex items-center justify-between cursor-pointer group">
+            <div className="flex items-center gap-3">
+              <div className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${form.isPreOrder ? "bg-orange-600 text-white" : "bg-white/5 text-white/20"}`}>
+                <Clock className="h-4 w-4" />
+              </div>
+              <span className="text-xs font-black uppercase tracking-widest text-white italic group-hover:text-orange-500 transition-colors">Pre-Order Protocol</span>
+            </div>
+            <input type="checkbox" checked={form.isPreOrder} onChange={(e) => setForm(f => ({ ...f, isPreOrder: e.target.checked }))} className="hidden" />
+            <div className={`w-10 h-5 rounded-full relative transition-colors ${form.isPreOrder ? "bg-orange-600" : "bg-white/10"}`}>
+              <div className={`absolute top-1 w-3 h-3 rounded-full bg-white transition-all ${form.isPreOrder ? "left-6" : "left-1"}`} />
+            </div>
+          </label>
+          
+          {form.isPreOrder && (
+            <motion.div 
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: "auto", opacity: 1 }}
+              className="space-y-4 pt-6"
+            >
+              <div className="space-y-2">
+                <Label className="text-[9px] font-black uppercase tracking-widest text-orange-500 ml-1">Release Schedule</Label>
+                <Input type="datetime-local" value={form.releaseDate} onChange={e => setForm(f => ({ ...f, releaseDate: e.target.value }))} className="glass-input h-12 rounded-xl border-orange-500/20 text-white" />
+              </div>
+              <p className="text-[9px] text-orange-500/60 font-black uppercase tracking-widest italic leading-relaxed px-1">
+                * Elite status enables 30-minute early access priority.
+              </p>
+            </motion.div>
+          )}
+        </div>
       </div>
-      <Button type="submit" className="w-full h-10 font-semibold" disabled={loading}>
-        {loading ? <span className="flex items-center gap-2"><span className="h-4 w-4 rounded-full border-2 border-white border-t-transparent animate-spin" />{product ? "Menyimpan…" : "Mengirim…"}</span>
-          : product ? <span className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4" />Simpan Perubahan</span>
-          : isAdmin ? <span className="flex items-center gap-2"><PlusCircle className="h-4 w-4" />Tambah ke Toko</span>
-          : <span className="flex items-center gap-2"><PlusCircle className="h-4 w-4" />Kirim untuk Ditinjau</span>}
-      </Button>
+
+      <div className="pt-6">
+        <Button type="submit" className="w-full h-20 rounded-[2.5rem] bg-orange-600 hover:bg-orange-700 text-white shadow-2xl shadow-orange-600/20 disabled:opacity-50 transition-all" disabled={loading}>
+          {loading ? (
+            <div className="flex items-center gap-3">
+              <div className="h-5 w-5 rounded-full border-3 border-white border-t-transparent animate-spin" />
+              <span className="text-xs font-black uppercase tracking-[0.3em] italic">Transmitting...</span>
+            </div>
+          ) : (
+            <div className="flex items-center gap-3">
+              {product ? <CheckCircle2 className="h-6 w-6" /> : <PlusCircle className="h-6 w-6" />}
+              <span className="text-sm font-black uppercase tracking-[0.4em] italic">
+                {product ? "Confirm Asset Modifications" : (isAdmin ? "Execute Direct Deployment" : "Initialize Asset Review")}
+              </span>
+            </div>
+          )}
+        </Button>
+      </div>
     </form>
   );
 }
@@ -472,67 +541,122 @@ function SellerOrderCard({ order, onProcess, onShip, onChat }: {
   onChat: (order: PurchasedOrder) => void;
 }) {
   const [expanded, setExpanded] = useState(false);
-  const cfg = ORDER_STATUS_CONFIG[order.status] || { label: order.status || "Unknown", color: "text-gray-700", bg: "bg-gray-100" };
+  const cfg = ORDER_STATUS_CONFIG[order.status] || { label: order.status || "Unknown", color: "text-gray-400", bg: "bg-white/5" };
 
   return (
-    <div className="bg-card border rounded-2xl overflow-hidden shadow-sm">
-      <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-3 border-b bg-muted/20">
-        <div className="flex items-center gap-2">
-          <Package className="h-4 w-4 text-primary" />
-          <span className="font-bold text-primary text-sm">{order.orderNumber}</span>
-          <span className="text-xs text-muted-foreground">· {formatDate(order.date)}</span>
+    <div className="glass-card rounded-[2.5rem] overflow-hidden border-white/5 bg-white/5 shadow-xl group hover:border-orange-500/20 transition-all duration-500">
+      <div className="flex flex-wrap items-center justify-between gap-4 px-8 py-6 border-b border-white/5 bg-white/5">
+        <div className="flex items-center gap-4">
+          <div className="w-10 h-10 bg-orange-600/10 rounded-xl flex items-center justify-center">
+            <Package className="h-5 w-5 text-orange-500" />
+          </div>
+          <div>
+            <span className="block font-black text-orange-500 text-sm tracking-tighter italic">{order.orderNumber}</span>
+            <span className="text-[10px] font-bold text-white/30 uppercase tracking-widest">{formatDate(order.date)}</span>
+          </div>
         </div>
-        <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${cfg.bg} ${cfg.color}`}>{cfg.label}</span>
+        <span className={`text-[9px] font-black uppercase tracking-[0.2em] px-4 py-1.5 rounded-full border border-white/5 ${cfg.bg} ${cfg.color}`}>
+          {cfg.label}
+        </span>
       </div>
+      
       {order.shippingInfo && (
-        <div className="px-4 py-2 border-b bg-muted/10 text-xs text-muted-foreground">
-          📦 {order.shippingInfo.firstName} {order.shippingInfo.lastName} · 📍 {order.shippingInfo.address}
+        <div className="px-8 py-4 border-b border-white/5 bg-white/5 flex items-center gap-3">
+          <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center">
+            <Truck className="h-3.5 w-3.5 text-white/40" />
+          </div>
+          <div className="text-[10px] font-bold text-white/40 uppercase tracking-widest leading-relaxed">
+            Shipping to: <span className="text-white/60">{order.shippingInfo.firstName} {order.shippingInfo.lastName}</span> 
+            <span className="mx-2 opacity-20">|</span> 
+            {order.shippingInfo.address}
+          </div>
         </div>
       )}
-      <button className="w-full flex items-center justify-between px-4 py-2 hover:bg-muted/20 transition-colors text-xs text-primary font-semibold"
-        onClick={() => setExpanded((v) => !v)}>
-        <span>{order.items.length} produk · {formatPrice(order.grandTotal)}</span>
-        {expanded ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
-      </button>
-      {expanded && (
-        <div className="px-4 pb-3 border-t divide-y">
-          {order.items.map((item) => (
-            <div key={item.id} className="flex gap-3 items-center py-2">
-              <img src={item.image} alt={item.name} className="w-10 h-10 rounded-lg object-cover bg-muted flex-shrink-0" />
-              <div className="flex-1 min-w-0">
-                <p className="text-xs font-semibold truncate">{item.name}</p>
-                <p className="text-[11px] text-muted-foreground">x{item.quantity} · {formatPrice(item.price)}</p>
+
+      <button 
+        className="w-full flex items-center justify-between px-8 py-4 hover:bg-white/5 transition-colors group/btn"
+        onClick={() => setExpanded((v) => !v)}
+      >
+        <div className="flex items-center gap-3">
+          <div className="flex -space-x-3">
+            {order.items.slice(0, 3).map((item, idx) => (
+              <img key={idx} src={item.image} className="w-8 h-8 rounded-lg border-2 border-[#0a0a0b] object-cover bg-white/5" alt="" />
+            ))}
+            {order.items.length > 3 && (
+              <div className="w-8 h-8 rounded-lg border-2 border-[#0a0a0b] bg-white/5 flex items-center justify-center text-[10px] font-black text-white/40">
+                +{order.items.length - 3}
               </div>
-            </div>
-          ))}
+            )}
+          </div>
+          <span className="text-xs font-black text-white italic tracking-tight">{order.items.length} Asset{order.items.length > 1 ? "s" : ""}</span>
         </div>
-      )}
-      <div className="flex gap-2 px-4 pb-4 pt-2 flex-wrap">
+        <div className="flex items-center gap-4">
+          <span className="text-lg font-black text-orange-500 italic">{formatPrice(order.grandTotal)}</span>
+          {expanded ? <ChevronUp className="h-4 w-4 text-white/20" /> : <ChevronDown className="h-4 w-4 text-white/20" />}
+        </div>
+      </button>
+
+      <AnimatePresence>
+        {expanded && (
+          <motion.div 
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            className="px-8 pb-6 border-t border-white/5 divide-y divide-white/5"
+          >
+            {order.items.map((item) => (
+              <div key={item.id} className="flex gap-4 items-center py-4">
+                <img src={item.image} alt={item.name} className="w-12 h-12 rounded-xl object-cover bg-white/5 border border-white/10 flex-shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-black text-white uppercase italic tracking-tight truncate">{item.name}</p>
+                  <p className="text-[10px] font-bold text-white/30 uppercase tracking-widest mt-0.5">Quantity: {item.quantity} · {formatPrice(item.price)}</p>
+                </div>
+              </div>
+            ))}
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <div className="flex gap-4 px-8 pb-8 pt-4 flex-wrap">
         {order.status === "placed" && (
-          <Button size="sm" onClick={() => onProcess(order.id)} className="bg-amber-500 hover:bg-amber-600 text-white gap-1.5 text-xs">
-            <CheckCircle2 className="h-3.5 w-3.5" />Proses Pesanan
+          <Button 
+            onClick={() => onProcess(order.id)} 
+            className="h-12 px-6 rounded-2xl bg-amber-500 hover:bg-amber-600 text-white font-black uppercase tracking-widest text-[9px] shadow-lg shadow-amber-500/20 gap-2"
+          >
+            <CheckCircle2 className="h-3.5 w-3.5" /> Initialize Process
           </Button>
         )}
         {order.status === "processing" && (
-          <Button size="sm" onClick={() => onShip(order.id)} className="bg-orange-500 hover:bg-orange-600 text-white gap-1.5 text-xs">
-            <Truck className="h-3.5 w-3.5" />Done (Kirim ke Kurir)
+          <Button 
+            onClick={() => onShip(order.id)} 
+            className="h-12 px-6 rounded-2xl bg-orange-600 hover:bg-orange-700 text-white font-black uppercase tracking-widest text-[9px] shadow-lg shadow-orange-600/20 gap-2"
+          >
+            <Truck className="h-3.5 w-3.5" /> Finalize Deployment
           </Button>
         )}
         {(order.status === "shipped" || order.status === "in_delivery") && (
-          <span className="text-xs text-muted-foreground flex items-center gap-1.5 py-1">
-            <Truck className="h-3.5 w-3.5" />
-            {order.status === "shipped" ? "Menunggu kurir mengambil" : "Kurir sedang mengantar"}
-          </span>
-        )}
-        {order.status === "problem" && order.problemReport && (
-          <div className="w-full text-xs bg-red-50 border border-red-200 text-red-700 rounded-xl px-3 py-2">
-            ⚠ Laporan pembeli: <em>{order.problemReport}</em>
+          <div className="h-12 flex items-center gap-3 px-6 rounded-2xl bg-white/5 border border-white/10 text-[9px] font-black uppercase tracking-widest text-white/40">
+            <div className="w-1.5 h-1.5 bg-orange-500 rounded-full animate-ping" />
+            {order.status === "shipped" ? "Awaiting Logistics Pickup" : "In Logistics Transit"}
           </div>
         )}
-        <Button size="sm" variant="outline" onClick={() => onChat(order)} className="gap-1.5 text-xs ml-auto">
-          <MessageSquare className="h-3.5 w-3.5" />Chat
+        {order.status === "problem" && order.problemReport && (
+          <div className="w-full text-[10px] font-bold bg-red-500/10 border border-red-500/20 text-red-500 rounded-[1.5rem] px-6 py-4 flex items-start gap-3">
+            <ShieldCheck className="h-4 w-4 flex-shrink-0" />
+            <div>
+              <p className="uppercase tracking-widest mb-1">Issue Reported by User</p>
+              <p className="italic opacity-80">"{order.problemReport}"</p>
+            </div>
+          </div>
+        )}
+        <Button 
+          variant="ghost" 
+          onClick={() => onChat(order)} 
+          className="h-12 px-6 rounded-2xl bg-white/5 hover:bg-white/10 text-[9px] font-black uppercase tracking-widest text-white/60 ml-auto gap-2"
+        >
+          <MessageSquare className="h-3.5 w-3.5 text-orange-500" /> Secure Chat
           {(order.messages ?? []).length > 0 && (
-            <span className="bg-primary text-primary-foreground text-[9px] font-bold w-4 h-4 rounded-full flex items-center justify-center">
+            <span className="bg-orange-600 text-white text-[8px] font-black w-4 h-4 rounded-full flex items-center justify-center">
               {(order.messages ?? []).length}
             </span>
           )}
@@ -557,37 +681,70 @@ function ChatModal({ order, onClose }: { order: PurchasedOrder; onClose: () => v
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-black/50">
-      <div className="bg-background rounded-2xl shadow-2xl w-full max-w-md flex flex-col" style={{ maxHeight: "80vh" }}>
-        <div className="flex items-center justify-between px-4 py-3 border-b">
-          <div>
-            <p className="font-bold text-sm">Pesan — {order.orderNumber}</p>
-            <p className="text-xs text-muted-foreground">Pembeli: {order.shippingInfo?.firstName} {order.shippingInfo?.lastName}</p>
+    <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-6 bg-black/80 backdrop-blur-sm animate-in fade-in duration-300">
+      <motion.div 
+        initial={{ opacity: 0, scale: 0.9, y: 20 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        className="glass-card rounded-[3rem] shadow-2xl w-full max-w-lg flex flex-col border-white/10 overflow-hidden" 
+        style={{ maxHeight: "85vh" }}
+      >
+        <div className="flex items-center justify-between px-8 py-6 border-b border-white/5 bg-white/5">
+          <div className="flex items-center gap-4">
+            <div className="w-10 h-10 bg-orange-600/20 rounded-xl flex items-center justify-center">
+              <MessageSquare className="h-5 w-5 text-orange-500" />
+            </div>
+            <div>
+              <p className="font-black text-white italic uppercase tracking-tighter">Asset Chat — {order.orderNumber}</p>
+              <p className="text-[10px] font-bold text-white/30 uppercase tracking-widest">Target: {order.shippingInfo?.firstName} {order.shippingInfo?.lastName}</p>
+            </div>
           </div>
-          <button onClick={onClose} className="text-muted-foreground hover:text-foreground text-xl font-bold">×</button>
+          <button onClick={onClose} className="w-10 h-10 flex items-center justify-center text-white/20 hover:text-white transition-colors text-2xl font-light">×</button>
         </div>
-        <div className="flex-1 overflow-y-auto p-4 space-y-2 min-h-0" style={{ maxHeight: "300px" }}>
+        
+        <div className="flex-1 overflow-y-auto p-8 space-y-6 min-h-0 custom-scrollbar">
           {(order.messages ?? []).length === 0 ? (
-            <p className="text-center text-xs text-muted-foreground py-8">Belum ada pesan. Kirim pesan ke pembeli!</p>
+            <div className="text-center py-20 space-y-4">
+              <div className="w-16 h-16 bg-white/5 rounded-full flex items-center justify-center mx-auto">
+                <Bot className="h-8 w-8 text-white/10" />
+              </div>
+              <p className="text-[10px] font-black text-white/10 uppercase tracking-[0.3em]">No communication history detected.</p>
+            </div>
           ) : (order.messages ?? []).map((msg) => (
             <div key={msg.id} className={`flex flex-col ${msg.senderId === user?.id ? "items-end" : "items-start"}`}>
-              <span className="text-[10px] text-muted-foreground mb-0.5">{msg.senderName}</span>
-              <div className={`max-w-[80%] px-3 py-2 rounded-2xl text-sm ${msg.senderId === user?.id ? "bg-primary text-primary-foreground" : "bg-muted"}`}>
+              <div className="flex items-center gap-2 mb-2">
+                <span className="text-[9px] font-black text-white/20 uppercase tracking-widest">{msg.senderName}</span>
+                {msg.senderRole === "admin" && <ShieldCheck className="h-3 w-3 text-orange-500" />}
+              </div>
+              <div className={`max-w-[85%] px-5 py-4 rounded-[1.5rem] text-sm font-medium shadow-lg ${
+                msg.senderId === user?.id 
+                  ? "bg-orange-600 text-white rounded-tr-none shadow-orange-600/10" 
+                  : "bg-white/5 text-white/80 border border-white/5 rounded-tl-none"
+              }`}>
                 {msg.text}
               </div>
             </div>
           ))}
           <div ref={endRef} />
         </div>
-        <div className="flex gap-2 p-3 border-t">
-          <input value={text} onChange={(e) => setText(e.target.value)} onKeyDown={(e) => e.key === "Enter" && send()}
-            placeholder="Tulis pesan…"
-            className="flex-1 px-3 py-2 text-sm border rounded-xl bg-background focus:outline-none focus:ring-2 focus:ring-ring" />
-          <button onClick={send} className="w-9 h-9 bg-primary rounded-xl flex items-center justify-center flex-shrink-0">
-            <Send className="h-4 w-4 text-primary-foreground" />
-          </button>
+
+        <div className="p-8 border-t border-white/5 bg-white/5">
+          <div className="flex gap-4 p-2 bg-white/5 rounded-[2rem] border border-white/10">
+            <input 
+              value={text} 
+              onChange={(e) => setText(e.target.value)} 
+              onKeyDown={(e) => e.key === "Enter" && send()}
+              placeholder="Transmit secure message..."
+              className="flex-1 px-6 py-3 text-xs font-bold text-white bg-transparent focus:outline-none placeholder:text-white/20" 
+            />
+            <button 
+              onClick={send} 
+              className="w-12 h-12 bg-orange-600 rounded-[1.5rem] flex items-center justify-center flex-shrink-0 shadow-lg shadow-orange-600/20 active:scale-90 transition-transform"
+            >
+              <Send className="h-5 w-5 text-white" />
+            </button>
+          </div>
         </div>
-      </div>
+      </motion.div>
     </div>
   );
 }
@@ -654,192 +811,228 @@ function LiveTab({ user, isAdmin }: { user: NonNullable<ReturnType<typeof useAut
   const selectedProducts = allStoreProducts.filter((p) => mySession?.featuredProductIds.includes(p.id) || false);
 
   return (
-    <div className="space-y-5">
-      {/* Live Status */}
-      <div className="bg-card border rounded-[2rem] p-6 shadow-xl shadow-black/5 border-primary/20">
-        <div className="flex items-center justify-between gap-4">
-          <div>
-            <div className="flex items-center gap-2 mb-1">
-              <h3 className="font-black tracking-tighter">Status Siaran</h3>
+    <div className="space-y-8">
+      {/* Live Status Protocol */}
+      <div className="glass-card border-white/5 bg-white/5 rounded-[3rem] p-8 shadow-2xl relative overflow-hidden group">
+        <div className="absolute top-0 right-0 p-8 opacity-5">
+          <Radio className="h-24 w-24 text-orange-500" />
+        </div>
+        
+        <div className="flex items-center justify-between gap-6 relative z-10">
+          <div className="flex-1">
+            <div className="flex items-center gap-3 mb-2">
+              <h3 className="text-sm font-black uppercase tracking-[0.3em] text-white/40 italic">Broadcasting Protocol</h3>
               {isLive && (
-                <span className="flex items-center gap-1.5 bg-red-500 text-white text-[10px] font-black px-3 py-1 rounded-full animate-pulse shadow-lg shadow-red-500/20">
-                  <span className="w-1.5 h-1.5 bg-white rounded-full" />ON AIR
+                <span className="flex items-center gap-1.5 bg-red-500 text-white text-[9px] font-black px-4 py-1 rounded-full animate-pulse shadow-lg shadow-red-500/20 tracking-widest">
+                  <span className="w-1.5 h-1.5 bg-white rounded-full" /> LIVE
                 </span>
               )}
             </div>
+            
+            <h2 className="text-2xl font-black text-white uppercase italic tracking-tighter mb-4">
+              {isLive ? "Sultan Live Stream Active" : "Initialize Live Transmission"}
+            </h2>
+
             {isLive && (
-              <div className="flex gap-2 mt-2">
+              <div className="flex gap-3 mb-4">
                 <Button 
                   onClick={handleSultanAnnouncement}
-                  variant="outline" 
-                  className="flex-1 bg-yellow-50 border-yellow-200 text-yellow-800 hover:bg-yellow-100 font-bold text-xs gap-2"
+                  className="h-10 px-6 bg-orange-600/10 hover:bg-orange-600/20 text-orange-500 border border-orange-500/20 font-black text-[9px] uppercase tracking-widest gap-2 rounded-xl"
                 >
-                  <Crown className="h-4 w-4" /> Announcement Sultan
+                  <Crown className="h-3.5 w-3.5" /> Sultan Ping
                 </Button>
-                <Button variant="outline" className="flex-1 text-xs font-bold" onClick={handleStopLive}>
-                  Akhiri Sesi Live
+                <Button 
+                  variant="ghost" 
+                  className="h-10 px-6 text-white/40 hover:text-white font-black text-[9px] uppercase tracking-widest rounded-xl" 
+                  onClick={handleStopLive}
+                >
+                  Terminate Sesi
                 </Button>
               </div>
             )}
-            <p className="text-xs text-muted-foreground font-medium mt-2">
+            
+            <p className="text-[10px] font-bold text-white/30 uppercase tracking-widest leading-relaxed">
               {isLive
-                ? `Siaran kamu sedang berlangsung · ${totalPoints} poin hadiah diterima`
-                : "Mulai siaran untuk menjangkau lebih banyak pembeli secara langsung."}
+                ? `Active broadcast session detected · ${totalPoints} gift points accumulated`
+                : "Initialize real-time engagement to expand market reach and elite influence."}
             </p>
           </div>
-          <button onClick={isLive ? handleStopLive : handleStartLive} className="flex-shrink-0 transition-transform active:scale-90">
+          
+          <button onClick={isLive ? handleStopLive : handleStartLive} className="flex-shrink-0 transition-all hover:scale-110 active:scale-95">
             {isLive
-              ? <ToggleRight className="h-14 w-14 text-red-500 drop-shadow-sm" />
-              : <ToggleLeft  className="h-14 w-14 text-muted-foreground opacity-30" />}
+              ? <ToggleRight className="h-16 w-16 text-orange-500 drop-shadow-[0_0_15px_rgba(249,115,22,0.4)]" />
+              : <ToggleLeft  className="h-16 w-16 text-white/10" />}
           </button>
         </div>
       </div>
 
-      {/* Kamera preview */}
-      <div className="bg-card border rounded-[2rem] p-6 shadow-sm space-y-4">
-        <div className="flex items-center justify-between">
-          <h3 className="font-black tracking-tighter text-sm flex items-center gap-2"><Camera className="h-4 w-4 text-primary" />Monitor Kamera</h3>
-          <Button size="sm" variant={cameraOn ? "destructive" : "outline"} onClick={cameraOn ? stopCamera : startCamera} className="gap-2 rounded-xl text-xs font-bold px-4">
-            {cameraOn ? <><CameraOff className="h-3.5 w-3.5" />Matikan</> : <><Camera className="h-3.5 w-3.5" />Aktifkan Preview</>}
-          </Button>
-        </div>
-        <div className={`relative rounded-[1.5rem] overflow-hidden bg-gray-900 flex items-center justify-center transition-all ${cameraOn ? "aspect-video" : "h-40 border-2 border-dashed border-muted"}`}>
-          {cameraOn
-            ? (
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        {/* Monitor Kamera */}
+        <div className="glass-card border-white/5 bg-white/5 rounded-[2.5rem] p-8 space-y-6">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-lg bg-orange-600/10 flex items-center justify-center">
+                <Camera className="h-4 w-4 text-orange-500" />
+              </div>
+              <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-white/60 italic">Visual Monitor</h3>
+            </div>
+            <Button size="sm" variant={cameraOn ? "destructive" : "ghost"} onClick={cameraOn ? stopCamera : startCamera} className="gap-2 rounded-xl text-[9px] font-black uppercase tracking-widest h-8 px-4">
+              {cameraOn ? <><CameraOff className="h-3.5 w-3.5" /> Close Feed</> : <><Camera className="h-3.5 w-3.5" /> Open Feed</>}
+            </Button>
+          </div>
+          
+          <div className={`relative rounded-[2rem] overflow-hidden bg-black/40 border border-white/5 flex items-center justify-center transition-all duration-500 ${cameraOn ? "aspect-video" : "h-48"}`}>
+            {cameraOn ? (
               <>
                 <video ref={videoRef} autoPlay playsInline muted className="w-full h-full object-cover" />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent pointer-events-none" />
                 <div className="absolute bottom-4 left-4 flex items-center gap-2">
-                  <div className="w-2 h-2 bg-red-500 rounded-full animate-ping" />
-                  <span className="text-white text-[10px] font-black uppercase tracking-widest">Live Preview</span>
+                  <div className="w-2 h-2 bg-orange-500 rounded-full animate-ping" />
+                  <span className="text-white text-[9px] font-black uppercase tracking-widest italic">Live Encryption Active</span>
                 </div>
               </>
-            )
-            : <div className="text-center text-muted-foreground">
-                <Camera className="h-10 w-10 mx-auto mb-3 opacity-20" />
-                <p className="text-[11px] font-bold uppercase tracking-widest">Kamera Nonaktif</p>
-              </div>}
+            ) : (
+              <div className="text-center space-y-3 opacity-20">
+                <Camera className="h-12 w-12 mx-auto" />
+                <p className="text-[9px] font-black uppercase tracking-[0.3em]">Feed Offline</p>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Transmission Settings */}
+        <div className="glass-card border-white/5 bg-white/5 rounded-[2.5rem] p-8 space-y-6">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-lg bg-orange-600/10 flex items-center justify-center">
+              <Zap className="h-4 w-4 text-orange-500" />
+            </div>
+            <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-white/60 italic">Session Config</h3>
+          </div>
+          
+          <div className="space-y-6">
+            <div className="space-y-2">
+              <label className="text-[9px] font-black text-white/20 uppercase tracking-[0.3em] ml-1">Broadcast Title</label>
+              <input 
+                value={mySession?.title || ""} 
+                onChange={(e) => updateSession(user.id, { title: e.target.value })}
+                placeholder="Elite Showcase Session"
+                className="w-full px-6 py-4 text-xs bg-white/5 border border-white/10 rounded-2xl text-white focus:outline-none focus:border-orange-500 transition-all font-bold uppercase tracking-widest placeholder:text-white/10" 
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-[9px] font-black text-white/20 uppercase tracking-[0.3em] ml-1">Host Identity</label>
+              <input 
+                value={mySession?.hostName || ""} 
+                onChange={(e) => updateSession(user.id, { hostName: e.target.value })}
+                placeholder="Merchant ID"
+                className="w-full px-6 py-4 text-xs bg-white/5 border border-white/10 rounded-2xl text-white focus:outline-none focus:border-orange-500 transition-all font-bold uppercase tracking-widest placeholder:text-white/10" 
+              />
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* Live config */}
-      <div className="bg-card border rounded-[2rem] p-6 shadow-sm space-y-4">
-        <h3 className="font-black tracking-tighter text-sm">Pengaturan Konten</h3>
-        <div className="space-y-2">
-          <label className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em] ml-1">Judul Siaran</label>
-          <input 
-            value={mySession?.title || ""} 
-            onChange={(e) => updateSession(user.id, { title: e.target.value })}
-            placeholder="Contoh: Diskon Gila-gilaan Akhir Bulan!"
-            className="w-full px-4 py-3 text-sm border-2 border-muted rounded-2xl bg-background focus:outline-none focus:border-primary transition-colors font-bold" 
-          />
-        </div>
-        <div className="space-y-2">
-          <label className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em] ml-1">Nama Host</label>
-          <input 
-            value={mySession?.hostName || ""} 
-            onChange={(e) => updateSession(user.id, { hostName: e.target.value })}
-            placeholder="Nama kamu atau nama toko"
-            className="w-full px-4 py-3 text-sm border-2 border-muted rounded-2xl bg-background focus:outline-none focus:border-primary transition-colors font-bold" 
-          />
-        </div>
-      </div>
-
-      {/* Gift stats */}
+      {/* Gift Stats Protocol */}
       {isLive && totalPoints > 0 && (
         <motion.div 
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-gradient-to-r from-amber-500 to-orange-600 rounded-[2rem] p-6 text-white shadow-lg shadow-orange-500/20"
+          className="glass-card border-orange-500/20 bg-gradient-to-br from-orange-600/10 to-transparent rounded-[2.5rem] p-8 relative overflow-hidden"
         >
-          <div className="flex items-center gap-3 mb-4">
-            <div className="bg-white/20 p-2 rounded-xl">
-              <Zap className="h-5 w-5 text-white" />
+          <div className="flex items-center gap-6">
+            <div className="w-14 h-14 bg-orange-600 rounded-2xl flex items-center justify-center shadow-lg shadow-orange-600/30">
+              <Zap className="h-7 w-7 text-white" />
             </div>
             <div>
-              <h3 className="font-black tracking-tighter text-sm uppercase">Hadiah Diterima</h3>
-              <p className="text-2xl font-black">{totalPoints} <span className="text-xs opacity-70">Poin</span></p>
+              <p className="text-[10px] font-black uppercase tracking-[0.3em] text-orange-500 italic mb-1">Asset Gifts Accumulated</p>
+              <div className="flex items-baseline gap-2">
+                <span className="text-4xl font-black text-white italic tracking-tighter">{totalPoints}</span>
+                <span className="text-[10px] font-black text-white/40 uppercase tracking-widest">Valuation Points</span>
+              </div>
             </div>
           </div>
-          <div className="flex gap-2 flex-wrap">
+          <div className="flex gap-3 mt-8 flex-wrap">
             {GIFT_TYPES.map((g) => (
-              <div key={g.id} className="bg-white/10 px-3 py-1.5 rounded-full flex items-center gap-2 border border-white/10">
-                <span className="text-lg">{g.emoji}</span>
-                <span className="text-[10px] font-black uppercase">{g.label}</span>
+              <div key={g.id} className="bg-white/5 px-4 py-2 rounded-xl flex items-center gap-3 border border-white/5 hover:border-orange-500/20 transition-colors">
+                <span className="text-xl">{g.emoji}</span>
+                <span className="text-[9px] font-black uppercase tracking-widest text-white/60">{g.label}</span>
               </div>
             ))}
           </div>
         </motion.div>
       )}
 
-      {/* Produk etalase */}
-      <div className="bg-card border rounded-[2.5rem] p-6 shadow-sm space-y-5 border-muted">
-        <div>
-          <h3 className="font-black tracking-tighter text-sm mb-1 flex items-center gap-2">
-            <ShoppingBag className="h-4 w-4 text-primary" />Katalog Produk Live
-          </h3>
-          <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">
-            {mySession?.featuredProductIds.length === 0
-              ? "Semua produk toko ditampilkan secara default."
-              : `${mySession?.featuredProductIds.length} produk di-pin ke siaran.`}
-          </p>
+      {/* Produk etalase Protocol */}
+      <div className="glass-card border-white/5 bg-white/5 rounded-[3rem] p-10 space-y-8">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+          <div>
+            <h3 className="text-lg font-black text-white uppercase italic tracking-tight flex items-center gap-3">
+              <ShoppingBag className="h-5 w-5 text-orange-500" /> Live Asset Showcase
+            </h3>
+            <p className="text-[10px] font-black text-white/30 uppercase tracking-[0.2em] mt-2">
+              {mySession?.featuredProductIds.length === 0
+                ? "Universal portfolio display active"
+                : `Elite selection: ${mySession?.featuredProductIds.length} assets pinned`}
+            </p>
+          </div>
+          
+          <div className="relative w-full md:w-80">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-white/20" />
+            <input 
+              value={liveSearch} 
+              onChange={(e) => setLiveSearch(e.target.value)} 
+              placeholder="Search portfolio..."
+              className="w-full pl-12 pr-6 py-4 text-xs bg-white/5 border border-white/10 rounded-2xl text-white focus:outline-none focus:border-orange-500 transition-all font-bold uppercase tracking-widest placeholder:text-white/10" 
+            />
+          </div>
         </div>
 
-        {/* Selected products preview */}
+        {/* Selected assets preview */}
         {selectedProducts.length > 0 && (
-          <div className="flex gap-3 overflow-x-auto pb-2 custom-scrollbar">
+          <div className="flex gap-4 overflow-x-auto pb-4 custom-scrollbar">
             {selectedProducts.map((p) => (
-              <div key={p.id} className="flex-shrink-0 flex flex-col items-center gap-2 w-20">
-                <div className="relative group">
-                  <div className="absolute -inset-1 bg-gradient-to-r from-primary to-orange-400 rounded-2xl blur opacity-25 group-hover:opacity-50 transition duration-1000 group-hover:duration-200" />
-                  <img src={p.image} alt={p.name} className="relative w-16 h-16 rounded-xl object-cover border-2 border-white shadow-sm" />
+              <div key={p.id} className="flex-shrink-0 group/pin w-24">
+                <div className="relative">
+                  <div className="absolute -inset-1 bg-orange-600 rounded-2xl blur opacity-0 group-hover/pin:opacity-40 transition duration-500" />
+                  <img src={p.image} alt={p.name} className="relative w-24 h-24 rounded-2xl object-cover border border-white/10 bg-white/5" />
                   <button 
                     onClick={() => toggleProduct(user.id, p.id)} 
-                    className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center text-xs font-black shadow-lg"
+                    className="absolute -top-2 -right-2 w-8 h-8 bg-red-600 text-white rounded-xl flex items-center justify-center text-lg font-light shadow-xl hover:scale-110 active:scale-90 transition-all"
                   >
                     ×
                   </button>
                 </div>
-                <span className="text-[9px] font-black text-center text-muted-foreground line-clamp-1 uppercase tracking-tighter">{p.name}</span>
+                <p className="text-[9px] font-black text-center text-white/40 mt-3 truncate uppercase italic tracking-tighter">{p.name}</p>
               </div>
             ))}
           </div>
         )}
 
-        <div className="relative">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <input 
-            value={liveSearch} 
-            onChange={(e) => setLiveSearch(e.target.value)} 
-            placeholder="Cari produk dari tokomu..."
-            className="w-full pl-12 pr-4 py-3 text-sm border-2 border-muted rounded-2xl bg-background focus:outline-none focus:border-primary transition-colors font-bold" 
-          />
-        </div>
-
-        <div className="space-y-3 max-h-80 overflow-y-auto pr-1 custom-scrollbar">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-[500px] overflow-y-auto pr-2 custom-scrollbar">
           {filteredProducts.map((p) => {
             const selected = mySession?.featuredProductIds.includes(p.id) || false;
             return (
               <button 
                 key={p.id} 
                 onClick={() => toggleProduct(user.id, p.id)}
-                className={`w-full flex items-center gap-4 p-3 rounded-[1.5rem] border-2 text-left transition-all ${
+                className={`flex items-center gap-5 p-5 rounded-[2rem] border transition-all duration-500 text-left group/item ${
                   selected 
-                    ? "border-primary bg-primary/5 shadow-md shadow-primary/5" 
-                    : "border-muted hover:border-primary/20 hover:bg-muted/30"
+                    ? "border-orange-500/50 bg-orange-600/5 shadow-lg shadow-orange-600/10" 
+                    : "border-white/5 bg-white/5 hover:border-white/10 hover:bg-white/10"
                 }`}
               >
-                <div className="w-12 h-12 rounded-xl overflow-hidden bg-muted flex-shrink-0 border border-border">
-                  <img src={p.image} alt={p.name} className="w-full h-full object-cover" />
+                <div className="relative w-16 h-16 rounded-xl overflow-hidden flex-shrink-0">
+                  <img src={p.image} alt={p.name} className="w-full h-full object-cover transition-transform duration-700 group-hover/item:scale-110" />
+                  <div className="absolute inset-0 ring-1 ring-inset ring-white/10 rounded-xl" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-[11px] font-black uppercase tracking-tight truncate">{p.name}</p>
-                  <p className="text-primary font-black text-sm">{formatPrice(p.price)}</p>
+                  <p className="text-[11px] font-black text-white uppercase italic tracking-tight truncate group-hover/item:text-orange-500 transition-colors">{p.name}</p>
+                  <p className="text-orange-500 font-black text-sm italic">{formatPrice(p.price)}</p>
                 </div>
-                <div className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center flex-shrink-0 transition-colors ${
-                  selected ? "bg-primary border-primary" : "border-muted-foreground/30"
+                <div className={`w-10 h-10 rounded-xl border flex items-center justify-center flex-shrink-0 transition-all duration-500 ${
+                  selected ? "bg-orange-600 border-orange-500 text-white rotate-0" : "border-white/5 text-white/10 -rotate-12 group-hover/item:rotate-0"
                 }`}>
-                  {selected && <CheckCircle2 className="h-4 w-4 text-white" />}
+                  <CheckCircle2 className={`h-5 w-5 ${selected ? "opacity-100" : "opacity-0"}`} />
                 </div>
               </button>
             );
@@ -918,259 +1111,380 @@ export function SellerPage() {
 
   const handleDelete      = (id: number) => { deleteProduct(id); toast({ title: "Produk dihapus." }); };
   const handleDeleteAdmin = (id: number) => { deleteAdminProduct(id); toast({ title: "Produk dihapus dari toko." }); };
-  const handleEdit        = (p: SellerProduct | AdminProduct) => { setEditingProduct(p); setShowForm(true); window.scrollTo({ top: 0, behavior: 'smooth' }); };
+  const handleEdit        = (p: SellerProduct | AdminProduct) => { setEditingProduct(p); setShowForm(true); window.scrollTo({ top: 0, behavior: "smooth" }); };
   const handleProcess     = (id: string) => { updateOrderStatus(id, "processing"); toast({ title: "Pesanan diproses.", description: "Pembeli mendapat notifikasi." }); };
   const handleShip        = (id: string) => { updateOrderStatus(id, "shipped"); toast({ title: "Dikirim ke kurir!", description: "Kurir akan segera mengambil paket." }); };
 
-  const TABS: { id: "products" | "orders" | "live" | "auction"; label: string; badge?: number }[] = [
-    { id: "products", label: "Produk" },
-    { id: "orders",   label: "Pesanan", badge: orderCounts.placed + orderCounts.problem },
-    { id: "live",     label: "Live" },
-    { id: "auction",  label: "Lelang" },
+  const TABS: { id: "products" | "orders" | "live" | "auction"; label: string; badge?: number; icon: any }[] = [
+    { id: "products", label: "Produk", icon: Package },
+    { id: "orders",   label: "Pesanan", badge: orderCounts.placed + orderCounts.problem, icon: ShoppingBag },
+    { id: "live",     label: "Live", icon: Radio },
+    { id: "auction",  label: "Lelang", icon: Gavel },
   ];
 
   return (
-    <div className="container mx-auto px-4 py-8 max-w-3xl">
-      {/* Header */}
-      <div className="flex items-center gap-3 mb-6">
-        <div className="w-12 h-12 bg-primary/10 rounded-2xl flex items-center justify-center">
-          {isAdmin ? <ShieldCheck className="h-6 w-6 text-primary" /> : <Store className="h-6 w-6 text-primary" />}
-        </div>
-        <div>
-          <h1 className="text-2xl font-extrabold">{isAdmin ? "Kelola Toko" : "Dashboard Seller"}</h1>
-          <p className="text-sm text-muted-foreground">Kelola produk, pesanan, dan live shopping</p>
-        </div>
-      </div>
-
-      {/* Tabs */}
-      <div className="flex gap-2 mb-6 bg-muted/40 p-1 rounded-xl w-fit">
-        {TABS.map(({ id, label, badge }) => (
-          <button key={id} onClick={() => setTab(id)}
-            className={`relative flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${tab === id ? "bg-white shadow text-foreground" : "text-muted-foreground hover:text-foreground"}`}>
-            {id === "live" && isMyLive && <Radio className="h-3.5 w-3.5 text-red-500 animate-pulse" />}
-            {id === "live" && !isMyLive && isAnyLive && <Radio className="h-3.5 w-3.5 text-orange-500 opacity-50" />}
-            {label}
-            {badge != null && badge > 0 && (
-              <span className="bg-red-500 text-white text-[9px] font-bold w-4 h-4 rounded-full flex items-center justify-center">{badge}</span>
-            )}
-          </button>
-        ))}
-      </div>
-
-      {/* ── Tab: Produk ──────────────────────────────────────────────── */}
-      {tab === "products" && (
-        <>
-          {/* Stats */}
-          <div className="grid grid-cols-3 gap-3 mb-6">
-            {[
-              { label: "Menunggu",  count: counts.pending,  color: "text-amber-600", bg: "bg-amber-50 border-amber-200" },
-              { label: isAdmin ? "Live di Toko" : "Disetujui", count: counts.approved, color: "text-green-600", bg: "bg-green-50 border-green-200" },
-              { label: "Ditolak",   count: counts.rejected, color: "text-red-600",   bg: "bg-red-50 border-red-200" },
-            ].map(({ label, count, color, bg }) => (
-              <div key={label} className={`rounded-2xl border p-4 text-center ${bg}`}>
-                <p className={`text-2xl font-extrabold ${color}`}>{count}</p>
-                <p className="text-xs font-medium text-muted-foreground">{label}</p>
-              </div>
-            ))}
+    <div className="min-h-screen bg-background pt-24 pb-20">
+      <div className="container mx-auto px-6 max-w-4xl space-y-10">
+        
+        {/* Elite Header */}
+        <motion.div 
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="glass-card rounded-[3rem] p-10 relative overflow-hidden border-white/5 shadow-2xl bg-gradient-to-br from-orange-600/10 via-background to-background"
+        >
+          <div className="absolute top-0 right-0 p-8 opacity-10">
+            {isAdmin ? <ShieldCheck className="h-32 w-32" /> : <Store className="h-32 w-32" />}
           </div>
-          <div className="bg-card border rounded-2xl overflow-hidden mb-6 shadow-sm">
-            <button className="w-full flex items-center justify-between px-5 py-4 hover:bg-muted/30 transition-colors" onClick={() => { 
-              if (showForm) { setShowForm(false); setEditingProduct(null); }
-              else { setShowForm(true); }
-            }}>
-              <span className="flex items-center gap-2 font-bold text-left truncate">
-                {editingProduct ? (
-                  <><Pencil className="h-5 w-5 text-primary flex-shrink-0" /> Edit Produk: <span className="text-primary truncate">{editingProduct.name}</span></>
-                ) : (
-                  <><PlusCircle className="h-5 w-5 text-primary flex-shrink-0" /> Tambah Produk Baru</>
-                )}
-              </span>
-              {showForm ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
-            </button>
-            {showForm && (
-              <div className="px-5 pb-6 border-t">
-                <p className="text-xs text-muted-foreground mt-4 mb-4">
-                  {editingProduct ? "Silakan perbarui detail produk di bawah ini." : (isAdmin ? "Produk langsung tampil di toko." : "Produk menunggu persetujuan admin.")}
-                </p>
-                <ProductForm 
-                  onSuccess={() => { setShowForm(false); setEditingProduct(null); }} 
-                  isAdmin={isAdmin} 
-                  product={editingProduct || undefined} 
-                />
-                {editingProduct && (
-                  <Button variant="ghost" className="w-full mt-2 text-xs h-8 text-muted-foreground" onClick={() => { setEditingProduct(null); setShowForm(false); }}>
-                    Batal Edit
-                  </Button>
-                )}
-              </div>
-            )}
-          </div>
-          {isAdmin && adminProducts.length > 0 && (
-            <div className="mb-6">
-              <h2 className="text-base font-bold mb-3">Produk Admin Toko <span className="text-sm font-normal text-muted-foreground">({adminProducts.length})</span></h2>
-              <div className="space-y-3">{adminProducts.map((p) => <AdminProductCard key={p.id} product={p} onDelete={handleDeleteAdmin} onEdit={handleEdit} />)}</div>
+          
+          <div className="relative z-10 flex flex-col md:flex-row items-center gap-6 text-center md:text-left">
+            <div className="w-20 h-20 bg-orange-600 rounded-[2rem] flex items-center justify-center shadow-lg shadow-orange-600/30">
+              {isAdmin ? <ShieldCheck className="h-10 w-10 text-white" /> : <Store className="h-10 w-10 text-white" />}
             </div>
-          )}
-          <div>
-            <h2 className="text-base font-bold mb-3">{isAdmin ? "Produk Disubmit" : "Produk Saya"} <span className="text-sm font-normal text-muted-foreground">({mySellerProducts.length})</span></h2>
-            {mySellerProducts.length === 0 ? (
-              <div className="text-center py-12 bg-muted/30 rounded-2xl border border-dashed">
-                <Package className="h-10 w-10 text-muted-foreground/40 mx-auto mb-3" />
-                <p className="font-semibold text-muted-foreground">Belum ada produk</p>
-              </div>
-            ) : (
-              <div className="space-y-3">{mySellerProducts.map((p) => <SellerProductCard key={p.id} product={p} onDelete={handleDelete} onEdit={handleEdit} canAlwaysDelete={isAdmin} />)}</div>
-            )}
+            <div>
+              <h1 className="text-3xl md:text-4xl font-black tracking-tighter uppercase italic text-white drop-shadow-xl">
+                {isAdmin ? "Elite Store Management" : "Merchant Command Center"}
+              </h1>
+              <p className="text-xs font-bold text-white/40 uppercase tracking-[0.3em] mt-2">
+                Operational Dashboard & Assets Control
+              </p>
+            </div>
           </div>
-        </>
+        </motion.div>
+
+        {/* Premium Navigation Tabs */}
+        <div className="flex flex-wrap gap-3 p-2 bg-white/5 rounded-[2rem] border border-white/5 backdrop-blur-xl">
+          {TABS.map(({ id, label, badge, icon: Icon }) => (
+            <button 
+              key={id} 
+              onClick={() => setTab(id)}
+              className={`flex-1 min-w-[120px] relative flex items-center justify-center gap-2 px-6 py-4 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] transition-all ${
+                tab === id 
+                  ? "bg-orange-600 text-white shadow-lg shadow-orange-600/30" 
+                  : "text-white/40 hover:text-white hover:bg-white/5"
+              }`}
+            >
+              <Icon className={`h-3.5 w-3.5 ${id === "live" && isMyLive ? "animate-pulse text-red-400" : ""}`} />
+              {label}
+              {badge != null && badge > 0 && (
+                <span className="bg-red-500 text-white text-[9px] font-black w-4 h-4 rounded-full flex items-center justify-center shadow-lg ring-2 ring-background">
+                  {badge}
+                </span>
+              )}
+            </button>
+          ))}
+        </div>
+
+        {/* ── Tab: Produk ──────────────────────────────────────────────── */}
+        {tab === "products" && (
+          <motion.div 
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            className="space-y-10"
+          >
+            {/* Sultan Stats Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {[
+                { label: "Menunggu Review", count: counts.pending, color: "text-amber-500", bg: "bg-amber-500/5", border: "border-amber-500/20" },
+                { label: isAdmin ? "Live di Toko" : "Disetujui", count: counts.approved, color: "text-emerald-500", bg: "bg-emerald-500/5", border: "border-emerald-500/20" },
+                { label: "Ditolak Sistem", count: counts.rejected, color: "text-rose-500", bg: "bg-rose-500/5", border: "border-rose-500/20" },
+              ].map(({ label, count, color, bg, border }) => (
+                <div key={label} className={`glass-card rounded-[2.5rem] p-8 text-center space-y-2 border-white/5 ${bg} group hover:scale-105 transition-all duration-500`}>
+                  <p className={`text-4xl font-black tracking-tighter ${color}`}>{count}</p>
+                  <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/30">{label}</p>
+                </div>
+              ))}
+            </div>
+
+            {/* Premium Form Section */}
+            <div className="glass-card rounded-[3.5rem] overflow-hidden border-white/5 shadow-2xl">
+              <button 
+                className="w-full flex items-center justify-between px-10 py-8 hover:bg-white/5 transition-all group"
+                onClick={() => { 
+                  if (showForm) { setShowForm(false); setEditingProduct(null); }
+                  else { setShowForm(true); }
+                }}
+              >
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 bg-white/5 rounded-2xl flex items-center justify-center group-hover:rotate-12 transition-transform">
+                    {editingProduct ? <Pencil className="h-5 w-5 text-orange-500" /> : <PlusCircle className="h-5 w-5 text-orange-500" />}
+                  </div>
+                  <div className="text-left">
+                    <span className="block text-sm font-black uppercase tracking-widest text-white italic">
+                      {editingProduct ? "Update Asset Identity" : "Forge New Asset"}
+                    </span>
+                    {editingProduct && <span className="text-[10px] font-bold text-orange-500 uppercase tracking-widest opacity-60">Editing: {editingProduct.name}</span>}
+                  </div>
+                </div>
+                {showForm ? <ChevronUp className="h-5 w-5 text-white/20" /> : <ChevronDown className="h-5 w-5 text-white/20" />}
+              </button>
+              
+              <AnimatePresence>
+                {showForm && (
+                  <motion.div 
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: "auto", opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    className="border-t border-white/5 bg-white/5"
+                  >
+                    <div className="p-10">
+                      <p className="text-[10px] font-black text-white/20 uppercase tracking-[0.3em] mb-10 text-center">
+                        {editingProduct ? "Synchronizing Asset Modifications..." : (isAdmin ? "Direct Deployment Enabled" : "System Review Required Post-Deployment")}
+                      </p>
+                      <ProductForm 
+                        onSuccess={() => { setShowForm(false); setEditingProduct(null); }} 
+                        isAdmin={isAdmin} 
+                        product={editingProduct || undefined} 
+                      />
+                      {editingProduct && (
+                        <Button 
+                          variant="ghost" 
+                          className="w-full mt-6 h-14 rounded-2xl font-black uppercase tracking-widest text-[10px] text-white/40 hover:text-white"
+                          onClick={() => { setEditingProduct(null); setShowForm(false); }}
+                        >
+                          Abort Modifications
+                        </Button>
+                      )}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+
+            {/* Asset List Section */}
+            <div className="space-y-10">
+              {isAdmin && adminProducts.length > 0 && (
+                <div className="space-y-6">
+                  <div className="flex items-center gap-4 px-4">
+                    <ShieldCheck className="h-5 w-5 text-orange-500" />
+                    <h2 className="text-xs font-black uppercase tracking-[0.3em] text-white/40 italic">Elite Admin Assets <span className="ml-2 px-2 py-0.5 bg-orange-600/20 text-orange-500 rounded-md">{adminProducts.length}</span></h2>
+                  </div>
+                  <div className="grid grid-cols-1 gap-6">
+                    {adminProducts.map((p) => <AdminProductCard key={p.id} product={p} onDelete={handleDeleteAdmin} onEdit={handleEdit} />)}
+                  </div>
+                </div>
+              )}
+              
+              <div className="space-y-6">
+                <div className="flex items-center gap-4 px-4">
+                  <Package className="h-5 w-5 text-orange-500" />
+                  <h2 className="text-xs font-black uppercase tracking-[0.3em] text-white/40 italic">
+                    {isAdmin ? "Submitted Merchant Assets" : "Personal Asset Portfolio"} 
+                    <span className="ml-2 px-2 py-0.5 bg-white/5 text-white/50 rounded-md">{mySellerProducts.length}</span>
+                  </h2>
+                </div>
+                
+                {mySellerProducts.length === 0 ? (
+                  <div className="text-center py-20 glass-card rounded-[3rem] border-white/5 bg-white/5 border-dashed">
+                    <Package className="h-16 w-16 text-white/10 mx-auto mb-6" />
+                    <p className="text-xl font-black uppercase italic tracking-tighter text-white/20">Empty Portfolio</p>
+                    <p className="text-[10px] font-black uppercase tracking-widest text-white/10 mt-2">Forge your first asset to begin</p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 gap-6">
+                    {mySellerProducts.map((p) => <SellerProductCard key={p.id} product={p} onDelete={handleDelete} onEdit={handleEdit} canAlwaysDelete={isAdmin} />)}
+                  </div>
+                )}
+              </div>
+            </div>
+          </motion.div>
+        )}
       )}
 
       {/* ── Tab: Pesanan ─────────────────────────────────────────────── */}
       {tab === "orders" && (
-        <div className="space-y-4">
-          <div className="flex gap-2 flex-wrap">
+        <motion.div 
+          initial={{ opacity: 0, x: 20 }}
+          animate={{ opacity: 1, x: 0 }}
+          className="space-y-8"
+        >
+          <div className="flex gap-3 overflow-x-auto pb-2 custom-scrollbar">
             {[
-              { id: "all",        label: `Semua (${allOrders.length})` },
-              { id: "placed",     label: `Baru (${orderCounts.placed})` },
-              { id: "processing", label: `Diproses (${orderCounts.processing})` },
-              { id: "shipped",    label: `Di Kurir (${orderCounts.shipped})` },
-              { id: "problem",    label: `Masalah (${orderCounts.problem})` },
+              { id: "all",        label: `Semua Assets (${allOrders.length})` },
+              { id: "placed",     label: `Incoming (${orderCounts.placed})` },
+              { id: "processing", label: `Processing (${orderCounts.processing})` },
+              { id: "shipped",    label: `Deployed (${orderCounts.shipped})` },
+              { id: "problem",    label: `Issues (${orderCounts.problem})` },
             ].map(({ id, label }) => (
-              <button key={id} onClick={() => setOrderFilter(id as OrderStatus | "all")}
-                className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-all ${
-                  orderFilter === id ? "bg-primary text-primary-foreground border-primary" : "bg-background text-muted-foreground border-border hover:border-primary/50"
-                }`}>
+              <button 
+                key={id} 
+                onClick={() => setOrderFilter(id as OrderStatus | "all")}
+                className={`px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest border transition-all whitespace-nowrap ${
+                  orderFilter === id 
+                    ? "bg-orange-600 text-white border-orange-500 shadow-lg shadow-orange-600/20" 
+                    : "glass-card text-white/40 border-white/5 hover:border-white/10 hover:text-white"
+                }`}
+              >
                 {label}
               </button>
             ))}
           </div>
+          
           {visibleOrders.length === 0 ? (
-            <div className="text-center py-16 bg-muted/30 rounded-2xl border border-dashed">
-              <ShoppingBag className="h-10 w-10 text-muted-foreground/40 mx-auto mb-3" />
-              <p className="font-semibold text-muted-foreground">Tidak ada pesanan</p>
-              <p className="text-xs text-muted-foreground mt-1">Pesanan dari pembeli akan muncul di sini.</p>
+            <div className="text-center py-20 glass-card rounded-[3rem] border-white/5 bg-white/5 border-dashed">
+              <ShoppingBag className="h-16 w-16 text-white/10 mx-auto mb-6" />
+              <p className="text-xl font-black uppercase italic tracking-tighter text-white/20">Zero Transactions</p>
+              <p className="text-[10px] font-black uppercase tracking-widest text-white/10 mt-2">Waiting for market activity</p>
             </div>
           ) : (
-            <div className="space-y-3">
+            <div className="grid grid-cols-1 gap-6">
               {visibleOrders.map((order) => (
                 <SellerOrderCard key={order.id} order={order} onProcess={handleProcess} onShip={handleShip} onChat={setChatOrder} />
               ))}
             </div>
           )}
-        </div>
+        </motion.div>
       )}
 
       {/* ── Tab: Live ────────────────────────────────────────────────── */}
-      {tab === "live" && <LiveTab user={user} isAdmin={isAdmin} />}
+      {tab === "live" && (
+        <motion.div 
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+        >
+          <LiveTab user={user} isAdmin={isAdmin} />
+        </motion.div>
+      )}
 
       {chatOrder && <ChatModal order={chatOrder} onClose={() => setChatOrder(null)} />}
 
       {/* ── Tab: Lelang ──────────────────────────────────────────────── */}
       {tab === "auction" && (
-        <div className="space-y-6">
-          <div className="flex items-center justify-between">
-             <h2 className="text-xl font-black">Manajemen Lelang</h2>
-             <div className="flex gap-2">
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="space-y-10"
+        >
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 px-4">
+             <div>
+               <h2 className="text-2xl font-black tracking-tighter uppercase italic text-white">Auction Management</h2>
+               <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/30 mt-1">High-Stakes Asset Bidding</p>
+             </div>
+             <div className="flex gap-4">
                {myAuctions.length > 0 && (
                  <Button 
-                   variant="outline" 
-                   className="border-red-200 text-red-600 hover:bg-red-50 rounded-xl"
+                   variant="ghost" 
+                   className="rounded-2xl h-12 px-6 text-[10px] font-black uppercase tracking-widest text-red-500 hover:bg-red-500/10"
                    onClick={() => {
-                     if (confirm("Hapus semua data lelang kamu?")) {
+                     if (confirm("Purge all auction data permanently?")) {
                        myAuctions.forEach(a => deleteAuction(a.id));
                      }
                    }}
                  >
-                   Hapus Semua
+                   Purge All
                  </Button>
                )}
-               <Button onClick={() => setShowAuctionForm(true)} className="gap-2 rounded-xl bg-amber-600 hover:bg-amber-700">
-                 <Plus className="h-4 w-4" /> Buat Lelang Baru
+               <Button 
+                 onClick={() => setShowAuctionForm(true)} 
+                 className="gap-3 rounded-2xl h-12 px-8 bg-orange-600 hover:bg-orange-700 text-white font-black uppercase tracking-widest text-[10px] shadow-lg shadow-orange-600/20"
+               >
+                 <Plus className="h-4 w-4" /> Initialize Auction
                </Button>
              </div>
           </div>
 
-          {showAuctionForm && (
-            <div className="bg-amber-50 border-2 border-amber-200 rounded-3xl p-6 animate-in slide-in-from-top-4">
-              <div className="flex justify-between items-center mb-4">
-                <h3 className="font-black text-amber-900">Formulir Lelang Baru</h3>
-                <button onClick={() => setShowAuctionForm(false)} className="text-amber-700"><X className="h-5 w-5" /></button>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Nama Barang</Label>
-                  <Input value={auctionData.title} onChange={e => setAuctionData({...auctionData, title: e.target.value})} placeholder="Contoh: Sepatu Limited Edition" />
+          <AnimatePresence>
+            {showAuctionForm && (
+              <motion.div 
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: "auto", opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                className="glass-card rounded-[3rem] p-10 border-orange-500/20 bg-orange-600/5"
+              >
+                <div className="flex justify-between items-center mb-8">
+                  <h3 className="font-black text-orange-500 uppercase italic tracking-widest">New Auction Protocol</h3>
+                  <button onClick={() => setShowAuctionForm(false)} className="text-white/20 hover:text-white transition-colors"><X className="h-6 w-6" /></button>
                 </div>
-                <div className="space-y-2">
-                  <Label>URL Gambar</Label>
-                  <Input value={auctionData.imageUrl} onChange={e => setAuctionData({...auctionData, imageUrl: e.target.value})} placeholder="https://..." />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  <div className="space-y-2">
+                    <Label className="text-[10px] font-black uppercase tracking-widest text-white/40 ml-1">Asset Identity</Label>
+                    <Input className="glass-input h-12 rounded-2xl border-white/10" value={auctionData.title} onChange={e => setAuctionData({...auctionData, title: e.target.value})} placeholder="Rare Item Name" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-[10px] font-black uppercase tracking-widest text-white/40 ml-1">Asset Visualization URL</Label>
+                    <Input className="glass-input h-12 rounded-2xl border-white/10" value={auctionData.imageUrl} onChange={e => setAuctionData({...auctionData, imageUrl: e.target.value})} placeholder="https://..." />
+                  </div>
+                  <div className="space-y-2 md:col-span-2">
+                    <Label className="text-[10px] font-black uppercase tracking-widest text-white/40 ml-1">Asset Description</Label>
+                    <Input className="glass-input h-12 rounded-2xl border-white/10" value={auctionData.description} onChange={e => setAuctionData({...auctionData, description: e.target.value})} placeholder="Elite conditions and history..." />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-[10px] font-black uppercase tracking-widest text-white/40 ml-1">Starting Reserve (Rp)</Label>
+                    <Input className="glass-input h-12 rounded-2xl border-white/10" type="number" value={auctionData.startPrice} onChange={e => setAuctionData({...auctionData, startPrice: e.target.value})} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-[10px] font-black uppercase tracking-widest text-white/40 ml-1">Minimum Bid Increment (Rp)</Label>
+                    <Input className="glass-input h-12 rounded-2xl border-white/10" type="number" value={auctionData.minStep} onChange={e => setAuctionData({...auctionData, minStep: e.target.value})} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-[10px] font-black uppercase tracking-widest text-white/40 ml-1">Protocol Duration</Label>
+                    <select 
+                      className="w-full h-12 bg-white/5 border border-white/10 rounded-2xl text-xs font-black text-white px-4 focus:outline-none focus:border-orange-500"
+                      value={auctionData.duration}
+                      onChange={e => setAuctionData({...auctionData, duration: e.target.value})}
+                    >
+                      <option value="0.1" className="bg-background">6 Minutes (Testing)</option>
+                      <option value="1" className="bg-background">1 Hour</option>
+                      <option value="6" className="bg-background">6 Hours</option>
+                      <option value="24" className="bg-background">24 Hours (1 Day)</option>
+                      <option value="72" className="bg-background">72 Hours (3 Days)</option>
+                    </select>
+                  </div>
+                  <div className="md:col-span-2 pt-6">
+                    <Button onClick={handleCreateAuction} className="w-full bg-orange-600 hover:bg-orange-700 text-white font-black h-16 rounded-[2rem] shadow-xl shadow-orange-600/20 uppercase tracking-widest">
+                      ACTIVATE AUCTION PROTOCOL
+                    </Button>
+                  </div>
                 </div>
-                <div className="space-y-2 md:col-span-2">
-                  <Label>Deskripsi</Label>
-                  <Input value={auctionData.description} onChange={e => setAuctionData({...auctionData, description: e.target.value})} placeholder="Jelaskan kondisi barang..." />
-                </div>
-                <div className="space-y-2">
-                  <Label>Harga Awal (Rp)</Label>
-                  <Input type="number" value={auctionData.startPrice} onChange={e => setAuctionData({...auctionData, startPrice: e.target.value})} />
-                </div>
-                <div className="space-y-2">
-                  <Label>Kelipatan Bid Minimal (Rp)</Label>
-                  <Input type="number" value={auctionData.minStep} onChange={e => setAuctionData({...auctionData, minStep: e.target.value})} />
-                </div>
-                <div className="space-y-2">
-                  <Label>Durasi Lelang (Jam)</Label>
-                  <select 
-                    className="w-full p-2 bg-white border-2 rounded-xl text-sm"
-                    value={auctionData.duration}
-                    onChange={e => setAuctionData({...auctionData, duration: e.target.value})}
-                  >
-                    <option value="0.1">6 Menit (Tes)</option>
-                    <option value="1">1 Jam</option>
-                    <option value="6">6 Jam</option>
-                    <option value="24">24 Jam (1 Hari)</option>
-                    <option value="72">72 Jam (3 Hari)</option>
-                  </select>
-                </div>
-                <div className="md:col-span-2 pt-2">
-                  <Button onClick={handleCreateAuction} className="w-full bg-amber-600 hover:bg-amber-700 font-black h-12 rounded-xl">
-                    AKTIFKAN LELANG SEKARANG
-                  </Button>
-                </div>
-              </div>
-            </div>
-          )}
+              </motion.div>
+            )}
+          </AnimatePresence>
 
-          <div className="grid grid-cols-1 gap-4">
+          <div className="grid grid-cols-1 gap-6">
             {myAuctions.length === 0 ? (
-              <div className="text-center py-20 bg-gray-50 rounded-3xl border border-dashed border-gray-200">
-                <Gavel className="h-12 w-12 text-gray-200 mx-auto mb-4" />
-                <p className="text-gray-400 font-bold">Kamu belum membuat lelang.</p>
+              <div className="text-center py-20 glass-card rounded-[3rem] border-white/5 bg-white/5 border-dashed">
+                <Gavel className="h-16 w-16 text-white/10 mx-auto mb-6" />
+                <p className="text-xl font-black uppercase italic tracking-tighter text-white/20">No Active Auctions</p>
+                <p className="text-[10px] font-black uppercase tracking-widest text-white/10 mt-2">Initialize a protocol to start bidding</p>
               </div>
             ) : (
               myAuctions.map(a => (
-                <div key={a.id} className="bg-white p-5 rounded-3xl border border-gray-100 shadow-sm flex items-center justify-between">
-                  <div className="flex items-center gap-4">
-                    <img src={a.imageUrl} className="w-16 h-16 rounded-2xl object-cover" />
+                <div key={a.id} className="glass-card p-8 rounded-[3rem] border-white/5 bg-white/5 flex items-center justify-between group hover:border-orange-500/20 transition-all duration-500">
+                  <div className="flex items-center gap-6">
+                    <div className="relative">
+                      <div className="absolute -inset-1 bg-gradient-to-br from-orange-500 to-orange-700 rounded-2xl blur opacity-0 group-hover:opacity-20 transition duration-500" />
+                      <img src={a.imageUrl} className="relative w-20 h-20 rounded-[1.5rem] object-cover border border-white/10" />
+                    </div>
                     <div>
-                      <h4 className="font-bold text-gray-900">{a.title}</h4>
-                      <div className="flex gap-2 items-center mt-1">
-                        <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase ${a.status === "active" ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-600"}`}>
+                      <h4 className="text-lg font-black text-white uppercase italic tracking-tight group-hover:text-orange-500 transition-colors">{a.title}</h4>
+                      <div className="flex gap-3 items-center mt-2">
+                        <span className={`text-[9px] px-3 py-1 rounded-full font-black uppercase tracking-widest ${a.status === "active" ? "bg-emerald-500/10 text-emerald-500 border border-emerald-500/20" : "bg-white/5 text-white/40"}`}>
                           {a.status}
                         </span>
-                        <span className="text-[10px] text-muted-foreground">{a.bids.length} Bidder</span>
+                        <div className="w-1 h-1 bg-white/10 rounded-full" />
+                        <span className="text-[10px] font-bold text-white/30 uppercase tracking-widest">{a.bids.length} Active Bidders</span>
                       </div>
                     </div>
                   </div>
-                  <div className="text-right flex flex-col items-end gap-1">
-                    <p className="text-[10px] text-muted-foreground font-bold uppercase">Harga Tertinggi</p>
-                    <p className="text-lg font-black text-amber-600">{formatPrice(a.currentPrice)}</p>
-                    <div className="flex gap-2">
+                  <div className="text-right flex flex-col items-end gap-2">
+                    <p className="text-[9px] text-white/20 font-black uppercase tracking-widest">Highest Valuation</p>
+                    <p className="text-2xl font-black text-orange-500 italic drop-shadow-lg">{formatPrice(a.currentPrice)}</p>
+                    <div className="flex gap-3 mt-2">
                       {a.status === "active" && (
-                        <Button size="sm" variant="outline" className="h-7 text-[10px] border-amber-200 text-amber-700 hover:bg-amber-50" onClick={() => endAuction(a.id)}>
-                          Akhiri Paksa
+                        <Button 
+                          size="sm" 
+                          variant="ghost" 
+                          className="h-8 rounded-xl px-4 text-[9px] font-black uppercase tracking-widest text-orange-500 hover:bg-orange-500/10" 
+                          onClick={() => endAuction(a.id)}
+                        >
+                          Abort Session
                         </Button>
                       )}
-                      <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-red-500 hover:text-red-600 hover:bg-red-50" onClick={() => deleteAuction(a.id)}>
+                      <Button 
+                        size="sm" 
+                        variant="ghost" 
+                        className="h-8 w-8 p-0 rounded-xl text-red-500 hover:bg-red-500/10" 
+                        onClick={() => deleteAuction(a.id)}
+                      >
                         <Trash2 className="h-4 w-4" />
                       </Button>
                     </div>
@@ -1179,8 +1493,9 @@ export function SellerPage() {
               ))
             )}
           </div>
-        </div>
+        </motion.div>
       )}
+      </div>
     </div>
   );
 }

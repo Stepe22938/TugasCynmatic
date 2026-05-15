@@ -11,83 +11,112 @@ import { ProductCard } from "../components/ProductCard";
 import { Button } from "../components/ui/button";
 
 export function WishlistPage() {
-  const { wishlist, toggleWishlist } = useWishlist();
+  const { wishlist } = useWishlist();
 
   return (
-    <div className="container mx-auto px-4 py-8 max-w-6xl">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-8">
-        <div className="flex items-center gap-4">
-          <Link href="/profile">
-            <button className="p-2 hover:bg-muted rounded-full transition-colors">
-              <ArrowLeft className="h-5 w-5" />
-            </button>
-          </Link>
-          <div>
-            <h1 className="text-3xl font-black tracking-tighter">Wishlist Saya</h1>
-            <p className="text-muted-foreground text-sm">{wishlist.length} produk tersimpan</p>
-          </div>
-        </div>
-        <div className="w-12 h-12 bg-red-100 dark:bg-red-950/30 rounded-2xl flex items-center justify-center">
-          <Heart className="h-6 w-6 text-red-500 fill-red-500" />
-        </div>
-      </div>
-
-      {wishlist.length === 0 ? (
+    <div className="min-h-screen bg-[#050505] pt-24 pb-20">
+      <div className="container mx-auto px-6 max-w-6xl space-y-10">
+        
+        {/* Elite Header */}
         <motion.div 
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-card border-2 border-dashed rounded-[3rem] p-16 text-center"
+          className="glass-card rounded-[3rem] p-10 relative overflow-hidden border-white/5 shadow-2xl bg-gradient-to-br from-red-600/10 via-background to-background"
         >
-          <div className="w-20 h-20 bg-muted rounded-full flex items-center justify-center mx-auto mb-6">
-            <Heart className="h-10 w-10 text-muted-foreground opacity-20" />
+          <div className="absolute top-0 right-0 p-8 opacity-5">
+            <Heart className="h-32 w-32 text-red-500" />
           </div>
-          <h2 className="text-2xl font-bold mb-2">Wishlist kamu masih kosong</h2>
-          <p className="text-muted-foreground mb-8 max-w-xs mx-auto">
-            Simpan produk yang kamu incar agar tidak ketinggalan saat ada promo menarik!
-          </p>
-          <Link href="/">
-            <Button size="lg" className="rounded-2xl px-8 font-bold">
-              Cari Produk
-            </Button>
-          </Link>
+          
+          <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-6">
+            <div className="flex flex-col md:flex-row items-center gap-6 text-center md:text-left">
+              <Link href="/profile">
+                <button className="w-12 h-12 bg-white/5 hover:bg-white/10 rounded-2xl flex items-center justify-center transition-all border border-white/5 group">
+                  <ArrowLeft className="h-5 w-5 text-white/40 group-hover:text-white group-hover:-translate-x-1 transition-all" />
+                </button>
+              </Link>
+              <div>
+                <h1 className="text-3xl md:text-5xl font-black tracking-tighter uppercase italic text-white drop-shadow-xl">
+                  Private Wishlist
+                </h1>
+                <p className="text-xs font-bold text-white/40 uppercase tracking-[0.3em] mt-2">
+                  {wishlist.length} Curated Assets Secured
+                </p>
+              </div>
+            </div>
+            
+            <div className="w-20 h-20 bg-red-600/10 rounded-[2rem] flex items-center justify-center shadow-lg shadow-red-600/5 border border-red-500/20">
+              <Heart className="h-10 w-10 text-red-500 fill-red-500 animate-pulse" />
+            </div>
+          </div>
         </motion.div>
-      ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          <AnimatePresence>
-            {wishlist.map((product) => (
-              <motion.div
-                key={product.id}
-                layout
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.9 }}
-                transition={{ duration: 0.3 }}
-              >
-                <div className="relative group">
-                   <ProductCard product={product} />
-                </div>
-              </motion.div>
-            ))}
-          </AnimatePresence>
-        </div>
-      )}
 
-      {/* Info Section */}
-      {wishlist.length > 0 && (
-        <div className="mt-12 p-6 bg-blue-50 dark:bg-blue-950/20 border border-blue-100 dark:border-blue-900/30 rounded-[2rem] flex items-start gap-4">
-          <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/50 rounded-full flex items-center justify-center flex-shrink-0">
-            <ShoppingBag className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+        {wishlist.length === 0 ? (
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="glass-card border-white/5 bg-white/5 rounded-[4rem] p-24 text-center border-dashed relative overflow-hidden"
+          >
+            <div className="absolute inset-0 bg-gradient-to-b from-white/[0.02] to-transparent pointer-events-none" />
+            <div className="relative z-10">
+              <div className="w-24 h-24 bg-white/5 rounded-full flex items-center justify-center mx-auto mb-8 border border-white/5 shadow-inner">
+                <Heart className="h-10 w-10 text-white/10" />
+              </div>
+              <h2 className="text-2xl font-black uppercase italic tracking-tighter text-white mb-3">Portfolio Empty</h2>
+              <p className="text-[10px] font-black uppercase tracking-[0.3em] text-white/20 mb-10 max-w-xs mx-auto leading-relaxed">
+                Secure your future acquisitions by pinning assets to your private portfolio.
+              </p>
+              <Link href="/">
+                <Button className="h-14 px-10 rounded-2xl bg-white text-black hover:bg-white/90 hover:scale-105 active:scale-95 transition-all font-black uppercase tracking-widest text-[10px] shadow-2xl">
+                  Browse Global Catalog
+                </Button>
+              </Link>
+            </div>
+          </motion.div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
+            <AnimatePresence mode="popLayout">
+              {wishlist.map((product) => (
+                <motion.div
+                  key={product.id}
+                  layout
+                  initial={{ opacity: 0, scale: 0.9, filter: "blur(10px)" }}
+                  animate={{ opacity: 1, scale: 1, filter: "blur(0px)" }}
+                  exit={{ opacity: 0, scale: 0.9, filter: "blur(10px)" }}
+                  transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+                >
+                  <ProductCard product={product} />
+                </motion.div>
+              ))}
+            </AnimatePresence>
           </div>
-          <div>
-            <h3 className="font-bold text-blue-900 dark:text-blue-200">Tips Wishlist</h3>
-            <p className="text-sm text-blue-700 dark:text-blue-300/80 leading-relaxed">
-              Produk di wishlist kamu bersifat <strong>Private</strong>. Hanya kamu yang bisa melihat daftar ini. 
-              Kami akan mengirimkan notifikasi jika produk di wishlist kamu mengalami <strong>Penurunan Harga</strong> atau <strong>Stok Hampir Habis</strong>.
-            </p>
-          </div>
-        </div>
-      )}
+        )}
+
+        {/* Intelligence Report Section */}
+        {wishlist.length > 0 && (
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="glass-card p-10 border-orange-500/20 bg-orange-600/5 rounded-[3rem] relative overflow-hidden"
+          >
+            <div className="absolute top-0 right-0 p-10 opacity-5">
+              <ShoppingBag className="h-24 w-24 text-orange-500" />
+            </div>
+            
+            <div className="flex flex-col md:flex-row items-center gap-8 relative z-10">
+              <div className="w-16 h-16 bg-orange-600 rounded-2xl flex items-center justify-center shadow-lg shadow-orange-600/20 flex-shrink-0 rotate-3">
+                <ShoppingBag className="h-8 w-8 text-white" />
+              </div>
+              <div className="text-center md:text-left">
+                <h3 className="text-lg font-black text-orange-500 uppercase italic tracking-widest mb-2">Protocol Intelligence</h3>
+                <p className="text-xs font-medium text-white/50 leading-relaxed max-w-2xl italic">
+                  Assets within your private wishlist are <strong className="text-white">Encrypted</strong>. 
+                  Automated protocols will trigger priority notifications for <strong className="text-white">Valuation Drops</strong> or <strong className="text-white">Inventory Scarcity</strong>.
+                </p>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </div>
     </div>
   );
 }
