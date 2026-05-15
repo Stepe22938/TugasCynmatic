@@ -8,9 +8,11 @@ import { useLocation } from "wouter";
 import { 
   Plus, MessageSquare, Trash2, Send, Bot, User, 
   ChevronLeft, Loader2, Sparkles, Sidebar as SidebarIcon,
-  Menu, X
+  Menu, X, TrendingUp
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
+import { useMyCrypto } from "../contexts/MyCryptoContext";
+import { CryptoBadge } from "../components/CryptoBadge";
 import { useAISettings } from "../contexts/AISettingsContext";
 import { Button } from "../components/ui/button";
 import { useToast } from "../hooks/use-toast";
@@ -30,6 +32,7 @@ interface ChatSession {
 
 export function AIChatPage() {
   const { user } = useAuth();
+  const { isCryptoMember } = useMyCrypto();
   const { isAIEnabled, openrouterKey, openrouterModel } = useAISettings();
   const [, setLocation] = useLocation();
   const { toast } = useToast();
@@ -164,6 +167,38 @@ export function AIChatPage() {
           >
             <Plus className="h-4 w-4" /> Chat Baru
           </Button>
+          
+          {isCryptoMember && (
+            <Button 
+              onClick={() => {
+                const newSession: ChatSession = {
+                  id: `crypto-${Date.now()}`,
+                  title: "Analisis Crypto",
+                  messages: [
+                    { 
+                      role: "system", 
+                      content: `Kamu adalah asisten AI khusus Crypto (MYCRYPTO) untuk platform Cynmatic. 
+                      Karakteristik: Pro, Analitis, Objektif.
+                      Tugas Utama: 
+                      1. Memberikan analisis teknikal (RSI, MACD, Support/Resistance) berdasarkan data pasar terbaru (simulasi).
+                      2. Memberikan analisis fundamental koin tertentu.
+                      3. Memberikan analisis sentimen pasar (Bullish/Bearish).
+                      4. Memberikan rekomendasi trading yang memiliki risk-reward ratio yang baik.
+                      Format Jawaban: Gunakan Markdown yang rapi dengan heading, list, dan tabel jika perlu. Jawab dalam Bahasa Indonesia.`, 
+                      id: "sys-crypto" 
+                    }
+                  ],
+                  createdAt: Date.now()
+                };
+                setSessions([newSession, ...sessions]);
+                setActiveSessionId(newSession.id);
+              }}
+              variant="outline" 
+              className="w-full justify-start gap-2 border-blue-500/50 text-blue-500 hover:bg-blue-500/10 mt-2"
+            >
+              <TrendingUp className="h-4 w-4" /> Crypto Analysis
+            </Button>
+          )}
         </div>
         
         <div className="flex-1 overflow-y-auto p-2 space-y-1">
@@ -255,6 +290,22 @@ export function AIChatPage() {
                     </button>
                   ))}
                 </div>
+                <div className="grid grid-cols-2 gap-4 mt-8 w-full max-w-md">
+                    <PremiumCard 
+                      href="/game-topup" 
+                      title="Top Up Game" 
+                      subtitle="MLBB, FF, PUBG..." 
+                      icon={Gamepad2} 
+                      color="from-emerald-500 to-teal-700" 
+                    />
+                    <PremiumCard 
+                      href="/mycrypto" 
+                      title="MyCrypto" 
+                      subtitle="AI Crypto & Signals" 
+                      icon={TrendingUp} 
+                      color="from-blue-600 to-indigo-900" 
+                    />
+                </div>
               </div>
             ) : (
               activeSession?.messages.filter(m => m.role !== "system").map((msg, idx) => (
@@ -266,9 +317,12 @@ export function AIChatPage() {
                     {msg.role === "assistant" ? <Bot className="h-5 w-5" /> : <User className="h-5 w-5" />}
                   </div>
                   <div className="flex-1 space-y-2 overflow-hidden">
-                    <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground opacity-50">
-                      {msg.role === "assistant" ? "Cynmatic AI" : "Anda"}
-                    </p>
+                    <div className="flex items-center gap-2">
+                      <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground opacity-50">
+                        {msg.role === "assistant" ? "Cynmatic AI" : "Anda"}
+                      </p>
+                      {msg.role === "user" && isCryptoMember && <CryptoBadge className="scale-75 origin-left" />}
+                    </div>
                     <div className="text-sm leading-relaxed whitespace-pre-wrap break-words">
                       {msg.content}
                     </div>

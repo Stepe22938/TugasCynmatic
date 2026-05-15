@@ -9,10 +9,13 @@ import {
   User, Mail, Calendar, ShoppingBag, Edit2, Check, X, LogOut,
   ShieldCheck, Package, Store, Coins, Truck, Send, Globe, Wifi, 
   Ticket, Users, Palette, Sparkles, Gamepad2, Gavel, Wallet,
-  Layout, LayoutGrid, Heart, Bell, Trophy, Crown, ShieldAlert,
-  Vote as VoteIcon, Bot, Music, Star, Gift
+  Layout, LayoutGrid, Heart, Bell, Trophy, Crown, ShieldAlert, Plus,
+  Vote as VoteIcon, Bot, Music, Star, Gift, Smartphone, TrendingUp
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
+import { useSultan } from "../contexts/MySultanContext";
+import { useMyCrypto } from "../contexts/MyCryptoContext";
+import { CryptoBadge } from "../components/CryptoBadge";
 import { useOrderHistory } from "../contexts/OrderHistoryContext";
 import { useTickets } from "../contexts/TicketContext";
 import { useNotifications } from "../contexts/NotificationContext";
@@ -38,6 +41,8 @@ const ROLE_COLOR: Record<string, string> = {
 
 export function ProfilePage() {
   const { user, logout, updateName, updateIps, toggleLayout } = useAuth();
+  const { isSultan, sultanExpiry } = useSultan();
+  const { isCryptoMember, cryptoExpiry } = useMyCrypto();
   const { state: orderState } = useOrderHistory();
   const { getUserTickets, createTicket } = useTickets();
   const { unreadCount } = useNotifications();
@@ -143,7 +148,7 @@ export function ProfilePage() {
                 <div className="flex-1 min-w-0 pb-6">
                   <div className="flex items-center gap-3 flex-wrap justify-center sm:justify-start mb-2">
                     <h1 className="text-3xl sm:text-4xl font-black tracking-tighter drop-shadow-lg">{user.name}</h1>
-                    {user.isSultan && (
+                    {isSultan && (
                       <div className={`flex flex-col items-center sm:items-start`}>
                         <div className={`flex items-center gap-1.5 bg-gradient-to-r from-${user.sultanBadgeColor || 'yellow'}-400 via-${user.sultanBadgeColor || 'yellow'}-500 to-${user.sultanBadgeColor || 'yellow'}-600 text-white text-[11px] font-black px-3 py-1 rounded-full shadow-xl border border-white/20 animate-pulse`}>
                           <Crown className="h-3.5 w-3.5 fill-white" /> SULTAN
@@ -155,12 +160,21 @@ export function ProfilePage() {
                         )}
                       </div>
                     )}
+                    {isCryptoMember && <CryptoBadge className="scale-110" />}
                     <span className={`flex items-center gap-1 bg-white/10 text-white text-[11px] font-black px-3 py-1 rounded-full border border-white/20 backdrop-blur-md uppercase tracking-widest`}>
                        {user.role === 'admin' ? <ShieldCheck className="h-3.5 w-3.5" /> : user.role === 'seller' ? <Store className="h-3.5 w-3.5" /> : <User className="h-3.5 w-3.5" />}
                        {user.role}
                     </span>
                   </div>
-                  <p className="text-white/70 text-base font-medium drop-shadow-md">{user.email}</p>
+                  <div className="flex flex-wrap items-center justify-center sm:justify-start gap-4 text-sm font-medium text-white/60 drop-shadow-md">
+                    <span className="flex items-center gap-2"><Mail className="h-4 w-4" /> {user.email}</span>
+                    {isSultan && sultanExpiry && (
+                      <span className="flex items-center gap-2 text-yellow-400 font-bold"><Crown className="h-4 w-4" /> Sultan hingga {formatDate(sultanExpiry)}</span>
+                    )}
+                    {isCryptoMember && cryptoExpiry && (
+                      <span className="flex items-center gap-2 text-blue-400 font-bold"><TrendingUp className="h-4 w-4" /> Crypto hingga {formatDate(cryptoExpiry)}</span>
+                    )}
+                  </div>
                   
                   {/* Social Counters */}
                   <div className="flex gap-6 mt-6 justify-center sm:justify-start">
@@ -202,6 +216,22 @@ export function ProfilePage() {
 
           {/* ── Premium Glass Grid (Matching Image) ──────────────────────────────── */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <PremiumCard 
+              href="/game-topup" 
+              title="Top Up Game" 
+              subtitle="MLBB, FF, PUBG..." 
+              icon={Gamepad2} 
+              color="from-emerald-500 to-teal-700" 
+              bgColor="bg-emerald-500/10"
+              borderColor="border-emerald-500/20"
+            />
+            <PremiumCard 
+              href="/mycrypto" 
+              title="MyCrypto" 
+              subtitle="AI Crypto & Signals" 
+              icon={TrendingUp} 
+              color="from-blue-600 to-indigo-900" 
+            />
             <PremiumCard 
               href="/exchange" 
               title="Tukar Koin" 
@@ -465,6 +495,8 @@ function InfoRow({ icon: Icon, label, value, badge }: any) {
 function SimpleProfileLayout({ user, displaySpend, displayOrders, displayItems, displayFriends, displayFollowers, displayFollowing }: any) {
   const { unreadCount } = useNotifications();
   const menuItems = [
+    { label: "Top Up Game", icon: Gamepad2, color: "bg-emerald-600", href: "/game-topup" },
+    { label: "MyCrypto", icon: TrendingUp, color: "bg-blue-600", href: "/mycrypto" },
     { label: "MyDompet", icon: Wallet, color: "bg-blue-500", href: "/mydompet" },
     { label: "MySultan", icon: Crown, color: "bg-amber-500", href: "/mysultan" },
     { label: "Teman", icon: Users, color: "bg-violet-500", href: "/friends", count: displayFriends },

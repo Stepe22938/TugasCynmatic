@@ -48,6 +48,8 @@ export interface User {
   referredBy?: string;
   status?: string;
   points: number;
+  isMyCryptoMember?: boolean;
+  myCryptoExpiry?: string | null;
 }
 
 interface StoredUser extends User {

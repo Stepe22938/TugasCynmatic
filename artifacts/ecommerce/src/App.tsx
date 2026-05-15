@@ -25,6 +25,7 @@ import { ThemeProvider } from "./contexts/ThemeContext";
 import { RedeemProvider } from "./contexts/RedeemContext";
 import { MusicProvider } from "./contexts/MusicContext";
 import { SultanProvider } from "./contexts/MySultanContext";
+import { MyCryptoProvider } from "./contexts/MyCryptoContext";
 import { WishlistProvider } from "./contexts/WishlistContext";
 import { VoteProvider } from "./contexts/VoteContext";
 
@@ -61,10 +62,12 @@ import { WishlistPage } from "./pages/WishlistPage";
 import { VotingPage } from "./pages/VotingPage";
 import { BanLeaderboardPage } from "./pages/BanLeaderboardPage";
 import { CosmeticPage } from "./pages/CosmeticPage";
+import { MyCryptoPage } from "./pages/MyCryptoPage";
 import { ChatPage } from "./pages/ChatPage";
 import { NotificationsPage } from "./pages/NotificationsPage";
 import { AffiliatePage } from "./pages/AffiliatePage";
 import { AboutUsPage } from "./pages/AboutUsPage";
+import { GameTopUpPage } from "./pages/GameTopUpPage";
 import { CosmeticProvider } from "./contexts/CosmeticContext";
 import { MessageProvider } from "./contexts/MessageContext";
 import NotFound from "@/pages/not-found";
@@ -229,6 +232,9 @@ function Router() {
       <Route path="/cosmetics">
         <ProtectedRoute component={CosmeticPage} />
       </Route>
+      <Route path="/mycrypto">
+        <ProtectedRoute component={MyCryptoPage} />
+      </Route>
       <Route path="/chat/:id">
         <ProtectedRoute component={ChatPage} />
       </Route>
@@ -243,6 +249,9 @@ function Router() {
       </Route>
       <Route path="/about-us">
         <ProtectedRoute component={AboutUsPage} />
+      </Route>
+      <Route path="/game-topup">
+        <ProtectedRoute component={GameTopUpPage} />
       </Route>
 
       {/* Role-Specific Routes */}
@@ -280,7 +289,8 @@ export default function App() {
                     <WalletProvider>
                       <LiveProvider>
                         <SultanProvider>
-                          <NotificationProvider>
+                          <MyCryptoProvider>
+                            <NotificationProvider>
                             <ProductsProvider>
                               <WishlistProvider>
                                 <CartProvider>
@@ -309,8 +319,9 @@ export default function App() {
                               </WishlistProvider>
                             </ProductsProvider>
                           </NotificationProvider>
-                        </SultanProvider>
-                      </LiveProvider>
+                        </MyCryptoProvider>
+                      </SultanProvider>
+                    </LiveProvider>
                     </WalletProvider>
                   </ExchangeSettingsProvider>
                 </VoucherProvider>

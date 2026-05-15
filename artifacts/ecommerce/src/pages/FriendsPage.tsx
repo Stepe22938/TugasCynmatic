@@ -6,9 +6,11 @@ import React, { useState, useMemo, useEffect } from "react";
 import { Link } from "wouter";
 import { 
   ChevronLeft, Search, UserPlus, UserMinus, Coins, ShoppingBag,
-  Crown, Shield, Truck, User as UserIcon, Star, Sparkles, Check, X as CloseIcon, Clock, MessageSquare
+  Crown, Shield, Truck, User as UserIcon, Star, Sparkles, Check, X as CloseIcon, Clock, MessageSquare,
+  TrendingUp
 } from "lucide-react";
 import { useAuth, User, UserRole } from "../contexts/AuthContext";
+import { CryptoBadge } from "../components/CryptoBadge";
 import { useCosmetics } from "../contexts/CosmeticContext";
 import { useOrderHistory } from "../contexts/OrderHistoryContext";
 import { useNotifications } from "../contexts/NotificationContext";
@@ -134,6 +136,7 @@ function FriendProfileCard({
                   <Crown className="h-3.5 w-3.5 fill-white" /> SULTAN
                 </div>
               )}
+              {selectedUser.isMyCryptoMember && <CryptoBadge />}
             </div>
             <p className="text-sm text-white/40 font-bold mb-4">{selectedUser.email}</p>
             
@@ -174,6 +177,16 @@ function FriendProfileCard({
                 <Clock className="h-3.5 w-3.5 text-white/40" />
                 <span className="text-[10px] font-black text-white/50 uppercase tracking-widest">Sultan aktif: {(() => {
                   const diff = new Date(selectedUser.sultanExpiry).getTime() - Date.now();
+                  const days = Math.ceil(diff / (1000 * 60 * 60 * 24));
+                  return days > 0 ? `${days} Hari` : "Habis";
+                })()}</span>
+             </div>
+           )}
+           {selectedUser.isMyCryptoMember && selectedUser.myCryptoExpiry && (
+             <div className="flex items-center gap-2 bg-blue-600/10 px-4 py-2 rounded-xl border border-blue-600/20 shadow-lg shadow-blue-900/10">
+                <TrendingUp className="h-3.5 w-3.5 text-blue-400" />
+                <span className="text-[10px] font-black text-blue-400 uppercase tracking-widest">Crypto aktif: {(() => {
+                  const diff = new Date(selectedUser.myCryptoExpiry).getTime() - Date.now();
                   const days = Math.ceil(diff / (1000 * 60 * 60 * 24));
                   return days > 0 ? `${days} Hari` : "Habis";
                 })()}</span>
@@ -485,6 +498,7 @@ export function FriendsPage() {
                             {u.sultanCustomTag}
                           </span>
                         )}
+                        {u.isMyCryptoMember && <CryptoBadge className="scale-75 origin-left" />}
                         {(u.equippedCosmetics || []).map(cid => {
                           const c = cosmetics.find(cosm => cosm.id === cid);
                           return c?.type === "tag" ? (
@@ -513,6 +527,22 @@ export function FriendsPage() {
                                </span>
                              )}
                            </div>
+                        )}
+                        {u.isMyCryptoMember && (
+                            <div className="flex items-center gap-1.5">
+                              <span className={`text-[9px] font-black text-blue-600 uppercase tracking-widest bg-blue-50 px-1 rounded border border-blue-200 flex items-center gap-0.5`}>
+                                <TrendingUp className="h-2 w-2" /> Crypto
+                              </span>
+                              {u.myCryptoExpiry && (
+                                <span className="text-[8px] font-black text-muted-foreground bg-muted/30 px-1.5 py-0.5 rounded-full flex items-center gap-1">
+                                  <Clock className="h-2 w-2" /> {(() => {
+                                    const diff = new Date(u.myCryptoExpiry).getTime() - Date.now();
+                                    const days = Math.ceil(diff / (1000 * 60 * 60 * 24));
+                                    return days > 0 ? `${days}h` : "Habis";
+                                  })()}
+                                </span>
+                              )}
+                            </div>
                         )}
                       </div>
                     </div>

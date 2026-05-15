@@ -37,8 +37,8 @@ export function AboutUsPage() {
       title: "SCENE 2",
       messages: [
         { role: "antigravity", text: "\"Oh iya btw, kalian mungkin bilang: How? Ko bisa bikin ini? Bro, ini AI. Ini jaman AI.\"" },
-        { role: "zaidan", text: "\"Eh eh gausah nyindir pemerintahan juga dong.\"" },
-        { role: "antigravity", text: "\"Iya iya maap dah.\"" },
+        { role: "zaidan", text: "\"Eits, tapi tetep aja... Logika di balik sistem Admin dan Database-nya itu murni dari arahan otak gw co.\"" },
+        { role: "antigravity", text: "\"Iya iya maap dah. Gw tau, gw cuman ngebantu ngetik kodenya secepat kilat biar lu gak tipes mikirin bug.\"" },
       ]
     },
     {
