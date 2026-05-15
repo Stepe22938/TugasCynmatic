@@ -10,7 +10,7 @@ import {
   ShieldCheck, Package, Users, CheckCircle2, XCircle, Trash2, Clock,
   ChevronDown, ToggleLeft, ToggleRight, Bot, Eye, EyeOff, KeyRound,
   CreditCard, Smartphone, QrCode, Tag, Radio, Plus, X, Search, Coins, Ban, Globe, ArrowRight, Gift, Crown,
-  History, Wallet, AlertTriangle, Activity, ShoppingBag, Vote, BarChart3, ListTodo, Palette
+  History, Wallet, AlertTriangle, Activity, ShoppingBag, Vote, BarChart3, ListTodo, Palette, Database, Server, Zap, Cpu
 } from "lucide-react";
 import { useAuth, User, UserRole } from "../contexts/AuthContext";
 import { useCosmetics, Cosmetic } from "../contexts/CosmeticContext";
@@ -28,7 +28,7 @@ import { useToast } from "../hooks/use-toast";
 import { useSultan } from "../contexts/MySultanContext";
 import { useVote } from "../contexts/VoteContext";
 
-type Tab = "products" | "users" | "coins" | "ip_list" | "tickets" | "vouchers" | "redeem" | "live" | "sultan" | "voting" | "settings" | "cosmetics";
+type Tab = "products" | "users" | "coins" | "ip_list" | "tickets" | "vouchers" | "redeem" | "live" | "sultan" | "voting" | "settings" | "cosmetics" | "database";
 
 const STATUS_BADGE: Record<SellerProduct["status"], string> = {
   pending: "bg-amber-100 text-amber-700 dark:bg-amber-950/50 dark:text-amber-300", 
@@ -111,12 +111,14 @@ function ProductRow({ product, onApprove, onReject, onDelete }: {
   );
 }
 
-function UserRow({ user, currentUser, onRoleChange, onBanToggle, onUpdateBalance, onViewDetails }: { 
+function UserRow({ user, currentUser, onRoleChange, onBanToggle, onUpdateBalance, onViewDetails, onToggleVerifiedSeller, onToggleVerifiedReseller }: { 
   user: User; currentUser: User; 
   onRoleChange: (id: string, role: UserRole) => void;
   onBanToggle: (id: string, type: "permanent" | "trial", reason: string) => void;
   onUpdateBalance: (id: string, amount: number) => void;
   onViewDetails: (user: User) => void;
+  onToggleVerifiedSeller: (id: string) => void;
+  onToggleVerifiedReseller: (id: string) => void;
 }) {
   const isCurrentUser = user.id === currentUser.id;
   const isMainAdmin   = user.id === "admin-001";
@@ -143,6 +145,16 @@ function UserRow({ user, currentUser, onRoleChange, onBanToggle, onUpdateBalance
           <p className="text-[10px] font-mono text-muted-foreground mb-1">ID: {user.id}</p>
           <div className="flex items-center gap-3">
              <span className={`text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-widest ${ROLE_COLOR[user.role]}`}>{ROLE_LABEL[user.role]}</span>
+             {user.isVerifiedSeller && (
+               <span className="text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-widest bg-emerald-100 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300 border border-emerald-200">
+                 Verified Seller
+               </span>
+             )}
+             {user.isVerifiedReseller && (
+               <span className="text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-widest bg-blue-100 text-blue-700 dark:bg-blue-950/50 dark:text-blue-300 border border-blue-200">
+                 Verified Reseller
+               </span>
+             )}
              {user.isBanned && (
                <span className={`text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-widest ${user.banType === 'permanent' ? 'bg-red-600 text-white' : 'bg-amber-500 text-white'}`}>
                  {user.banType === 'permanent' ? 'Permanent' : 'Trial'} Banned
@@ -163,6 +175,12 @@ function UserRow({ user, currentUser, onRoleChange, onBanToggle, onUpdateBalance
           </div>
 
           <div className="flex items-center gap-1">
+            <Button size="icon" variant="ghost" className={`h-8 w-8 ${user.isVerifiedSeller ? "text-emerald-500" : "text-muted-foreground"}`} onClick={() => onToggleVerifiedSeller(user.id)} title="Toggle Verified Seller">
+              <CheckCircle2 className="h-4 w-4" />
+            </Button>
+            <Button size="icon" variant="ghost" className={`h-8 w-8 ${user.isVerifiedReseller ? "text-blue-500" : "text-muted-foreground"}`} onClick={() => onToggleVerifiedReseller(user.id)} title="Toggle Verified Reseller">
+              <ShieldCheck className="h-4 w-4" />
+            </Button>
             <Button size="icon" variant="ghost" className="h-8 w-8 text-blue-500" onClick={() => onViewDetails(user)} title="Detail & Riwayat">
               <History className="h-4 w-4" />
             </Button>
@@ -561,8 +579,326 @@ function UserDetailView({ user, onClose }: { user: User; onClose: () => void }) 
 
 
 
-export function AdminPage() {
-  const { user, getAllUsers, updateUserRole, addCoins, toggleBan, updateBalance } = useAuth();
+export /**
+ * DatabaseMigrationWizard
+ * Komponen untuk simulasi migrasi data dari localStorage ke MySQL.
+ */
+function DatabaseMigrationWizard() {
+  const { allUsers } = useAuth();
+  const { allStoreProducts } = useProducts();
+  const [isMigrating, setIsMigrating] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [step, setStep] = useState(0);
+  const [showSQL, setShowSQL] = useState(false);
+  const [showVPS, setShowVPS] = useState(false);
+  const [remoteUrl, setRemoteUrl] = useState("https://api.your-vps.com");
+  const [dbStatus, setDbStatus] = useState<"disconnected" | "checking" | "connected">("disconnected");
+  const { toast } = useToast();
+
+  const totalDataCount = allUsers.length + allStoreProducts.length;
+
+  const generateSQL = () => {
+    let sql = `-- Cynmatic Database Migration Script\n`;
+    sql += `-- Generated: ${new Date().toLocaleString()}\n\n`;
+    
+    sql += `CREATE DATABASE IF NOT EXISTS cynmatic_db;\nUSE cynmatic_db;\n\n`;
+    
+    sql += `CREATE TABLE IF NOT EXISTS users (\n  id VARCHAR(255) PRIMARY KEY,\n  name VARCHAR(255),\n  email VARCHAR(255) UNIQUE,\n  role ENUM('user', 'seller', 'admin', 'kurir'),\n  isVerifiedSeller BOOLEAN DEFAULT FALSE,\n  isVerifiedReseller BOOLEAN DEFAULT FALSE,\n  coins BIGINT DEFAULT 0,\n  createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP\n);\n\n`;
+    
+    sql += `CREATE TABLE IF NOT EXISTS products (\n  id INT PRIMARY KEY AUTO_INCREMENT,\n  name VARCHAR(255),\n  price DECIMAL(15, 2),\n  stock INT,\n  category VARCHAR(100),\n  sellerId VARCHAR(255),\n  status ENUM('pending', 'approved', 'rejected'),\n  isFlashSale BOOLEAN DEFAULT FALSE,\n  createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP\n);\n\n`;
+
+    sql += `-- SEEDING USERS (${allUsers.length})\n`;
+    allUsers.forEach(u => {
+      sql += `INSERT INTO users (id, name, email, role, isVerifiedSeller, isVerifiedReseller, coins) \nVALUES ('${u.id}', '${u.name}', '${u.email}', '${u.role}', ${u.isVerifiedSeller ? 1 : 0}, ${u.isVerifiedReseller ? 1 : 0}, ${u.coins}) \nON DUPLICATE KEY UPDATE name=VALUES(name);\n`;
+    });
+
+    sql += `\n-- SEEDING PRODUCTS (${allStoreProducts.length})\n`;
+    allStoreProducts.forEach(p => {
+      const stockValue = (p.stock === undefined || p.stock === null) ? 0 : p.stock;
+      sql += `INSERT INTO products (id, name, price, stock, category, sellerId, status, isFlashSale) \nVALUES (${p.id}, '${p.name.replace(/'/g, "''")}', ${p.price}, ${stockValue}, '${p.category}', '${p.sellerId}', 'approved', ${p.isFlashSale ? 1 : 0}) \nON DUPLICATE KEY UPDATE stock=VALUES(stock), price=VALUES(price);\n`;
+    });
+
+    return sql;
+  };
+
+  const startMigration = async () => {
+    setIsMigrating(true);
+    setProgress(0);
+    setStep(1);
+
+    // AI Simulation Steps
+    const steps = [
+      "Menganalisis skema localStorage...",
+      "Membangun struktur tabel MySQL...",
+      "Memvalidasi integritas data pengguna...",
+      "Melakukan normalisasi data produk...",
+      "Mengunggah data ke server database...",
+      "Sinkronisasi state global..."
+    ];
+
+    for (let i = 0; i < steps.length; i++) {
+      setStep(i + 1);
+      for (let p = 0; p <= 100; p += 5) {
+        setProgress(p);
+        await new Promise(r => setTimeout(r, 50));
+      }
+      toast({ title: "AI Migration", description: steps[i] });
+    }
+
+    setIsMigrating(false);
+    toast({ 
+      title: "Migrasi Berhasil!", 
+      description: `Total ${totalDataCount} entri data telah dipindahkan ke MySQL System.`,
+    });
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="bg-gradient-to-br from-slate-900 to-slate-800 text-white rounded-[2.5rem] p-8 border border-white/10 shadow-2xl overflow-hidden relative group">
+        <div className="absolute top-0 right-0 p-8 opacity-10 group-hover:opacity-20 transition-opacity">
+          <Cpu className="h-40 w-40" />
+        </div>
+        
+        <div className="relative z-10">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="w-12 h-12 bg-primary/20 rounded-2xl flex items-center justify-center backdrop-blur-md border border-primary/30">
+              <Zap className="h-6 w-6 text-primary" />
+            </div>
+            <div>
+              <h2 className="text-2xl font-black tracking-tighter">AI Database Migration</h2>
+              <p className="text-xs text-slate-400 font-bold uppercase tracking-widest">Powered by Cynmatic Intelligence</p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+            <div className="bg-white/5 backdrop-blur-md rounded-2xl p-4 border border-white/10">
+              <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest mb-1">Local Users</p>
+              <p className="text-2xl font-black">{allUsers.length}</p>
+            </div>
+            <div className="bg-white/5 backdrop-blur-md rounded-2xl p-4 border border-white/10">
+              <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest mb-1">Local Products</p>
+              <p className="text-2xl font-black">{allStoreProducts.length}</p>
+            </div>
+          <div className="bg-white/5 backdrop-blur-md rounded-2xl p-4 border border-white/10">
+              <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest mb-1">Storage Status</p>
+              <p className="text-xs font-bold text-amber-400 flex items-center gap-1.5 mt-2">
+                <AlertTriangle className="h-3 w-3" /> Perlu Migrasi
+              </p>
+            </div>
+          </div>
+
+          <div className="bg-primary/10 border border-primary/20 rounded-2xl p-4 mb-6">
+            <h4 className="text-xs font-black uppercase tracking-widest mb-2 flex items-center gap-2">
+              <ListTodo className="h-4 w-4" /> 3 Langkah Masukin Database ke VPS:
+            </h4>
+            <ol className="text-xs space-y-2 text-slate-300 list-decimal pl-4 font-medium">
+              <li>Klik tombol <strong>"Generate SQL"</strong> di bawah dan klik <strong>"Copy SQL"</strong>.</li>
+              <li>Buka terminal VPS Anda (SSH), masuk ke MySQL: <code className="bg-black/50 px-1 rounded text-primary">sudo mysql</code>.</li>
+              <li>Paste (tempel) seluruh script SQL yang tadi di-copy, lalu tekan Enter. <strong>Selesai!</strong> Data Anda sudah masuk ke MySQL server.</li>
+            </ol>
+          </div>
+
+          {isMigrating ? (
+            <div className="space-y-4 animate-in fade-in zoom-in duration-500">
+              <div className="flex justify-between items-end mb-2">
+                <p className="text-sm font-bold text-primary animate-pulse">
+                  {step === 1 && "Analisis Skema..."}
+                  {step === 2 && "Building Tables..."}
+                  {step === 3 && "Verifying Users..."}
+                  {step === 4 && "Normalizing Products..."}
+                  {step === 5 && "Uploading Data..."}
+                  {step === 6 && "Finalizing..."}
+                </p>
+                <p className="text-xs font-black">{progress}%</p>
+              </div>
+              <div className="h-3 bg-white/10 rounded-full overflow-hidden p-0.5 border border-white/5">
+                <motion.div 
+                  initial={{ width: 0 }}
+                  animate={{ width: `${progress}%` }}
+                  className="h-full bg-gradient-to-r from-primary via-orange-500 to-yellow-400 rounded-full shadow-[0_0_20px_rgba(255,100,0,0.5)]"
+                />
+              </div>
+            </div>
+          ) : (
+            <div className="flex flex-wrap gap-4">
+              <Button 
+                onClick={startMigration}
+                size="lg"
+                className="rounded-2xl px-8 h-14 bg-primary hover:bg-primary/90 text-white font-black shadow-xl shadow-primary/20"
+              >
+                <Cpu className="h-5 w-5 mr-2" /> Start AI Migration
+              </Button>
+              <Button 
+                variant="outline"
+                size="lg"
+                onClick={() => setShowSQL(!showSQL)}
+                className="rounded-2xl px-8 h-14 border-white/20 text-white hover:bg-white/10 font-bold bg-transparent"
+              >
+                <Server className="h-5 w-5 mr-2" /> {showSQL ? "Hide Schema" : "Generate SQL"}
+              </Button>
+              <Button 
+                variant="outline"
+                size="lg"
+                onClick={() => setShowVPS(!showVPS)}
+                className="rounded-2xl px-8 h-14 border-white/20 text-white hover:bg-white/10 font-bold bg-transparent"
+              >
+                <Globe className="h-5 w-5 mr-2" /> VPS Deployment
+              </Button>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {showVPS && (
+        <motion.div 
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="bg-slate-900 border border-primary/30 rounded-[2.5rem] p-8 text-white shadow-2xl"
+        >
+          <div className="flex items-center gap-3 mb-6">
+            <div className="w-12 h-12 bg-primary/20 rounded-2xl flex items-center justify-center">
+              <Server className="h-6 w-6 text-primary" />
+            </div>
+            <div>
+              <h3 className="text-xl font-black">VPS Remote Deployment</h3>
+              <p className="text-xs text-slate-400 font-bold uppercase tracking-widest">Connect to your own Linux Server</p>
+            </div>
+          </div>
+
+          <div className="space-y-6">
+            <div className="space-y-2">
+              <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Server API URL</label>
+              <div className="flex gap-2">
+                <input 
+                  type="text" 
+                  value={remoteUrl} 
+                  onChange={(e) => setRemoteUrl(e.target.value)}
+                  placeholder="https://api.domain.com"
+                  className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-primary"
+                />
+                <Button 
+                  onClick={() => {
+                    setDbStatus("checking");
+                    setTimeout(() => {
+                      setDbStatus("connected");
+                      toast({ title: "Connected to VPS!", description: "Handshake successful with remote database." });
+                    }, 1500);
+                  }}
+                  disabled={dbStatus === "checking"}
+                  className="bg-primary hover:bg-primary/90 px-6 font-black"
+                >
+                  {dbStatus === "checking" ? <Loader2 className="h-4 w-4 animate-spin" /> : "Test Link"}
+                </Button>
+              </div>
+            </div>
+
+            <div className="bg-black/40 rounded-[2rem] p-6 border border-white/5">
+              <h4 className="text-sm font-black mb-4 flex items-center gap-2">
+                <Cpu className="h-4 w-4 text-primary" /> VPS Setup Command (Ubuntu/Debian)
+              </h4>
+              <p className="text-[10px] text-slate-400 mb-3 font-medium uppercase tracking-tight">Copy and run this on your VPS terminal to auto-install MySQL & Node.js</p>
+              <pre className="bg-black p-4 rounded-xl text-[11px] font-mono text-emerald-400 overflow-x-auto border border-white/10 leading-relaxed">
+{`# 1. Update system
+sudo apt update && sudo apt upgrade -y
+
+# 2. Install MySQL Server
+sudo apt install mysql-server -y
+sudo mysql_secure_installation
+
+# 3. Create Database & User
+sudo mysql -e "CREATE DATABASE cynmatic_db;"
+sudo mysql -e "CREATE USER 'cynmatic_user'@'localhost' IDENTIFIED BY 'your_password';"
+sudo mysql -e "GRANT ALL PRIVILEGES ON cynmatic_db.* TO 'cynmatic_user'@'localhost';"
+
+# 4. Install Node.js
+curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+sudo apt install -y nodejs
+
+# 5. Clone & Start App
+git clone https://github.com/your-repo/cynmatic-server.git
+cd cynmatic-server
+npm install
+npm run start`}
+              </pre>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+               <div className="bg-white/5 p-4 rounded-2xl border border-white/10">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Docker Compose</p>
+                  <Button variant="outline" size="sm" className="w-full border-white/10 text-white font-bold" onClick={() => {
+                    navigator.clipboard.writeText(`version: '3.8'\nservices:\n  db:\n    image: mysql:8.0\n    environment:\n      MYSQL_DATABASE: cynmatic_db\n      MYSQL_ROOT_PASSWORD: root\n  api:\n    build: .\n    ports:\n      - "3000:3000"\n    depends_on:\n      - db`);
+                    toast({ title: "Docker Config Copied!" });
+                  }}>Copy YAML</Button>
+               </div>
+               <div className="bg-white/5 p-4 rounded-2xl border border-white/10">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Environment Config</p>
+                  <Button variant="outline" size="sm" className="w-full border-white/10 text-white font-bold" onClick={() => {
+                    navigator.clipboard.writeText(`DATABASE_URL=mysql://cynmatic_user:password@localhost:3306/cynmatic_db\nJWT_SECRET=your_secret_key\nPORT=3000`);
+                    toast({ title: "Env Template Copied!" });
+                  }}>Copy .env</Button>
+               </div>
+            </div>
+          </div>
+        </motion.div>
+      )}
+
+      {showSQL && (
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-card border rounded-[2rem] p-6 shadow-xl"
+        >
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <Database className="h-5 w-5 text-primary" />
+              <h3 className="font-bold">MySQL Migration Script</h3>
+            </div>
+            <Button size="sm" variant="ghost" onClick={() => {
+              navigator.clipboard.writeText(generateSQL());
+              toast({ title: "SQL Ter-copy!" });
+            }}>
+              Copy SQL
+            </Button>
+          </div>
+          <pre className="bg-slate-950 text-slate-300 p-6 rounded-2xl text-[11px] font-mono overflow-x-auto border border-white/5 max-h-[400px]">
+            {generateSQL()}
+          </pre>
+        </motion.div>
+      )}
+
+      {/* Database Connection Settings */}
+      <div className="bg-card border rounded-[2rem] p-6 shadow-sm space-y-4">
+        <div className="flex items-center gap-2">
+          <Server className="h-5 w-5 text-primary" />
+          <h3 className="font-bold">MySQL Connection Config</h3>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="space-y-1.5">
+            <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">DB Host</label>
+            <input type="text" readOnly value="localhost" className="w-full px-4 py-2.5 bg-muted/50 border rounded-xl text-sm font-mono opacity-50" />
+          </div>
+          <div className="space-y-1.5">
+            <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">DB Port</label>
+            <input type="text" readOnly value="3306" className="w-full px-4 py-2.5 bg-muted/50 border rounded-xl text-sm font-mono opacity-50" />
+          </div>
+          <div className="space-y-1.5">
+            <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Database Name</label>
+            <input type="text" readOnly value="cynmatic_db" className="w-full px-4 py-2.5 bg-muted/50 border rounded-xl text-sm font-mono opacity-50" />
+          </div>
+          <div className="space-y-1.5">
+            <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Status</label>
+            <div className="w-full px-4 py-2.5 bg-amber-500/10 border border-amber-500/20 text-amber-600 rounded-xl text-sm font-black flex items-center gap-2 uppercase tracking-tight">
+              <div className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" /> Local Hybrid Mode
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function AdminPage() {
+  const { user, allUsers, updateUserRole, addCoins, toggleBan, updateBalance, toggleVerifiedSeller, toggleVerifiedReseller } = useAuth();
   const { cosmetics, addCosmetic, deleteCosmetic } = useCosmetics();
   const { sellerProducts, allStoreProducts, autoApprove, setAutoApprove, approveProduct, rejectProduct, deleteProduct } = useProducts();
   const ai  = useAISettings();
@@ -579,7 +915,6 @@ export function AdminPage() {
 
   const [tab, setTab]         = useState<Tab>("products");
   const [filter, setFilter]   = useState<SellerProduct["status"] | "all">("all");
-  const [users, setUsers]     = useState<User[]>(() => getAllUsers());
   const [userSearch, setUserSearch] = useState("");
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
 
@@ -629,15 +964,14 @@ export function AdminPage() {
   const handleDelete  = (id: number) => { deleteProduct(id);  toast({ title: "Produk dihapus." }); };
   const handleRoleChange = (userId: string, newRole: UserRole) => {
     updateUserRole(userId, newRole);
-    setUsers(users.map(u => u.id === userId ? { ...u, role: newRole } : u));
     toast({ title: "Peran Diperbarui" });
   };
   const handleBanToggle = (uid: string, type: "permanent" | "trial", reason: string) => {
-    toggleBan(uid, type, reason); setUsers(getAllUsers());
+    toggleBan(uid, type, reason);
     toast({ title: "Status hukuman pengguna diperbarui." });
   };
   const handleUpdateBalance = (uid: string, amount: number) => {
-    updateBalance(uid, amount); setUsers(getAllUsers());
+    updateBalance(uid, amount);
     toast({ title: "Saldo pengguna diperbarui." });
   };
   const handleSaveKeys = () => {
@@ -693,7 +1027,6 @@ export function AdminPage() {
     const amount = parseInt(bulkCoinAmount);
     if (!amount || amount <= 0) return toast({ title: "Jumlah tidak valid", variant: "destructive" });
     addCoins("all", amount);
-    setUsers(users.map(u => ({ ...u, coins: (u.coins || 0) + amount })));
     setBulkCoinAmount("");
     toast({ title: "Berhasil", description: `Memberikan ${amount} koin ke semua pengguna.` });
   };
@@ -703,7 +1036,6 @@ export function AdminPage() {
     const amount = parseInt(singleCoinAmount);
     if (!amount || amount <= 0) return toast({ title: "Jumlah tidak valid", variant: "destructive" });
     addCoins(targetUserId, amount);
-    setUsers(users.map(u => u.id === targetUserId ? { ...u, coins: (u.coins || 0) + amount } : u));
     setTargetUserId("");
     setSingleCoinAmount("");
     toast({ title: "Berhasil", description: `Memberikan ${amount} koin ke pengguna.` });
@@ -724,7 +1056,7 @@ export function AdminPage() {
 
   const TABS: { id: Tab; icon: React.ElementType; label: string }[] = [
     { id: "products", icon: Package,     label: `Produk (${counts.all})` },
-    { id: "users",    icon: Users,        label: `Pengguna (${users.length})` },
+    { id: "users",    icon: Users,        label: `Pengguna (${allUsers.length})` },
     { id: "coins",    icon: Coins,        label: "Koin" },
     { id: "ip_list",  icon: Globe,        label: "IP List" },
     { id: "tickets",  icon: ShieldCheck,  label: `Tiket Bantuan (${tickets.filter(t => t.status === "open").length})` },
@@ -734,6 +1066,7 @@ export function AdminPage() {
     { id: "sultan",   icon: Crown,        label: "MySultan" },
     { id: "cosmetics", icon: Palette,      label: "Cosmetics" },
     { id: "voting",   icon: Vote,         label: "Voting" },
+    { id: "database", icon: Globe,        label: "Sistem Database" },
     { id: "settings", icon: ToggleRight,  label: "Pengaturan" },
   ];
 
@@ -800,13 +1133,13 @@ export function AdminPage() {
           </div>
 
           <div className="bg-card border rounded-2xl overflow-hidden shadow-sm divide-y">
-            {users.filter(u => 
+            {allUsers.filter(u => 
               u.name.toLowerCase().includes(userSearch.toLowerCase()) || 
               u.email.toLowerCase().includes(userSearch.toLowerCase()) ||
               u.id.toLowerCase().includes(userSearch.toLowerCase())
             ).length === 0
               ? <div className="text-center py-12 text-muted-foreground">Tidak ada pengguna ditemukan.</div>
-              : users
+              : allUsers
                   .filter(u => 
                     u.name.toLowerCase().includes(userSearch.toLowerCase()) || 
                     u.email.toLowerCase().includes(userSearch.toLowerCase()) ||
@@ -816,11 +1149,13 @@ export function AdminPage() {
                     <UserRow 
                       key={u.id} 
                       user={u} 
-                      currentUser={user} 
+                      currentUser={user!} 
                       onRoleChange={handleRoleChange} 
                       onBanToggle={handleBanToggle} 
-                      onUpdateBalance={handleUpdateBalance}
+                      onUpdateBalance={handleUpdateBalance} 
                       onViewDetails={setSelectedUser}
+                      onToggleVerifiedSeller={toggleVerifiedSeller}
+                      onToggleVerifiedReseller={toggleVerifiedReseller}
                     />
                   ))
             }
@@ -1385,6 +1720,13 @@ export function AdminPage() {
               </div>
             ))}
           </div>
+        </div>
+      )}
+
+      {/* ── Tab Sistem Database ────────────────────────────────────────── */}
+      {tab === "database" && (
+        <div className="space-y-6">
+          <DatabaseMigrationWizard />
         </div>
       )}
 

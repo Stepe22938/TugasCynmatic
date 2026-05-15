@@ -29,7 +29,7 @@ export function CheckoutPage() {
   const { state: { items }, dispatch, subtotal: cartSubtotal, processPayouts, directItem, setDirectItem } = useCart();
   const { addOrder } = useOrderHistory();
   const { user, addCoins } = useAuth();
-  const { decrementStock } = useProducts();
+  const { decrementStock, allStoreProducts } = useProducts();
   const pay = usePaymentSettings();
   const { addNotification } = useNotifications();
   const { validateVoucher, useVoucher: markVoucherUsed } = useVouchers();
@@ -164,6 +164,20 @@ export function CheckoutPage() {
 
   const placeOrder = () => {
     const orderNumber = `#TKO-${Math.floor(Math.random() * 100000).toString().padStart(5, "0")}`;
+
+    // Final Stock Check
+    for (const item of checkoutItems) {
+      const currentProduct = allStoreProducts.find(p => p.id === item.id);
+      if (!currentProduct || currentProduct.stock < item.quantity) {
+        toast({
+          variant: "destructive",
+          title: "Stok Tidak Mencukupi",
+          description: `Maaf, stok untuk ${item.name} tidak mencukupi atau sudah habis.`
+        });
+        return;
+      }
+    }
+
     if (appliedVoucher) markVoucherUsed(appliedVoucher.code);
     // REAL PAYMENT LOGIC: MyDompet
     if (payMethod === "mydompet") {
@@ -204,7 +218,7 @@ export function CheckoutPage() {
       coinDiscount: coinDiscount > 0 ? coinDiscount : undefined,
       status: (() => {
         // Find if any item is a pre-order not yet released
-        const poItem = items.find(it => it.isPreOrder && it.releaseDate);
+        const poItem = checkoutItems.find(it => it.isPreOrder && it.releaseDate);
         if (poItem) {
           const release = new Date(poItem.releaseDate!);
           const now = new Date();
@@ -225,7 +239,7 @@ export function CheckoutPage() {
       messages: [],
     });
     
-    const isPO = items.some(it => it.isPreOrder && it.releaseDate);
+    const isPO = checkoutItems.some(it => it.isPreOrder && it.releaseDate);
     const orderStatus = isPO && !isSultan ? "Pending Pre-Order" : "Berhasil Dibuat";
 
     addNotification({
@@ -241,7 +255,7 @@ export function CheckoutPage() {
     }
 
     // Potong stok barang
-    items.forEach((item) => {
+    checkoutItems.forEach((item) => {
       decrementStock(item.id, item.quantity);
     });
 

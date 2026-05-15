@@ -68,6 +68,8 @@ export function CartPage() {
                     <span className="w-10 text-center font-medium">{item.quantity}</span>
                     <Button variant="ghost" size="icon" className="h-8 w-8 rounded-md"
                       onClick={() => handleUpdateQty(item.id, item.quantity + 1)}
+                      disabled={item.quantity >= item.stock}
+                      title={item.quantity >= item.stock ? "Stok maksimum tercapai" : ""}
                       data-testid={`button-increase-qty-${item.id}`}>
                       <Plus className="h-4 w-4" />
                     </Button>

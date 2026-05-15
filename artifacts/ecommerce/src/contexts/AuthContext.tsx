@@ -50,6 +50,8 @@ export interface User {
   points: number;
   isMyCryptoMember?: boolean;
   myCryptoExpiry?: string | null;
+  isVerifiedSeller?: boolean;
+  isVerifiedReseller?: boolean;
 }
 
 interface StoredUser extends User {
@@ -80,6 +82,8 @@ interface AuthContextType {
   toggleLayout: () => void;
   logActivity: (action: string) => void;
   logPurchase: (userId: string, itemName: string, price: number) => void;
+  toggleVerifiedSeller: (userId: string) => void;
+  toggleVerifiedReseller: (userId: string) => void;
 }
 
 const getStoredUsers = (): StoredUser[] => {
@@ -428,7 +432,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     <AuthContext.Provider value={{ 
       user, allUsers, isAuthenticated: !!user, register, login, logout, updateName, updateUser, updateCustomization, 
       sendFriendRequest, acceptFriendRequest, rejectFriendRequest, removeFriend, 
-      getAllUsers, updateUserRole, updateUserCoins, addCoins, updateBalance, toggleBan, updateIps, toggleLayout, logActivity, logPurchase 
+      getAllUsers, updateUserRole, updateUserCoins, addCoins, updateBalance, toggleBan, updateIps, toggleLayout, logActivity, logPurchase,
+      toggleVerifiedSeller: (uid: string) => {
+        if (user?.role !== "admin") return;
+        const users = getStoredUsers();
+        syncAndSetUsers(users.map(u => u.id === uid ? { ...u, isVerifiedSeller: !u.isVerifiedSeller } : u));
+      },
+      toggleVerifiedReseller: (uid: string) => {
+        if (user?.role !== "admin") return;
+        const users = getStoredUsers();
+        syncAndSetUsers(users.map(u => u.id === uid ? { ...u, isVerifiedReseller: !u.isVerifiedReseller } : u));
+      }
     }}>
       {children}
     </AuthContext.Provider>

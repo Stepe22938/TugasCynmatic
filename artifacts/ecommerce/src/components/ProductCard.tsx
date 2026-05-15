@@ -9,9 +9,12 @@
 import React from "react";
 import { Link } from "wouter";
 import { motion } from "framer-motion";
-import { Star, ShoppingCart, ArrowRight, Zap, Clock, ShieldCheck, Heart } from "lucide-react";
+import { Star, ShoppingCart, ArrowRight, Zap, Clock, ShieldCheck, Heart, Store, CheckCircle2 } from "lucide-react";
 import { useSultan } from "../contexts/MySultanContext";
 import { useWishlist } from "../contexts/WishlistContext";
+import { useAuth } from "../contexts/AuthContext";
+import { SellerInfoModal } from "./SellerInfoModal";
+import { AnimatePresence } from "framer-motion";
 import { formatPrice } from "../utils/formatPrice";
 import { useCart } from "../contexts/CartContext";
 import { useToast } from "../hooks/use-toast";
@@ -42,7 +45,11 @@ export function ProductCard({ product }: ProductCardProps) {
   const allRatings = useProductRatings();
   const { isSultan } = useSultan();
   const { toggleWishlist, isInWishlist } = useWishlist();
+  const { allUsers } = useAuth();
+  const [showSellerModal, setShowSellerModal] = React.useState(false);
+
   const rating = allRatings[product.id];
+  const sellerUser = allUsers.find(u => u.id === product.sellerId);
 
   const inWishlist = isInWishlist(product.id);
 
@@ -57,6 +64,8 @@ export function ProductCard({ product }: ProductCardProps) {
 
   const handleAddToCart = (e: React.MouseEvent) => {
     e.preventDefault();
+    e.stopPropagation();
+    
     if (product.stock <= 0) {
       toast({ title: "Stok Habis", description: "Maaf, produk ini sudah habis terjual.", variant: "destructive" });
       return;
@@ -86,6 +95,7 @@ export function ProductCard({ product }: ProductCardProps) {
         image: product.image,
         sellerId: product.sellerId,
         sellerName: product.sellerName,
+        stock: product.stock,
         isPreOrder: isPreOrder && !isReleased,
         releaseDate: product.releaseDate
       },
@@ -182,9 +192,31 @@ export function ProductCard({ product }: ProductCardProps) {
             </motion.div>
           )}
 
-          <h3 className="font-black text-lg text-foreground line-clamp-1 mb-1 tracking-tight group-hover:text-primary transition-colors">
+          <h3 className="font-black text-lg text-foreground line-clamp-1 mb-0.5 tracking-tight group-hover:text-primary transition-colors">
             {product.name}
           </h3>
+
+          <div 
+            className="flex items-center gap-1.5 text-[10px] text-muted-foreground mb-2 cursor-pointer hover:text-primary transition-colors w-fit relative z-30"
+            onClick={(e) => { e.preventDefault(); e.stopPropagation(); setShowSellerModal(true); }}
+          >
+            <Store className="h-3 w-3" />
+            <span className="font-bold">{product.sellerName}</span>
+            <div className="flex gap-1">
+              {sellerUser?.isVerifiedSeller && (
+                <div className="flex items-center gap-0.5 bg-emerald-500/10 text-emerald-600 px-1.5 py-0.5 rounded-full border border-emerald-500/20">
+                  <CheckCircle2 className="h-2.5 w-2.5 fill-current" />
+                  <span className="text-[8px] font-black uppercase tracking-tight">True Seller</span>
+                </div>
+              )}
+              {sellerUser?.isVerifiedReseller && (
+                <div className="flex items-center gap-0.5 bg-blue-500/10 text-blue-600 px-1.5 py-0.5 rounded-full border border-blue-500/20">
+                  <ShieldCheck className="h-2.5 w-2.5 fill-current" />
+                  <span className="text-[8px] font-black uppercase tracking-tight">True Reseller</span>
+                </div>
+              )}
+            </div>
+          </div>
 
           <p className="text-xs text-muted-foreground line-clamp-2 flex-grow mb-2 leading-relaxed opacity-80">
             {product.description}
@@ -247,6 +279,14 @@ export function ProductCard({ product }: ProductCardProps) {
           </div>
         </div>
       </motion.div>
+      <AnimatePresence>
+        {showSellerModal && sellerUser && (
+          <SellerInfoModal 
+            seller={sellerUser} 
+            onClose={() => setShowSellerModal(false)} 
+          />
+        )}
+      </AnimatePresence>
     </Link>
   );
 }

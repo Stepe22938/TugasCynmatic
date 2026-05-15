@@ -151,6 +151,23 @@ export function ProductsProvider({ children }: { children: ReactNode }) {
     localStorage.setItem(AUTO_APPROVE_KEY, String(v));
   };
 
+  // Sync with other tabs
+  useEffect(() => {
+    const handleStorage = (e: StorageEvent) => {
+      if (e.key === PRODUCTS_KEY) {
+        setSellerProducts(loadSellerProducts());
+      }
+      if (e.key === ADMIN_PRODUCTS_KEY) {
+        setAdminProducts(loadAdminProducts());
+      }
+      if (e.key === AUTO_APPROVE_KEY) {
+        setAutoApproveState(e.newValue === "true");
+      }
+    };
+    window.addEventListener("storage", handleStorage);
+    return () => window.removeEventListener("storage", handleStorage);
+  }, []);
+
   const approvedSellerProducts: Product[] = sellerProducts
     .filter((p) => p.status === "approved").map(sellerToProduct);
 
@@ -208,8 +225,22 @@ export function ProductsProvider({ children }: { children: ReactNode }) {
   };
 
   const decrementStock = (id: number, quantity: number) => {
-    setSellerProducts((prev) => prev.map((p) => p.id === id ? { ...p, stock: Math.max(0, p.stock - quantity) } : p));
-    setAdminProducts((prev) => prev.map((p) => p.id === id ? { ...p, stock: Math.max(0, p.stock - quantity) } : p));
+    // Reload from localStorage to get the absolute latest state
+    const currentSellers = loadSellerProducts();
+    const currentAdmins = loadAdminProducts();
+    
+    const isSellerProduct = currentSellers.some(p => p.id === id);
+    if (isSellerProduct) {
+      const updated = currentSellers.map((p) => 
+        p.id === id ? { ...p, stock: Math.max(0, p.stock - quantity) } : p
+      );
+      setSellerProducts(updated);
+    } else {
+      const updated = currentAdmins.map((p) => 
+        p.id === id ? { ...p, stock: Math.max(0, p.stock - quantity) } : p
+      );
+      setAdminProducts(updated);
+    }
   };
 
   const updateProduct = (id: number, data: Partial<Omit<SellerProduct, "id" | "sellerId" | "createdAt">>) => {

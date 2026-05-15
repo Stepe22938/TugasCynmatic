@@ -9,7 +9,7 @@
  */
 import React, { useState } from "react";
 import {
-  ArrowLeft, ShoppingCart, Star, CheckCircle2, AlertCircle, Video, Package, Store, Sparkles, Heart, Share2, Zap, CreditCard
+  ArrowLeft, ShoppingCart, Star, CheckCircle2, AlertCircle, Video, Package, Store, Sparkles, Heart, Share2, Zap, CreditCard, ShieldCheck
 } from "lucide-react";
 import { useWishlist } from "../contexts/WishlistContext";
 import { useLocation, useParams, Link } from "wouter";
@@ -23,6 +23,8 @@ import { AIProductChecker } from "../components/AIProductChecker";
 import { formatPrice } from "../utils/formatPrice";
 import { useToast } from "../hooks/use-toast";
 import { Button } from "../components/ui/button";
+import { useAuth } from "../contexts/AuthContext";
+import { SellerInfoModal } from "../components/SellerInfoModal";
 
 // ─── Bintang Statis ───────────────────────────────────────────────────────────
 
@@ -127,8 +129,12 @@ export function ProductDetailPage() {
   const { toggleWishlist, isInWishlist } = useWishlist();
   const [, setLocation] = useLocation();
 
+  const { allUsers } = useAuth();
   const [activeImage, setActiveImage] = useState(0);
   const [showFloatingBar, setShowFloatingBar] = useState(false);
+  const [showSellerModal, setShowSellerModal] = useState(false);
+
+  const sellerUser = allUsers.find(u => u.id === product?.sellerId);
 
   React.useEffect(() => {
     const handleScroll = () => {
@@ -160,7 +166,10 @@ export function ProductDetailPage() {
     );
   }
 
-  const handleAddToCart = () => {
+  const handleAddToCart = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+
     if (product.stock <= 0) {
       toast({ title: "Stok Habis", description: "Maaf, produk ini tidak tersedia saat ini.", variant: "destructive" });
       return;
@@ -176,6 +185,7 @@ export function ProductDetailPage() {
         name: product.name, 
         price: finalPrice, 
         image: product.image,
+        stock: product.stock,
         sellerId: product.sellerId,
         sellerName: product.sellerName
       } 
@@ -183,7 +193,10 @@ export function ProductDetailPage() {
     toast({ title: "Berhasil!", description: `${product.name} ditambahkan ke keranjang.` });
   };
 
-  const handleBuyNow = () => {
+  const handleBuyNow = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+
     if (product.stock <= 0) {
       toast({ title: "Stok Habis", description: "Maaf, produk ini tidak tersedia saat ini.", variant: "destructive" });
       return;
@@ -196,9 +209,10 @@ export function ProductDetailPage() {
       name: product.name,
       price: finalPrice,
       image: product.image,
+      stock: product.stock,
       quantity: 1,
       sellerId: product.sellerId,
-      sellerName: product.sellerName
+      sellerName: product.sellerName,
     });
     setLocation("/checkout");
   };
@@ -261,9 +275,28 @@ export function ProductDetailPage() {
           </h1>
 
           {/* Nama seller */}
-          <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+          <div 
+            className="flex items-center gap-1.5 text-sm text-muted-foreground cursor-pointer hover:text-primary transition-colors group w-fit"
+            onClick={() => setShowSellerModal(true)}
+          >
             <Store className="h-4 w-4" />
-            <span>Dijual oleh <span className="font-semibold text-foreground">{product.sellerName}</span></span>
+            <div className="flex items-center gap-2">
+              <span>Dijual oleh <span className="font-semibold text-foreground group-hover:text-primary transition-colors">{product.sellerName}</span></span>
+              <div className="flex gap-2">
+                {sellerUser?.isVerifiedSeller && (
+                  <div className="flex items-center gap-1.5 bg-emerald-500/10 text-emerald-600 px-2.5 py-1 rounded-full border border-emerald-500/20 shadow-sm animate-in fade-in zoom-in">
+                    <CheckCircle2 className="h-3.5 w-3.5 fill-current" />
+                    <span className="text-[10px] font-black uppercase tracking-widest">True Seller</span>
+                  </div>
+                )}
+                {sellerUser?.isVerifiedReseller && (
+                  <div className="flex items-center gap-1.5 bg-blue-500/10 text-blue-600 px-2.5 py-1 rounded-full border border-blue-500/20 shadow-sm animate-in fade-in zoom-in">
+                    <ShieldCheck className="h-3.5 w-3.5 fill-current" />
+                    <span className="text-[10px] font-black uppercase tracking-widest">True Reseller</span>
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
 
           {/* Rating */}
@@ -503,6 +536,16 @@ export function ProductDetailPage() {
               </div>
             </div>
           </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Seller Info Modal */}
+      <AnimatePresence>
+        {showSellerModal && sellerUser && (
+          <SellerInfoModal 
+            seller={sellerUser} 
+            onClose={() => setShowSellerModal(false)} 
+          />
         )}
       </AnimatePresence>
     </div>
