@@ -2,7 +2,7 @@
  * CheckoutPage.tsx
  * Halaman checkout: info pengiriman + voucher + metode pembayaran + konfirmasi dummy.
  */
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useLocation, Link } from "wouter";
 import { ArrowLeft, User, MapPin, CreditCard, CheckCircle2, Smartphone, QrCode,
          Loader2, ShoppingBag, Tag, X, Coins } from "lucide-react";
@@ -51,7 +51,16 @@ export function CheckoutPage() {
   const [addressMethod, setAddressMethod] = useState<"manual" | "map">("manual");
   const [markerPos, setMarkerPos] = useState({ x: 50, y: 50 }); // percentage
   const [mapZoom, setMapZoom] = useState(15);
-  const [payMethod, setPayMethod]     = useState<PaymentMethod | null>(pay.enabledMethods[0] ?? null);
+  const [payMethod, setPayMethod] = useState<PaymentMethod | null>(
+    pay.enabledMethods.includes("mydompet") ? "mydompet" : (pay.enabledMethods[0] ?? null)
+  );
+
+  // Set default payment method if available
+  React.useEffect(() => {
+    if (pay.enabledMethods.length > 0 && !payMethod) {
+      setPayMethod(pay.enabledMethods.includes("mydompet") ? "mydompet" : pay.enabledMethods[0]);
+    }
+  }, [pay.enabledMethods]);
   const [confirming, setConfirming]   = useState(false);
 
   // Voucher state
@@ -190,10 +199,10 @@ export function CheckoutPage() {
         });
         return; 
       }
-
-      // Payout to Sellers (Helper from CartContext handles sellerId logic)
-      processPayouts(checkoutItems);
     }
+
+    // Payout to Sellers (Helper from CartContext handles sellerId logic)
+    processPayouts(checkoutItems);
 
     addOrder({
       id: `${Date.now()}`,

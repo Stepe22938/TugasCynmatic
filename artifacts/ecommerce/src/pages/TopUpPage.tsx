@@ -105,7 +105,7 @@ export function TopUpPage() {
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 pb-20">
       {/* Premium Header */}
-      <div className="relative overflow-hidden bg-slate-900 pt-10 pb-24 px-6">
+      <div className="relative overflow-hidden bg-slate-900 pt-6 pb-24 px-6">
         <div className="absolute inset-0 z-0">
           <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_50%_-20%,#3b82f6,transparent_60%)] opacity-30" />
           <div className="absolute bottom-0 right-0 w-full h-full bg-[radial-gradient(circle_at_100%_100%,#8b5cf6,transparent_50%)] opacity-20" />

@@ -9,7 +9,8 @@ import {
   ShieldCheck, Package, Store, Coins, Truck, Send, Globe, Wifi, 
   Ticket, Users, Palette, Sparkles, Gamepad2, Gavel, Wallet,
   Layout, LayoutGrid, Heart, Bell, Trophy, Crown, ShieldAlert, Plus, ClipboardList,
-  Vote as VoteIcon, Bot, Music, Star, Gift, Smartphone, TrendingUp, ArrowRight, Zap
+  Vote as VoteIcon, Bot, Music, Star, Gift, Smartphone, TrendingUp, ArrowRight, Zap,
+  Radio, HelpCircle
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { useSultan } from "../contexts/MySultanContext";
@@ -34,7 +35,7 @@ function avatarUrl(name: string) {
 const ROLE_COLOR: Record<string, string> = {
   user:   "text-blue-400 bg-blue-500/10 border-blue-500/20",
   seller: "text-purple-400 bg-purple-500/10 border-purple-500/20",
-  admin:  "text-orange-400 bg-orange-500/10 border-orange-500/20",
+  admin:  "text-[#D4AF37] bg-[#D4AF37]/10 border-[#D4AF37]/20",
 };
 
 export function ProfilePage() {
@@ -73,7 +74,7 @@ export function ProfilePage() {
           onClick={toggleLayout}
           className="glass-card p-1 rounded-2xl flex items-center gap-1 border-white/10 shadow-2xl"
         >
-          <div className={`p-2.5 rounded-xl transition-all ${user.profileLayout === 'premium' ? 'bg-orange-600 text-white shadow-lg shadow-orange-600/30' : 'text-muted-foreground'}`}>
+          <div className={`p-2.5 rounded-xl transition-all ${user.profileLayout === 'premium' ? 'bg-[#D4AF37] text-black shadow-lg shadow-[#D4AF37]/30' : 'text-muted-foreground'}`}>
             <Crown className="h-4 w-4" />
           </div>
           <div className={`p-2.5 rounded-xl transition-all ${user.profileLayout !== 'premium' ? 'bg-white/10 text-white' : 'text-muted-foreground'}`}>
@@ -88,24 +89,35 @@ export function ProfilePage() {
         <motion.div 
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
-          className="relative rounded-[3.5rem] overflow-hidden min-h-[400px] border border-white/5 shadow-2xl bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-orange-950/40 via-background to-background"
+          className={`relative rounded-[3.5rem] overflow-hidden min-h-[400px] border border-white/5 shadow-2xl ${!user.useAnimation && user.theme ? `bg-gradient-to-br ${user.theme}` : 'bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-indigo-900/40 via-background to-background'}`}
         >
-          {/* Animated Background Elements */}
-          <div className="absolute top-0 left-0 w-full h-full opacity-30 pointer-events-none">
-            <div className="absolute top-1/4 left-1/4 w-64 h-64 bg-orange-500/20 blur-[100px] rounded-full animate-pulse" />
-            <div className="absolute bottom-1/4 right-1/4 w-64 h-64 bg-primary/20 blur-[100px] rounded-full animate-pulse delay-1000" />
-          </div>
+          {/* Custom Background or Animated Elements */}
+          {user.useAnimation && user.youtubeId ? (
+            <div className="absolute inset-0 z-0 pointer-events-none">
+              <iframe
+                className="absolute top-1/2 left-1/2 w-[300%] h-[300%] -translate-x-1/2 -translate-y-1/2 aspect-video brightness-[0.6] blur-[1px]"
+                src={`https://www.youtube.com/embed/${user.youtubeId}?autoplay=1&mute=1&controls=0&loop=1&playlist=${user.youtubeId}&showinfo=0&rel=0&modestbranding=1`}
+                allow="autoplay; encrypted-media"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-black/40" />
+            </div>
+          ) : (
+            <div className="absolute top-0 left-0 w-full h-full opacity-30 pointer-events-none">
+              <div className="absolute top-1/4 left-1/4 w-64 h-64 bg-white/10 blur-[100px] rounded-full animate-pulse" />
+              <div className="absolute bottom-1/4 right-1/4 w-64 h-64 bg-white/5 blur-[100px] rounded-full animate-pulse delay-1000" />
+            </div>
+          )}
 
           <div className="relative z-10 p-10 lg:p-16 h-full flex flex-col justify-end">
             <div className="flex flex-col lg:flex-row items-center lg:items-end gap-10 text-center lg:text-left">
               
               {/* Avatar with Aura */}
               <div className="relative group">
-                <div className={`absolute -inset-6 bg-orange-600/20 rounded-[3rem] blur-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-700`} />
+                <div className={`absolute -inset-6 bg-[#D4AF37]/10 rounded-[3rem] blur-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-700`} />
                 {isSultan && (
-                   <div className="absolute -inset-10 bg-orange-500/10 rounded-full blur-[4rem] animate-pulse" />
+                   <div className="absolute -inset-10 bg-[#D4AF37]/5 rounded-full blur-[4rem] animate-pulse" />
                 )}
-                <div className="w-40 h-40 lg:w-52 lg:h-52 rounded-[3rem] overflow-hidden border-4 border-white/10 relative z-10 shadow-2xl bg-slate-900 group-hover:scale-105 transition-transform duration-500">
+                <div className="w-40 h-40 lg:w-52 lg:h-52 rounded-[3rem] overflow-hidden border-4 border-[#D4AF37]/20 relative z-10 shadow-2xl bg-slate-900 group-hover:scale-105 transition-transform duration-500">
                   <img src={user.avatar || avatarUrl(user.name)} alt={user.name} className="w-full h-full object-cover" />
                 </div>
               </div>
@@ -124,7 +136,7 @@ export function ProfilePage() {
                   
                   <div className="flex items-center justify-center lg:justify-start gap-2 flex-wrap">
                     {isSultan && (
-                      <div className="px-3 py-1 bg-gradient-to-r from-orange-500 to-orange-700 text-white text-[10px] font-black uppercase tracking-[0.2em] rounded-full shadow-lg border border-white/20 flex items-center gap-2">
+                      <div className="px-3 py-1 bg-gradient-to-r from-[#D4AF37] to-[#8B732A] text-black text-[10px] font-black uppercase tracking-[0.2em] rounded-full shadow-lg border border-white/20 flex items-center gap-2">
                         <Crown className="h-3.5 w-3.5" /> Sultan Member
                       </div>
                     )}
@@ -186,24 +198,74 @@ export function ProfilePage() {
           ))}
         </div>
 
-        {/* ── Elite Menu Grid ─────────────────────────────────────── */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pt-4">
-          <PremiumLink href="/mydompet" title="Elite Wallet" sub="Balance & Vault" icon={Wallet} color="text-blue-500" />
-          <PremiumLink href="/mysultan" title="Sultan Membership" sub="Privilege Center" icon={Crown} color="text-orange-500" />
-          <PremiumLink href="/mycrypto" title="MyCrypto Signals" sub="AI Market Insights" icon={TrendingUp} color="text-emerald-500" />
-          <PremiumLink href="/orders" title="Purchase Logs" sub="Track your assets" icon={ClipboardList} color="text-purple-500" />
-          <PremiumLink href="/wishlist" title="Vaulted Items" sub="Saved for later" icon={Heart} color="text-red-500" />
-          <PremiumLink href="/friends" title="Social Hub" sub="Connect with elite" icon={Users} color="text-violet-500" />
-          <PremiumLink href="/affiliate" title="Affiliate Program" sub="Earn 5% Commission" icon={Zap} color="text-yellow-500" />
-          <PremiumLink href="/auctions" title="Global Auction" sub="Bid on rare gems" icon={Gavel} color="text-amber-500" />
-          {(user.role === 'seller' || user.role === 'admin') && (
-            <PremiumLink href="/seller" title="Merchant Dashboard" sub="Sales & Inventory" icon={Store} color="text-emerald-500" />
-          )}
-          {user.role === 'admin' && (
-            <PremiumLink href="/admin" title="Admin Command" sub="System Control" icon={ShieldCheck} color="text-rose-500" />
-          )}
-          <PremiumLink href="/customize" title="Personalization" sub="Visual settings" icon={Palette} color="text-pink-500" />
-          <PremiumLink href="/minigames" title="Elite Arcade" sub="Win more coins" icon={Gamepad2} color="text-indigo-500" />
+        {/* ── Core Assets ─────────────────────────────────────────── */}
+        <div className="space-y-4">
+          <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-white/30 px-2">Vault & Assets</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <PremiumLink href="/mydompet" title="Elite Wallet" sub="Balance & Vault" icon={Wallet} color="text-blue-500" />
+            <PremiumLink href="/mysultan" title="Sultan Membership" sub="Privilege Center" icon={Crown} color="text-orange-500" />
+            <PremiumLink href="/mycrypto" title="MyCrypto Signals" sub="AI Market Insights" icon={TrendingUp} color="text-emerald-500" />
+            <PremiumLink href="/orders" title="Purchase Logs" sub="Track your assets" icon={ClipboardList} color="text-purple-500" />
+            <PremiumLink href="/wishlist" title="Vaulted Items" sub="Saved for later" icon={Heart} color="text-red-500" />
+            <PremiumLink href="/myredeem" title="Redemption Vault" sub="Bonus Assets" icon={Gift} color="text-amber-500" />
+          </div>
+        </div>
+
+        {/* ── Economy & Social ─────────────────────────────────────── */}
+        <div className="space-y-4">
+          <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-white/30 px-2">Economy & Social</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <PremiumLink href="/game-topup" title="Direct Game TopUp" sub="Instant Recharge" icon={Gamepad2} color="text-yellow-500" />
+            <PremiumLink href="/exchange" title="Asset Exchange" sub="Token & Coin Swap" icon={Coins} color="text-blue-400" />
+            <PremiumLink href="/friends" title="Social Hub" sub="Connect with elite" icon={Users} color="text-violet-500" />
+            <PremiumLink href="/affiliate" title="Affiliate Program" sub="Earn 5% Commission" icon={Zap} color="text-yellow-500" />
+            <PremiumLink href="/auction" title="Global Auction" sub="Bid on rare gems" icon={Gavel} color="text-amber-500" />
+            <PremiumLink href="/flashsale" title="Flash Ops" sub="Limited Time Deals" icon={Zap} color="text-orange-500" />
+          </div>
+        </div>
+
+        {/* ── Gaming & Community ───────────────────────────────────── */}
+        <div className="space-y-4">
+          <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-white/30 px-2">Gaming & Community</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <PremiumLink href="/minigames" title="Elite Arcade" sub="Win more coins" icon={Gamepad2} color="text-indigo-500" />
+            <PremiumLink href="/leaderboard" title="Hall of Fame" sub="Global Rankings" icon={Trophy} color="text-yellow-400" />
+            <PremiumLink href="/live" title="Broadcasting Hub" sub="Live Events" icon={Radio} color="text-red-500" />
+            <PremiumLink href="/aichat" title="AI Companion" sub="Smart Assistant" icon={Bot} color="text-cyan-500" />
+            <PremiumLink href="/voting" title="Governance" sub="Community Votes" icon={VoteIcon} color="text-blue-600" />
+            <PremiumLink href="/cosmetics" title="Aura Gallery" sub="Visual Assets" icon={Sparkles} color="text-pink-500" />
+            <PremiumLink href="/mymusic" title="Elite Audio" sub="Acoustic Player" icon={Music} color="text-purple-400" />
+          </div>
+        </div>
+
+        {/* ── Management & Control ─────────────────────────────────── */}
+        <div className="space-y-4">
+          <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-white/30 px-2">Management & Control</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {(user.role === 'seller' || user.role === 'admin') && (
+              <PremiumLink href="/seller" title="Merchant Dashboard" sub="Sales & Inventory" icon={Store} color="text-emerald-500" />
+            )}
+            {(user.role === 'kurir' || user.role === 'admin') && (
+              <PremiumLink href="/courier" title="Courier Dashboard" sub="Delivery Management" icon={Truck} color="text-orange-500" />
+            )}
+            {user.role === 'admin' && (
+              <PremiumLink href="/admin" title="Admin Command" sub="System Control" icon={ShieldCheck} color="text-rose-500" />
+            )}
+            {user.role === 'admin' && (
+              <PremiumLink href="/ban-leaderboard" title="Enforcement Log" sub="Security Matrix" icon={ShieldAlert} color="text-slate-500" />
+            )}
+          </div>
+        </div>
+
+        {/* ── System & Support ─────────────────────────────────────── */}
+        <div className="space-y-4">
+          <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-white/30 px-2">System & Support</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <PremiumLink href="/tickets" title="Support Center" sub="Help & Assistance" icon={HelpCircle} color="text-blue-500" />
+            <PremiumLink href="/customize" title="Personalization" sub="Visual Settings" icon={Palette} color="text-pink-500" />
+            <PremiumLink href="/notifications" title="Signal Alerts" sub="Notification Logs" icon={Bell} color="text-orange-400" />
+            <PremiumLink href="/about-us" title="Cynmatic Story" sub="Identity Protocol" icon={Globe} color="text-white" />
+          </div>
         </div>
 
         {/* ── System Details ─────────────────────────────────────── */}

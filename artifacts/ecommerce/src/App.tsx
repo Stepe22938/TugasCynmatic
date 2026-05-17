@@ -88,7 +88,7 @@ function ProtectedRoute({ component: Component }: { component: React.ComponentTy
   return (
     <div className="flex flex-col min-h-screen bg-background text-foreground overflow-x-hidden">
       <Navbar />
-      <main className="flex-1 relative">
+      <main className="flex-1 relative pt-20 lg:pt-24">
         <AnimatePresence mode="wait">
           <motion.div
             key={location}
@@ -123,7 +123,7 @@ function RoleRoute({ component: Component, roles }: { component: React.Component
   return (
     <div className="flex flex-col min-h-screen bg-background text-foreground overflow-x-hidden">
       <Navbar />
-      <main className="flex-1 relative">
+      <main className="flex-1 relative pt-20 lg:pt-24">
         <AnimatePresence mode="wait">
           <motion.div
             key={location}

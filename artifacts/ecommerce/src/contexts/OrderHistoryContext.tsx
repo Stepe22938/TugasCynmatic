@@ -101,8 +101,48 @@ export function OrderHistoryProvider({ children }: { children: ReactNode }) {
     const init = async () => {
       const orders = await fetchAllOrdersFromVPS();
       const reviews = await fetchAllReviewsFromVPS();
-      if (orders) setAllOrders(orders);
-      if (reviews) setAllReviews(reviews);
+      if (orders) {
+        const parsedOrders = orders.map((o: any) => {
+          const ensureArray = (val: any) => {
+            if (Array.isArray(val)) return val;
+            if (typeof val === "string") {
+              try { return JSON.parse(val); } catch (e) { return []; }
+            }
+            return [];
+          };
+          const ensureObject = (val: any) => {
+            if (typeof val === "object" && val !== null) return val;
+            if (typeof val === "string") {
+              try { return JSON.parse(val); } catch (e) { return {}; }
+            }
+            return {};
+          };
+          return {
+            ...o,
+            subtotal: Number(o.subtotal || 0),
+            shippingFee: Number(o.shippingFee || 0),
+            grandTotal: Number(o.grandTotal || 0),
+            items: ensureArray(o.items),
+            reviews: ensureObject(o.reviews),
+            shippingInfo: ensureObject(o.shippingInfo),
+            messages: ensureArray(o.messages)
+          };
+        });
+        setAllOrders(parsedOrders);
+      }
+      if (reviews) {
+        const parsedReviews = reviews.map((r: any) => {
+          const ensureArray = (val: any) => {
+            if (Array.isArray(val)) return val;
+            if (typeof val === "string") {
+              try { return JSON.parse(val); } catch (e) { return []; }
+            }
+            return [];
+          };
+          return { ...r, mediaFiles: ensureArray(r.mediaFiles) };
+        });
+        setAllReviews(parsedReviews);
+      }
     };
     init();
   }, []);

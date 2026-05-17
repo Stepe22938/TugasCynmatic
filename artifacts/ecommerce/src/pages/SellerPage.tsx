@@ -21,21 +21,19 @@ import { formatPrice } from "../utils/formatPrice";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
-import { formatDate } from "../utils/formatDate";
-import { STATUS_CONFIG, ORDER_STATUS_CONFIG } from "../constants/statusConfigs";
 import { useToast } from "../hooks/use-toast";
 import { useSultan } from "../contexts/MySultanContext";
 import { useWishlist } from "../contexts/WishlistContext";
 
 const CATEGORIES = ["Sepatu","Tas","Pakaian","Aksesori","Elektronik","Makanan","Pre-Order","Lainnya"];
 
-const STATUS_CONFIG: Record<SellerProduct["status"], { label: string; color: string; icon: React.ReactNode }> = {
+const SELLER_STATUS_CONFIG: Record<SellerProduct["status"], { label: string; color: string; icon: React.ReactNode }> = {
   pending:  { label: "Matrix Review", color: "bg-amber-600/10 text-amber-500 border-amber-500/20",  icon: <Clock className="h-3 w-3" /> },
   approved: { label: "Verified",      color: "bg-emerald-600/10 text-emerald-500 border-emerald-500/20",  icon: <CheckCircle2 className="h-3 w-3" /> },
   rejected: { label: "Terminated",    color: "bg-rose-600/10 text-rose-500 border-rose-500/20",      icon: <XCircle className="h-3 w-3" /> },
 };
 
-const ORDER_STATUS_CONFIG: Record<OrderStatus, { label: string; color: string; bg: string }> = {
+const SELLER_ORDER_STATUS_CONFIG: Record<OrderStatus, { label: string; color: string; bg: string }> = {
   placed:      { label: "Inbound Signal",      color: "text-blue-400",   bg: "bg-blue-600/10 border-blue-500/20" },
   processing:  { label: "Matrix Processing",   color: "text-amber-400",  bg: "bg-amber-600/10 border-amber-500/20" },
   pending_po:  { label: "Delayed Protocol",    color: "text-cyan-400",   bg: "bg-cyan-600/10 border-cyan-500/20" },
@@ -46,7 +44,7 @@ const ORDER_STATUS_CONFIG: Record<OrderStatus, { label: string; color: string; b
   problem:     { label: "Anomaly Detected",    color: "text-rose-400",    bg: "bg-rose-600/10 border-rose-500/20" },
 };
 
-function formatDate(iso: string) {
+function formatSellerDate(iso: string) {
   return new Date(iso).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
 }
 
@@ -56,7 +54,7 @@ function SellerProductCard({ product, onDelete, onEdit, canAlwaysDelete = false 
 }) {
   const { toggleFlashSale, updateStock } = useProducts();
   const { getWishlistCountForProduct } = useWishlist();
-  const cfg = STATUS_CONFIG[product.status];
+  const cfg = SELLER_STATUS_CONFIG[product.status];
   const [discount, setDiscount] = useState(product.discountPercent || 10);
   const wishlistCount = getWishlistCountForProduct(product.id);
 
@@ -1123,7 +1121,7 @@ export function SellerPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-background pt-24 pb-20">
+    <div className="min-h-screen bg-background pt-4 pb-20">
       <div className="container mx-auto px-6 max-w-4xl space-y-10">
         
         {/* Elite Header */}
@@ -1288,7 +1286,6 @@ export function SellerPage() {
             </div>
           </motion.div>
         )}
-      )}
 
       {/* ── Tab: Pesanan ─────────────────────────────────────────────── */}
       {tab === "orders" && (

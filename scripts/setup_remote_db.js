@@ -22,12 +22,29 @@ async function setup() {
     await connection.query(`
       CREATE TABLE IF NOT EXISTS users (
         id VARCHAR(255) PRIMARY KEY,
-        name VARCHAR(255),
-        email VARCHAR(255) UNIQUE,
-        role ENUM('user', 'seller', 'admin', 'kurir'),
+        name VARCHAR(255) NOT NULL,
+        email VARCHAR(255) UNIQUE NOT NULL,
+        password VARCHAR(255),
+        role ENUM('user', 'seller', 'admin', 'kurir') DEFAULT 'user',
         isVerifiedSeller BOOLEAN DEFAULT FALSE,
         isVerifiedReseller BOOLEAN DEFAULT FALSE,
         coins BIGINT DEFAULT 0,
+        balance TEXT,
+        points INT DEFAULT 0,
+        activityLog JSON,
+        purchaseHistory JSON,
+        ownedCosmetics JSON,
+        equippedCosmetics JSON,
+        walletTransactions JSON,
+        sultanBadgeColor VARCHAR(50),
+        sultanGlowEffect BOOLEAN DEFAULT FALSE,
+        sultanCustomTag VARCHAR(100),
+        isMyCryptoMember BOOLEAN DEFAULT FALSE,
+        myCryptoExpiry TIMESTAMP NULL,
+        bio TEXT,
+        theme VARCHAR(255),
+        youtubeId VARCHAR(50),
+        useAnimation BOOLEAN DEFAULT FALSE,
         createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `);
@@ -35,16 +52,24 @@ async function setup() {
     await connection.query(`
       CREATE TABLE IF NOT EXISTS products (
         id INT PRIMARY KEY AUTO_INCREMENT,
-        name VARCHAR(255),
-        price DECIMAL(15, 2),
-        stock INT,
+        name VARCHAR(255) NOT NULL,
+        description TEXT,
+        longDescription TEXT,
+        price DECIMAL(15, 2) NOT NULL,
+        image VARCHAR(500),
+        images JSON,
         category VARCHAR(100),
+        specs JSON,
+        stock INT DEFAULT 0,
         sellerId VARCHAR(255),
-        status ENUM('pending', 'approved', 'rejected'),
+        sellerName VARCHAR(255),
+        status ENUM('pending', 'approved', 'rejected') DEFAULT 'pending',
         isFlashSale BOOLEAN DEFAULT FALSE,
+        discountPercent INT DEFAULT 0,
         createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `);
+
 
     console.log("Setting up remote permissions for root...");
     // Ensure root@% exists and has the correct password

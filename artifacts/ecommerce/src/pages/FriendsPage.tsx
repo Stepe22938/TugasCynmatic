@@ -9,6 +9,7 @@ import {
   Crown, Shield, Truck, User as UserIcon, Star, Sparkles, Check, X as CloseIcon, Clock, MessageSquare,
   TrendingUp
 } from "lucide-react";
+import { motion } from "framer-motion";
 import { useAuth, User, UserRole } from "../contexts/AuthContext";
 import { CryptoBadge } from "../components/CryptoBadge";
 import { useCosmetics } from "../contexts/CosmeticContext";
@@ -56,6 +57,7 @@ function FriendProfileCard({
   getUserStats: (id: string, role: string) => any,
   handleSendRequest: (id: string, name: string) => void
 }) {
+  const { user } = useAuth();
   const { cosmetics } = useCosmetics();
   const equippedTags = (Array.isArray(selectedUser.equippedCosmetics) ? selectedUser.equippedCosmetics : [])
     .map(id => cosmetics.find(c => c.id === id))
@@ -95,8 +97,8 @@ function FriendProfileCard({
     <div className="bg-[#120f11] rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.5)] border border-white/5 overflow-hidden animate-in fade-in zoom-in-95 transition-all duration-500 mb-8 max-w-2xl mx-auto">
       {/* Header / Banner Area */}
       <div className="relative h-64 overflow-hidden group">
-        {selectedUser.useAnimation && selectedUser.youtubeId ? (
-          <div className="absolute inset-0 z-0">
+        {selectedUser?.useAnimation && selectedUser?.youtubeId ? (
+          <div className="absolute inset-0 z-0 pointer-events-none">
             <iframe
               className="absolute top-1/2 left-1/2 w-[300%] h-[300%] -translate-x-1/2 -translate-y-1/2 aspect-video brightness-[0.6] blur-[1px]"
               src={`https://www.youtube.com/embed/${selectedUser.youtubeId}?autoplay=1&mute=1&controls=0&loop=1&playlist=${selectedUser.youtubeId}&showinfo=0&rel=0&modestbranding=1`}
@@ -105,7 +107,7 @@ function FriendProfileCard({
             <div className="absolute inset-0 bg-gradient-to-t from-[#120f11] via-transparent to-black/20" />
           </div>
         ) : (
-          <div className={`absolute inset-0 z-0 bg-gradient-to-br ${selectedUser.theme || "from-violet-600 to-indigo-900"}`} />
+          <div className={`absolute inset-0 z-0 bg-gradient-to-br ${selectedUser?.theme || "from-violet-600 to-indigo-900"}`} />
         )}
         
         <button onClick={onClose} className="absolute top-4 right-4 z-20 bg-black/40 backdrop-blur-xl rounded-full p-2 text-white/80 hover:text-white hover:bg-white/10 transition-all border border-white/10">
@@ -287,8 +289,8 @@ export function FriendsPage() {
   const filtered = useMemo(() => {
     let base = [];
     if (tab === "friends") base = friendUsers;
-    else if (tab === "followers") base = followerUsers;
-    else if (tab === "following") base = followingUsers;
+    else if (tab === "requests" || tab === "followers") base = followerUsers;
+    else if (tab === "sent" || tab === "following") base = followingUsers;
     else base = discoverUsers;
 
     return base.filter(u =>
@@ -370,16 +372,13 @@ export function FriendsPage() {
   if (!user) return null;
 
   return (
-    <div className="min-h-[calc(100vh-80px)] bg-[#050505] pb-24">
+    <div className="min-h-[calc(100vh-80px)] bg-[#050505] pb-24 relative overflow-hidden">
+
       {/* Header Area */}
-      <div className="bg-[#050505] text-white pb-14 pt-24 px-6 relative overflow-hidden">
-        <div className="absolute top-0 right-0 p-12 opacity-5 rotate-12">
-          <Sparkles className="h-48 w-48 text-violet-500" />
-        </div>
-        
+      <div className="text-white pb-14 pt-10 px-6 relative overflow-hidden z-10">
         <div className="max-w-4xl mx-auto relative z-10">
           <Link href="/profile">
-            <button className="inline-flex items-center text-white/40 hover:text-white transition-all mb-8 font-black uppercase tracking-[0.3em] text-[9px] group">
+            <button className="inline-flex items-center text-white/40 hover:text-white transition-all mb-8 font-black uppercase tracking-[0.3em] text-[9px] group bg-black/40 px-4 py-2 rounded-full border border-white/10 backdrop-blur-md">
               <ChevronLeft className="h-4 w-4 mr-1 group-hover:-translate-x-1 transition-transform" /> Back to Matrix
             </button>
           </Link>
@@ -492,7 +491,19 @@ export function FriendsPage() {
                     onClick={() => setSelectedUser(u)}
                     className="glass-card bg-white/5 border-white/5 hover:border-white/10 p-5 rounded-[2rem] transition-all duration-500 cursor-pointer group/node relative overflow-hidden"
                   >
-                    <div className="absolute inset-0 bg-gradient-to-r from-violet-600/0 via-violet-600/0 to-violet-600/0 group-hover/node:from-violet-600/5 transition-all duration-700 pointer-events-none" />
+                    {/* User's Custom Theme Background applied to their card */}
+                    {u.useAnimation && u.youtubeId ? (
+                      <div className="absolute inset-0 z-0 pointer-events-none opacity-20 group-hover/node:opacity-40 transition-opacity duration-700 mix-blend-overlay">
+                        <iframe
+                          className="absolute top-1/2 left-1/2 w-[300%] h-[300%] -translate-x-1/2 -translate-y-1/2 aspect-video brightness-[0.5] blur-[2px]"
+                          src={`https://www.youtube.com/embed/${u.youtubeId}?autoplay=1&mute=1&controls=0&loop=1&playlist=${u.youtubeId}&showinfo=0&rel=0&modestbranding=1`}
+                        />
+                      </div>
+                    ) : (
+                      <div className={`absolute inset-0 z-0 pointer-events-none opacity-20 group-hover/node:opacity-30 transition-opacity duration-700 bg-gradient-to-br ${u.theme || "from-transparent to-transparent"}`} />
+                    )}
+                    
+                    <div className="absolute inset-0 bg-gradient-to-r from-violet-600/0 via-violet-600/0 to-violet-600/0 group-hover/node:from-violet-600/5 transition-all duration-700 pointer-events-none z-0" />
                     
                     <div className="flex items-center gap-5 relative z-10">
                       <div className="relative flex-shrink-0">

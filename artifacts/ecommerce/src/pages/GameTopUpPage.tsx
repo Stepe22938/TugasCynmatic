@@ -140,7 +140,7 @@ export function GameTopUpPage() {
     <div className="min-h-screen font-['Inter',sans-serif] selection:bg-[#CCFF00] selection:text-black" style={{ backgroundColor: COLORS.bg, color: COLORS.text }}>
       
       {/* ── Navbar 1:1 Pointgo ────────────────────────────────────────────────── */}
-      <nav className="bg-[#12161F] border-b border-white/5 sticky top-0 z-[1000] px-6 py-3 shadow-xl">
+      <nav className="bg-[#12161F] border-b border-white/5 sticky top-20 z-40 px-6 py-3 shadow-xl">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-8">
             <Link href="/profile" className="p-2 hover:bg-white/5 rounded-xl transition-all">

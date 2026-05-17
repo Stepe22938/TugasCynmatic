@@ -14,7 +14,7 @@ export function WishlistPage() {
   const { wishlist } = useWishlist();
 
   return (
-    <div className="min-h-screen bg-[#050505] pt-24 pb-20">
+    <div className="min-h-screen bg-[#050505] pt-4 pb-20">
       <div className="container mx-auto px-6 max-w-6xl space-y-10">
         
         {/* Elite Header */}

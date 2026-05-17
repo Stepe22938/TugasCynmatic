@@ -78,7 +78,7 @@ export function HomePage() {
     <div className="min-h-screen bg-background">
       
       {/* ── High-End Hero Section ─────────────────────────────────── */}
-      <section className="relative min-h-[90vh] flex items-center pt-10 overflow-hidden border-b border-white/5 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-orange-950/20 via-background to-background">
+      <section className="relative min-h-[90vh] flex items-center pt-6 overflow-hidden border-b border-white/5 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-orange-950/20 via-background to-background">
         
         {/* Animated Orbs */}
         <div className="absolute top-0 left-1/4 w-[500px] h-[500px] bg-orange-600/10 blur-[150px] rounded-full -translate-y-1/2" />

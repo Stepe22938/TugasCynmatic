@@ -33,11 +33,25 @@ const COIN_CONVERSION_RATE = 1_000_000_000; // 1 Miliar = 1 Coin
 const WalletContext = createContext<WalletContextType | undefined>(undefined);
 
 export function WalletProvider({ children }: { children: React.ReactNode }) {
-  const { user, updateUser } = useAuth();
+  const { user, updateUser, addWalletTransaction } = useAuth();
   
+  // Helper to ensure JSON fields are arrays
+  const ensureArray = (data: any) => {
+    if (Array.isArray(data)) return data;
+    if (typeof data === "string") {
+      try {
+        const parsed = JSON.parse(data);
+        return Array.isArray(parsed) ? parsed : [];
+      } catch (e) {
+        return [];
+      }
+    }
+    return [];
+  };
+
   // Ambil data langsung dari objek user (Source of Truth: VPS)
   const balance = Number(user?.balance || 0);
-  const transactions = (user?.walletTransactions as Transaction[]) || [];
+  const transactions = ensureArray(user?.walletTransactions);
 
   const topUp = (amount: number) => {
     let finalAmount = amount;
@@ -90,6 +104,7 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
   const transfer = (toId: string, toName: string, amount: number) => {
     if (balance < amount) return false;
     
+    // Deduct from sender
     const senderTx: Transaction = {
       id: Math.random().toString(36).substr(2, 9),
       type: "payment",
@@ -106,11 +121,46 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
       balance: balance - amount,
       walletTransactions: [senderTx, ...transactions]
     });
+    
+    // Add to receiver
+    if (addWalletTransaction) {
+      addWalletTransaction(toId, amount, `Terima dana dari ${user?.name || "User"}`, "payment", user?.id, user?.name);
+    }
+    
+    // Send Notification to receiver
+    try {
+      const notifKey = `toko_notifs_${toId}`;
+      const existingNotifs = JSON.parse(localStorage.getItem(notifKey) || "[]");
+      const newNotif = {
+        id: `notif-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+        type: "system",
+        title: "Dana Masuk!",
+        message: `Kamu menerima transfer ${amount.toLocaleString("id-ID")} dari ${user?.name || "User"}.`,
+        createdAt: new Date().toISOString(),
+        read: false
+      };
+      localStorage.setItem(notifKey, JSON.stringify([newNotif, ...existingNotifs].slice(0, 50)));
+    } catch(e) {}
 
     return true;
   };
 
   const request = (fromId: string, fromName: string, amount: number) => {
+    // We can add a notification to the requested user
+    try {
+      const notifKey = `toko_notifs_${fromId}`;
+      const existingNotifs = JSON.parse(localStorage.getItem(notifKey) || "[]");
+      const newNotif = {
+        id: `notif-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+        type: "system",
+        title: "Permintaan Dana!",
+        message: `${user?.name || "Seseorang"} meminta dana sebesar ${amount.toLocaleString("id-ID")} kepada kamu.`,
+        createdAt: new Date().toISOString(),
+        read: false
+      };
+      localStorage.setItem(notifKey, JSON.stringify([newNotif, ...existingNotifs].slice(0, 50)));
+    } catch(e) {}
+    
     const myTx: Transaction = {
       id: Math.random().toString(36).substr(2, 9),
       type: "payment",

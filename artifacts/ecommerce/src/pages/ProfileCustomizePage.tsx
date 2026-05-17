@@ -1,6 +1,7 @@
 import React, { useState, useRef } from "react";
 import { Link } from "wouter";
 import { ChevronLeft, Palette, Save, CheckCircle2, Type, Sparkles, Video, Youtube, Image as ImageIcon, Upload, ToggleLeft, ToggleRight } from "lucide-react";
+import { motion } from "framer-motion";
 import { useAuth } from "../contexts/AuthContext";
 import { useToast } from "../hooks/use-toast";
 import { Button } from "../components/ui/button";
@@ -35,9 +36,13 @@ export function ProfileCustomizePage() {
   if (!user) return <div className="p-8 text-center">Harap login terlebih dahulu.</div>;
 
   const extractYoutubeId = (url: string) => {
+    if (!url) return "";
     const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
     const match = url.match(regExp);
-    return (match && match[2].length === 11) ? match[2] : url;
+    if (match && match[2].length === 11) return match[2];
+    // If it's already an 11-char ID, just return it
+    if (url.length === 11) return url;
+    return "";
   };
 
   const handleAvatarUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -70,7 +75,7 @@ export function ProfileCustomizePage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#050505] pb-24 pt-24">
+    <div className="min-h-screen bg-[#050505] pb-24 pt-4">
       <div className="max-w-4xl mx-auto px-6 space-y-10">
         
         {/* Elite Customization Header */}

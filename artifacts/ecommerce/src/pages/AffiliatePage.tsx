@@ -119,7 +119,7 @@ export function AffiliatePage() {
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 pb-20">
       {/* Hero Header */}
-      <div className="bg-gradient-to-b from-violet-600 to-indigo-900 pt-20 pb-32 px-6 relative overflow-hidden">
+      <div className="bg-gradient-to-b from-violet-600 to-indigo-900 pt-6 pb-32 px-6 relative overflow-hidden">
         {/* Background Sparkles */}
         <div className="absolute top-0 left-0 w-full h-full opacity-20 pointer-events-none">
           <div className="absolute top-10 left-10 w-32 h-32 bg-white rounded-full blur-[100px]" />

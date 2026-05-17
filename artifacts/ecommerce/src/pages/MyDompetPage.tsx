@@ -37,7 +37,10 @@ export function MyDompetPage() {
 
   const handleTopUpConfirm = () => {
     const amount = Number(topUpAmount);
-    if (isNaN(amount) || amount <= 0) return;
+    if (isNaN(amount) || amount <= 0) {
+      toast({ variant: "destructive", title: "Invalid Amount", description: "Nominal Top Up harus lebih besar dari 0." });
+      return;
+    }
     topUp(amount);
     setIsTopUpOpen(false);
     setTopUpAmount("");
@@ -47,8 +50,23 @@ export function MyDompetPage() {
 
   const handleTransfer = () => {
     const amt = Number(sendData.amount);
-    if (!sendData.toId || isNaN(amt) || amt <= 0) return;
-    const success = transfer(sendData.toId, sendData.toName || "User", amt);
+    if (!sendData.toId) {
+      toast({ variant: "destructive", title: "Invalid Target", description: "Harap isi ID tujuan transfer." });
+      return;
+    }
+    if (isNaN(amt) || amt <= 0) {
+      toast({ variant: "destructive", title: "Invalid Amount", description: "Nominal transfer tidak valid." });
+      return;
+    }
+    
+    // Check if target exists
+    const targetExists = allUsers.find(u => u.id === sendData.toId);
+    if (!targetExists) {
+      toast({ variant: "destructive", title: "User Not Found", description: "ID tujuan tidak terdaftar." });
+      return;
+    }
+
+    const success = transfer(sendData.toId, sendData.toName || targetExists.name, amt);
     if (success) {
       setIsSendOpen(false);
       setSendData({ toId: "", toName: "", amount: "" });

@@ -122,7 +122,7 @@ export function MyCryptoPage() {
   return (
     <div className="min-h-screen bg-[#05070A] text-white flex flex-col md:flex-row">
       {/* Sidebar Navigation */}
-      <aside className="w-full md:w-72 bg-[#0D1117] border-r border-white/5 p-6 flex flex-col h-auto md:h-screen sticky top-0 z-50">
+      <aside className="w-full md:w-72 bg-[#0D1117] border-r border-white/5 p-6 flex flex-col h-auto md:h-screen sticky top-20 z-40">
         <div className="flex items-center gap-4 mb-12 px-2">
           <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center shadow-lg">
             <Cpu className="h-6 w-6" />

@@ -145,7 +145,7 @@ function ProductRow({ product, onApprove, onReject, onDelete }: {
   );
 }
 
-function UserRow({ user, currentUser, onRoleChange, onBanToggle, onUpdateBalance, onViewDetails, onToggleVerifiedSeller, onToggleVerifiedReseller }: { 
+function UserRow({ user, currentUser, onRoleChange, onBanToggle, onUpdateBalance, onViewDetails, onToggleVerifiedSeller, onToggleVerifiedReseller, onDelete }: { 
   user: User; currentUser: User; 
   onRoleChange: (id: string, role: UserRole) => void;
   onBanToggle: (id: string, type: "permanent" | "trial", reason: string) => void;
@@ -153,6 +153,7 @@ function UserRow({ user, currentUser, onRoleChange, onBanToggle, onUpdateBalance
   onViewDetails: (user: User) => void;
   onToggleVerifiedSeller: (id: string) => void;
   onToggleVerifiedReseller: (id: string) => void;
+  onDelete: (id: string, name: string) => void;
 }) {
   const isCurrentUser = user.id === currentUser.id;
   const isMainAdmin   = user.id === "admin-001";
@@ -241,11 +242,20 @@ function UserRow({ user, currentUser, onRoleChange, onBanToggle, onUpdateBalance
             </Button>
 
             {!isMainAdmin && !isCurrentUser && (
-              <button onClick={() => user.isBanned ? onBanToggle(user.id, "permanent", "") : setShowBanModal(true)} 
-                className={`w-11 h-11 rounded-xl flex items-center justify-center transition-all border ${user.isBanned ? 'bg-rose-600 border-rose-500 text-white shadow-2xl shadow-rose-600/30' : 'bg-white/5 border-white/5 text-white/10 hover:bg-rose-600 hover:text-white hover:border-rose-500'}`} 
-                title={user.isBanned ? "Revoke Access" : "Terminate Connection"}>
-                <Ban className="h-4.5 w-4.5" />
-              </button>
+              <>
+                <button onClick={() => user.isBanned ? onBanToggle(user.id, "permanent", "") : setShowBanModal(true)} 
+                  className={`w-11 h-11 rounded-xl flex items-center justify-center transition-all border ${user.isBanned ? 'bg-rose-600 border-rose-500 text-white shadow-2xl shadow-rose-600/30' : 'bg-white/5 border-white/5 text-white/10 hover:bg-rose-600 hover:text-white hover:border-rose-500'}`} 
+                  title={user.isBanned ? "Revoke Access" : "Terminate Connection"}>
+                  <Ban className="h-4.5 w-4.5" />
+                </button>
+                <button
+                  onClick={() => onDelete(user.id, user.name)}
+                  className="w-11 h-11 rounded-xl flex items-center justify-center transition-all border bg-white/5 border-white/5 text-rose-500/50 hover:bg-rose-600 hover:text-white hover:border-rose-500"
+                  title="Hapus User dari Database"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
+              </>
             )}
           </div>
         </div>
@@ -678,7 +688,7 @@ function UserDetailView({ user, onClose }: { user: User; onClose: () => void }) 
  * Komponen untuk simulasi migrasi data dari localStorage ke MySQL.
  */
 export function DatabaseMigrationWizard() {
-  const { allUsers } = useAuth();
+  const { allUsers, migrateToVPS } = useAuth();
   const { allStoreProducts } = useProducts();
   const [isMigrating, setIsMigrating] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -742,24 +752,20 @@ export function DatabaseMigrationWizard() {
     setIsMigrating(false);
     
     try {
-      // Real Migration Call
-      const response = await fetch("/api/migrate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ users: allUsers, products: allStoreProducts })
-      });
+      // Use the internal migration function from AuthContext
+      const result = await migrateToVPS();
 
-      if (!response.ok) throw new Error("Gagal mengirim data ke server MySQL lokal.");
+      if (!result.ok) throw new Error(result.error || "Gagal mengirim data ke server MySQL.");
 
       toast({ 
         title: "Migrasi Berhasil!", 
-        description: `Total ${totalDataCount} entri data telah dipindahkan ke MySQL Lokal Anda secara otomatis.`,
+        description: `Total ${totalDataCount} entri data telah dipindahkan ke MySQL VPS Anda secara otomatis.`,
       });
     } catch (err: any) {
       toast({
         variant: "destructive",
         title: "Migrasi Gagal",
-        description: err.message || "Pastikan server backend jalan dan MySQL lokal aktif."
+        description: err.message || "Pastikan server backend jalan dan MySQL VPS aktif."
       });
     }
   };
@@ -864,6 +870,31 @@ export function DatabaseMigrationWizard() {
                 className="rounded-2xl px-12 h-16 bg-white/5 text-white/40 border border-white/5 hover:text-white hover:bg-white/10 font-black uppercase tracking-widest text-[11px]"
               >
                 <Globe className="h-5 w-5 mr-3" /> Remote Deployment
+              </Button>
+              <Button 
+                size="lg"
+                onClick={async () => {
+                  if (!window.confirm("⚠️ Hapus SEMUA user KECUALI alrizalarkan@gmail.com dari VPS? Tindakan ini TIDAK BISA DIBATALKAN!")) return;
+                  try {
+                    const res = await fetch('/api/users/reset-all', { 
+                      method: 'POST', 
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ keepEmails: ['alrizalarkan@gmail.com'] })
+                    });
+                    const data = await res.json();
+                    if (data.success) {
+                      toast({ title: "✅ Berhasil!", description: data.message + " Refresh halaman untuk melihat perubahan." });
+                      setTimeout(() => window.location.reload(), 2000);
+                    } else {
+                      toast({ variant: "destructive", title: "Gagal", description: data.error || "Unknown error" });
+                    }
+                  } catch (e: any) {
+                    toast({ variant: "destructive", title: "Error", description: e.message });
+                  }
+                }}
+                className="rounded-2xl px-12 h-16 bg-rose-600 hover:bg-rose-700 text-white font-black uppercase tracking-widest text-[11px] shadow-2xl shadow-rose-600/40 italic border-0"
+              >
+                🗑️ Hapus Semua User (Kecuali Alrizalarkan)
               </Button>
             </div>
           )}
@@ -1021,7 +1052,7 @@ npm run start`}
 export function AdminPanel() {
   const { user, allUsers, updateUserRole, addCoins, toggleBan, updateBalance, toggleVerifiedSeller, toggleVerifiedReseller } = useAuth();
   const { cosmetics, addCosmetic, deleteCosmetic } = useCosmetics();
-  const { sellerProducts, allStoreProducts, autoApprove, setAutoApprove, approveProduct, rejectProduct, deleteProduct } = useProducts();
+  const { sellerProducts, adminProducts: adminInventory, allStoreProducts, autoApprove, setAutoApprove, approveProduct, rejectProduct, deleteProduct, deleteAdminProduct } = useProducts();
   const ai  = useAISettings();
   const pay = usePaymentSettings();
   const { vouchers, addVoucher, toggleVoucher, deleteVoucher } = useVouchers();
@@ -1072,12 +1103,20 @@ export function AdminPanel() {
 
   if (!user || user.role !== "admin") return <div className="text-center py-20 font-semibold">Akses Ditolak</div>;
 
-  const visible = filter === "all" ? sellerProducts : sellerProducts.filter((p) => p.status === filter);
+  const combinedProducts = [
+    ...adminInventory.map(p => ({ ...p, status: 'approved' as const, sellerName: 'Admin Toko' })), 
+    ...sellerProducts
+  ];
+
+  const visible = filter === "all" 
+    ? combinedProducts 
+    : combinedProducts.filter((p) => p.status === filter);
+
   const counts  = {
-    all:      sellerProducts.length,
-    pending:  sellerProducts.filter((p) => p.status === "pending").length,
-    approved: sellerProducts.filter((p) => p.status === "approved").length,
-    rejected: sellerProducts.filter((p) => p.status === "rejected").length,
+    all:      combinedProducts.length,
+    pending:  combinedProducts.filter((p) => p.status === "pending").length,
+    approved: combinedProducts.filter((p) => p.status === "approved").length,
+    rejected: combinedProducts.filter((p) => p.status === "rejected").length,
   };
 
   const handleApprove = (id: number) => { approveProduct(id); toast({ title: "Produk disetujui." }); };
@@ -1117,7 +1156,7 @@ export function AdminPanel() {
       maxDiscount: vMaxDisc ? Number(vMaxDisc) * 1000 : undefined,
       maxUses: Number(vMaxUses) || 0,
       isActive: true,
-      description: vDesc || `${vType === "percentage" ? `Diskon ${vValue}%` : `Potongan ${formatPrice(Number(vValue))}`}`,
+      description: vDesc || (vType === "percentage" ? "Diskon " + vValue + "%" : "Potongan " + formatPrice(Number(vValue))),
     });
     toast({ title: `Voucher ${code} berhasil ditambahkan.` });
     setShowVoucherForm(false);
@@ -1192,7 +1231,7 @@ export function AdminPanel() {
   ];
 
   return (
-    <div className="min-h-screen bg-[#050505] pt-24 pb-20">
+    <div className="min-h-screen bg-[#050505] pt-4 pb-20">
       <div className="container mx-auto px-6 max-w-5xl space-y-10">
       
       {/* ── Premium Admin Header ─────────────────────────────────── */}
@@ -1212,8 +1251,8 @@ export function AdminPanel() {
              <div className="glass-card px-6 py-3 rounded-2xl text-center border-white/5 shadow-xl">
                 <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Server Status</p>
                 <div className="flex items-center gap-2 mt-1">
-                  <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_10px_rgba(16,185,129,0.5)]" />
-                  <p className="text-sm font-black uppercase italic text-emerald-500">Live</p>
+                   <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_10px_rgba(16,185,129,0.5)]" />
+                   <p className="text-sm font-black uppercase italic text-emerald-500">Live</p>
                 </div>
              </div>
           </div>
@@ -1268,15 +1307,15 @@ export function AdminPanel() {
       {tab === "users" && (
         <div className="space-y-4">
           <div className="glass-card border-white/5 rounded-[2.5rem] p-6 shadow-2xl space-y-6">
-             <div className="pl-4">
+             <div className="flex items-center gap-4 px-4 h-14 bg-white/5 rounded-2xl border border-white/5">
                <Search className="h-5 w-5 text-muted-foreground" />
+               <input 
+                 value={userSearch}
+                 onChange={e => setUserSearch(e.target.value)}
+                 placeholder="Cari nama, email, atau ID user..."
+                 className="flex-1 bg-transparent border-none focus:ring-0 text-sm font-bold"
+               />
              </div>
-             <input 
-               value={userSearch}
-               onChange={e => setUserSearch(e.target.value)}
-               placeholder="Cari nama, email, atau ID user..."
-               className="flex-1 bg-transparent border-none focus:ring-0 text-sm font-bold h-10"
-             />
           </div>
 
           <div className="glass-card border border-white/5 rounded-[2.5rem] overflow-hidden shadow-2xl divide-y divide-white/5">
@@ -1303,6 +1342,21 @@ export function AdminPanel() {
                       onViewDetails={setSelectedUser}
                       onToggleVerifiedSeller={toggleVerifiedSeller}
                       onToggleVerifiedReseller={toggleVerifiedReseller}
+                      onDelete={async (id, name) => {
+                        if (!window.confirm(`Hapus user "${name}" dari database VPS? Tindakan ini TIDAK BISA DIBATALKAN!`)) return;
+                        try {
+                          const res = await fetch(`/api/users/${id}`, { method: 'DELETE' });
+                          const data = await res.json();
+                          if (data.success) {
+                            toast({ title: `✅ User "${name}" berhasil dihapus!` });
+                            setTimeout(() => window.location.reload(), 1000);
+                          } else {
+                            toast({ variant: 'destructive', title: 'Gagal hapus user', description: data.error });
+                          }
+                        } catch (e: any) {
+                          toast({ variant: 'destructive', title: 'Error', description: e.message });
+                        }
+                      }}
                     />
                   ))
             }
@@ -1992,7 +2046,8 @@ export function AdminPanel() {
           </div>
         </div>
       )}
-    </div>
+      </div>
+      </div>
     </div>
   );
 }

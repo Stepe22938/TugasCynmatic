@@ -56,6 +56,7 @@ interface ProductsContextType {
   allStoreProducts: Product[];
   autoApprove: boolean;
   setAutoApprove: (v: boolean) => void;
+  refreshProducts: () => Promise<void>;
   submitProduct: (data: Omit<SellerProduct, "id" | "status" | "createdAt">) => void;
   approveProduct: (id: number) => void;
   rejectProduct: (id: number) => void;
@@ -134,6 +135,19 @@ export function ProductsProvider({ children }: { children: ReactNode }) {
     };
     init();
   }, []);
+
+  const refreshProducts = async () => {
+    const vpsProducts = await fetchAllProductsFromVPS();
+    if (vpsProducts) {
+      const casted = vpsProducts.map((p: any) => ({
+        ...p,
+        price: Number(p.price),
+        stock: Number(p.stock)
+      }));
+      setAdminProducts(casted.filter((p: any) => p.sellerId === "admin-001"));
+      setSellerProducts(casted.filter((p: any) => p.sellerId !== "admin-001"));
+    }
+  };
 
   const setAutoApprove = (v: boolean) => setAutoApproveState(v);
 
@@ -263,7 +277,7 @@ export function ProductsProvider({ children }: { children: ReactNode }) {
   return (
     <ProductsContext.Provider value={{
       sellerProducts, adminProducts, approvedSellerProducts, allStoreProducts,
-      autoApprove, setAutoApprove,
+      autoApprove, setAutoApprove, refreshProducts,
       submitProduct, approveProduct, rejectProduct, deleteProduct,
       deleteAdminProduct, addAdminProduct,
       toggleFlashSale, updateStock, decrementStock,

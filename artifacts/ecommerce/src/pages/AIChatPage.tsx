@@ -238,7 +238,7 @@ export function AIChatPage() {
       {/* Main Chat Area */}
       <main className="flex-1 flex flex-col h-full relative overflow-hidden">
         {/* Header */}
-        <header className="h-14 border-b flex items-center justify-between px-4 bg-background/80 backdrop-blur-md sticky top-0 z-20">
+        <header className="h-14 border-b flex items-center justify-between px-4 bg-background/80 backdrop-blur-md sticky top-20 z-20">
           <div className="flex items-center gap-3">
             <Button variant="ghost" size="icon" className="md:hidden" onClick={() => setSidebarOpen(!sidebarOpen)}>
               <Menu className="h-5 w-5" />

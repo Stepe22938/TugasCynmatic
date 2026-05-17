@@ -1,19 +1,23 @@
 /**
  * RegisterPage.tsx
- * Halaman pendaftaran akun baru.
- * Validasi form di sisi klien, auto-login setelah berhasil daftar.
+ * Royal Sultan Experience - Identity Generation.
  */
 import React, { useState, useEffect } from "react";
 import { Link, useLocation } from "wouter";
-import { Package, Eye, EyeOff, UserPlus, Sun, Moon } from "lucide-react";
+import { 
+  Crown, Eye, EyeOff, UserPlus, Sun, Moon, 
+  ShieldCheck, User, Mail, Lock, Gift, ArrowLeft,
+  ChevronRight, Fingerprint, Star, Diamond, Shield
+} from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { useTheme } from "../contexts/ThemeContext";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
+import { motion, AnimatePresence } from "framer-motion";
 
 export function RegisterPage() {
-  const { register, isAuthenticated } = useAuth();
+  const { register, user } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const [, setLocation] = useLocation();
 
@@ -28,191 +32,242 @@ export function RegisterPage() {
   const [loading, setLoading]       = useState(false);
 
   useEffect(() => {
-    if (isAuthenticated) setLocation("/");
-  }, [isAuthenticated, setLocation]);
+    if (user) setLocation("/");
+  }, [user, setLocation]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
 
     if (password !== confirm) {
-      setError("Konfirmasi password tidak cocok.");
+      setError("Konfirmasi kunci akses tidak cocok.");
       return;
     }
 
     setLoading(true);
-    await new Promise((r) => setTimeout(r, 600));
 
-    const result = register(name, email, password, referralCode);
-    if (!result.ok) {
-      setError(result.error ?? "Pendaftaran gagal.");
-    } else {
-      setLocation("/");
+    try {
+      const result = await register(name, email, password, referralCode);
+      if (!result.ok) {
+        setError(result.error ?? "Gagal mendaftarkan identitas baru.");
+        const card = document.getElementById('register-card');
+        if (card) {
+          card.classList.add('animate-shake');
+          setTimeout(() => card.classList.remove('animate-shake'), 500);
+        }
+      } else {
+        setLocation("/");
+      }
+    } catch (err) {
+      setError("Gagal menghubungi server. Silakan coba lagi.");
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
+  };
+
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: { 
+      opacity: 1,
+      transition: { 
+        staggerChildren: 0.08,
+        delayChildren: 0.1
+      }
+    }
+  };
+
+  const itemVariants = {
+    hidden: { opacity: 0, y: 15 },
+    visible: { opacity: 1, y: 0 }
   };
 
   return (
-    <div className={`min-h-screen flex items-center justify-center relative overflow-hidden transition-colors duration-700 py-12 px-4 ${theme === 'dark' ? 'bg-[#0a0a0b]' : 'bg-slate-50'}`}>
-      {/* Theme Toggle Button */}
-      <button 
-        type="button"
-        onClick={toggleTheme}
-        className={`absolute top-6 right-6 z-20 w-12 h-12 rounded-2xl flex items-center justify-center transition-all shadow-lg active:scale-95 ${
-          theme === 'dark' ? 'bg-white/10 text-white border border-white/10 hover:bg-white/20' : 'bg-white text-slate-800 border border-slate-200 hover:bg-slate-50'
-        }`}
-      >
-        {theme === 'dark' ? <Sun className="h-6 w-6" /> : <Moon className="h-6 w-6" />}
-      </button>
-
-      {/* Dynamic Background Elements */}
-      <div className={`absolute top-[-10%] right-[-10%] w-[40%] h-[40%] rounded-full blur-[120px] animate-pulse ${theme === 'dark' ? 'bg-primary/20' : 'bg-primary/10'}`} />
-      <div className={`absolute bottom-[-10%] left-[-10%] w-[40%] h-[40%] rounded-full blur-[120px] animate-pulse delay-700 ${theme === 'dark' ? 'bg-indigo-600/10' : 'bg-indigo-600/5'}`} />
+    <div className="min-h-screen flex items-center justify-center relative overflow-hidden bg-gray-50 dark:bg-[#050505] py-20 transition-colors duration-500">
       
-      <div className="w-full max-w-md relative z-10 animate-in fade-in zoom-in-95 duration-700">
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-20 h-20 rounded-[2rem] bg-gradient-to-br from-primary to-orange-600 shadow-2xl shadow-primary/20 mb-4">
-            <Package className="h-10 w-10 text-white" />
+      {/* Clean elegant background - minimal effects */}
+      <div className="absolute inset-0 z-0 pointer-events-none">
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-[800px] h-[400px] bg-[radial-gradient(circle,rgba(212,175,55,0.15)_0%,transparent_70%)] dark:bg-[radial-gradient(circle,rgba(212,175,55,0.08)_0%,transparent_70%)] transition-colors duration-500" />
+      </div>
+
+      {/* Top Bar */}
+      <div className="absolute top-0 left-0 w-full p-8 flex justify-between items-center z-50">
+        <Link href="/login">
+          <motion.button 
+            whileHover={{ x: -5 }}
+            className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.2em] text-gray-500 hover:text-gray-900 dark:text-white/40 dark:hover:text-white transition-colors"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Kembali
+          </motion.button>
+        </Link>
+        <button 
+          type="button"
+          onClick={toggleTheme}
+          className="w-12 h-12 bg-white/80 dark:bg-[#0a0a0c]/80 rounded-full flex items-center justify-center hover:bg-white dark:hover:bg-white/10 transition border border-gray-200 dark:border-white/5 shadow-sm dark:shadow-none backdrop-blur-xl"
+        >
+          {theme === 'dark' ? <Sun className="h-5 w-5 text-[#D4AF37]" /> : <Moon className="h-5 w-5 text-[#D4AF37]" />}
+        </button>
+      </div>
+
+      <div className="w-full max-w-[480px] px-6 relative z-10">
+        
+        {/* Branding */}
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="text-center mb-10"
+        >
+          <div className="w-20 h-20 mx-auto bg-gradient-to-br from-[#D4AF37] to-[#8B732A] rounded-2xl flex items-center justify-center shadow-[0_15px_30px_-10px_rgba(212,175,55,0.4)] mb-6">
+            <UserPlus className="h-8 w-8 text-white dark:text-black" />
           </div>
-          <h1 className={`text-4xl font-black tracking-tight mb-2 ${theme === 'dark' ? 'text-white' : 'text-slate-900'}`}>Buat Akun</h1>
-          <p className="text-muted-foreground font-medium">Daftar sekarang untuk mulai berbelanja</p>
-        </div>
+          <h1 className="text-3xl font-black uppercase tracking-widest text-gray-900 dark:text-white mb-2 transition-colors">
+            Cynmatic
+          </h1>
+          <p className="text-[10px] text-[#D4AF37] dark:text-[#D4AF37]/80 font-bold uppercase tracking-[0.4em]">
+            Daftar Identitas Sultan
+          </p>
+        </motion.div>
 
-        {/* Glass Card */}
-        <div className={`${theme === 'dark' ? 'bg-card/40 border-white/10 shadow-[0_20px_50px_rgba(0,0,0,0.3)]' : 'bg-white/80 border-slate-200 shadow-xl shadow-slate-200/50'} backdrop-blur-2xl border rounded-[2.5rem] overflow-hidden transition-all duration-700`}>
-          <form onSubmit={handleSubmit} className="p-8 space-y-4">
-            {error && (
-              <div className="bg-red-500/10 border border-red-500/20 text-red-500 text-sm px-4 py-3 rounded-2xl animate-in shake-in duration-300 text-center">
-                {error}
+        {/* Register Form */}
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+          className="bg-white dark:bg-[#0a0a0c] border border-gray-200 dark:border-white/10 p-8 rounded-3xl shadow-xl dark:shadow-2xl relative transition-colors"
+        >
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <AnimatePresence mode="wait">
+              {error && (
+                <motion.div 
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: "auto" }}
+                  exit={{ opacity: 0, height: 0 }}
+                  className="overflow-hidden"
+                >
+                  <div className="bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20 text-red-600 dark:text-red-500 text-[11px] font-bold uppercase tracking-widest px-4 py-3 rounded-xl text-center mb-6 transition-colors">
+                    {error}
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {/* Name Input */}
+              <div className="space-y-2">
+                <Label className="text-[10px] font-bold uppercase tracking-widest text-[#D4AF37] dark:text-[#D4AF37]/70 ml-1">Nama Lengkap</Label>
+                <div className="relative">
+                  <User className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 dark:text-white/30" />
+                  <Input
+                    placeholder="Nama Anda"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    required
+                    className="h-12 bg-gray-50 dark:bg-white/[0.03] border-gray-200 dark:border-white/10 rounded-xl pl-12 pr-4 font-medium text-xs focus:border-[#D4AF37] dark:focus:border-[#D4AF37]/50 focus:bg-white dark:focus:bg-white/[0.05] transition-all text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-white/20"
+                  />
+                </div>
               </div>
-            )}
 
-            <div className="space-y-1.5">
-              <Label htmlFor="name" className={`text-xs font-bold ml-1 uppercase tracking-wider ${theme === 'dark' ? 'text-white/50' : 'text-slate-500'}`}>Full Name</Label>
-              <Input
-                id="name"
-                placeholder="Nama Lengkap"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                required
-                className={`h-12 border rounded-2xl transition-all duration-300 ${
-                  theme === 'dark' ? 'bg-white/5 border-white/10 text-white focus:bg-white/10 placeholder:text-white/20' : 'bg-slate-50 border-slate-200 text-slate-900 focus:bg-white placeholder:text-slate-400'
-                }`}
-              />
+              {/* Email Input */}
+              <div className="space-y-2">
+                <Label className="text-[10px] font-bold uppercase tracking-widest text-[#D4AF37] dark:text-[#D4AF37]/70 ml-1">Email Sultan</Label>
+                <div className="relative">
+                  <Mail className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 dark:text-white/30" />
+                  <Input
+                    type="email"
+                    placeholder="Email Aktif"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                    className="h-12 bg-gray-50 dark:bg-white/[0.03] border-gray-200 dark:border-white/10 rounded-xl pl-12 pr-4 font-medium text-xs focus:border-[#D4AF37] dark:focus:border-[#D4AF37]/50 focus:bg-white dark:focus:bg-white/[0.05] transition-all text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-white/20"
+                  />
+                </div>
+              </div>
             </div>
 
-            <div className="space-y-1.5">
-              <Label htmlFor="email" className={`text-xs font-bold ml-1 uppercase tracking-wider ${theme === 'dark' ? 'text-white/50' : 'text-slate-500'}`}>Email Address</Label>
-              <Input
-                id="email"
-                type="email"
-                placeholder="name@email.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                className={`h-12 border rounded-2xl transition-all duration-300 ${
-                  theme === 'dark' ? 'bg-white/5 border-white/10 text-white focus:bg-white/10 placeholder:text-white/20' : 'bg-slate-50 border-slate-200 text-slate-900 focus:bg-white placeholder:text-slate-400'
-                }`}
-              />
-            </div>
-
-            <div className="space-y-1.5">
-              <Label htmlFor="password" className={`text-xs font-bold ml-1 uppercase tracking-wider ${theme === 'dark' ? 'text-white/50' : 'text-slate-500'}`}>Create Password</Label>
-              <div className="relative group">
+            {/* Password Input */}
+            <div className="space-y-2">
+              <Label className="text-[10px] font-bold uppercase tracking-widest text-[#D4AF37] dark:text-[#D4AF37]/70 ml-1">Kunci Akses Baru</Label>
+              <div className="relative">
+                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 dark:text-white/30" />
                 <Input
-                  id="password"
                   type={showPass ? "text" : "password"}
-                  placeholder="Min. 6 characters"
+                  placeholder="Minimal 6 Karakter"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
-                  className={`h-12 border rounded-2xl transition-all duration-300 ${
-                    theme === 'dark' ? 'bg-white/5 border-white/10 text-white focus:bg-white/10 placeholder:text-white/20' : 'bg-slate-50 border-slate-200 text-slate-900 focus:bg-white placeholder:text-slate-400'
-                  }`}
+                  className="h-12 bg-gray-50 dark:bg-white/[0.03] border-gray-200 dark:border-white/10 rounded-xl pl-12 pr-12 font-medium text-xs focus:border-[#D4AF37] dark:focus:border-[#D4AF37]/50 focus:bg-white dark:focus:bg-white/[0.05] transition-all text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-white/20"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPass(!showPass)}
-                  className={`absolute inset-y-0 right-4 flex items-center transition ${
-                    theme === 'dark' ? 'text-white/30 hover:text-white/60' : 'text-slate-400 hover:text-slate-600'
-                  }`}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 dark:text-white/30 hover:text-gray-700 dark:hover:text-white transition-colors"
                 >
-                  {showPass ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                  {showPass ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
               </div>
             </div>
 
-            <div className="space-y-1.5">
-              <Label htmlFor="confirm" className={`text-xs font-bold ml-1 uppercase tracking-wider ${theme === 'dark' ? 'text-white/50' : 'text-slate-500'}`}>Confirm Password</Label>
-              <div className="relative group">
+            {/* Confirm Password Input */}
+            <div className="space-y-2">
+              <Label className="text-[10px] font-bold uppercase tracking-widest text-[#D4AF37] dark:text-[#D4AF37]/70 ml-1">Verifikasi Kunci</Label>
+              <div className="relative">
+                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 dark:text-white/30" />
                 <Input
-                  id="confirm"
                   type={showConfirm ? "text" : "password"}
-                  placeholder="Ulangi password"
+                  placeholder="Ulangi Kata Sandi"
                   value={confirm}
                   onChange={(e) => setConfirm(e.target.value)}
                   required
-                  className={`h-12 border rounded-2xl transition-all duration-300 ${
-                    theme === 'dark' ? 'bg-white/5 border-white/10 text-white focus:bg-white/10 placeholder:text-white/20' : 'bg-slate-50 border-slate-200 text-slate-900 focus:bg-white placeholder:text-slate-400'
-                  } ${confirm.length > 0 && confirm !== password ? "border-red-500/50" : ""}`}
+                  className={`h-12 bg-gray-50 dark:bg-white/[0.03] border-gray-200 dark:border-white/10 rounded-xl pl-12 pr-12 font-medium text-xs focus:border-[#D4AF37] dark:focus:border-[#D4AF37]/50 focus:bg-white dark:focus:bg-white/[0.05] transition-all text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-white/20 ${confirm && confirm !== password ? 'border-red-500 dark:border-red-500/50' : ''}`}
                 />
                 <button
                   type="button"
                   onClick={() => setShowConfirm(!showConfirm)}
-                  className={`absolute inset-y-0 right-4 flex items-center transition ${
-                    theme === 'dark' ? 'text-white/30 hover:text-white/60' : 'text-slate-400 hover:text-slate-600'
-                  }`}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 dark:text-white/30 hover:text-gray-700 dark:hover:text-white transition-colors"
                 >
-                  {showConfirm ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                  {showConfirm ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
               </div>
             </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="referral" className={`text-xs font-bold ml-1 uppercase tracking-wider ${theme === 'dark' ? 'text-white/50' : 'text-slate-500'}`}>Kode Referral (Opsional)</Label>
-              <Input
-                id="referral"
-                placeholder="CONTOH: CYN-ABC"
-                value={referralCode}
-                onChange={(e) => setReferralCode(e.target.value.toUpperCase())}
-                className={`h-12 border rounded-2xl transition-all duration-300 ${
-                  theme === 'dark' ? 'bg-white/5 border-white/10 text-white focus:bg-white/10 placeholder:text-white/20' : 'bg-slate-50 border-slate-200 text-slate-900 focus:bg-white placeholder:text-slate-400'
-                }`}
-              />
+
+            {/* Referral Code */}
+            <div className="space-y-2 pt-2">
+              <Label className="text-[10px] font-bold uppercase tracking-widest text-[#D4AF37] dark:text-[#D4AF37]/70 ml-1">Kode Referral (Opsional)</Label>
+              <div className="relative">
+                <Gift className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 dark:text-white/30" />
+                <Input
+                  placeholder="CYN-XXXXX"
+                  value={referralCode}
+                  onChange={(e) => setReferralCode(e.target.value.toUpperCase())}
+                  className="h-12 bg-gray-50 dark:bg-white/[0.03] border-gray-200 dark:border-white/10 rounded-xl pl-12 pr-4 font-medium text-xs focus:border-[#D4AF37] dark:focus:border-[#D4AF37]/50 focus:bg-white dark:focus:bg-white/[0.05] transition-all text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-white/20 uppercase"
+                />
+              </div>
             </div>
 
             <Button
               type="submit"
-              className="w-full h-14 bg-gradient-to-r from-primary to-orange-600 hover:from-primary/90 hover:to-orange-500 text-white font-black text-lg rounded-2xl shadow-xl shadow-primary/20 transition-all active:scale-[0.98] mt-4"
               disabled={loading}
+              className="w-full h-14 bg-[#D4AF37] hover:bg-[#F3CF66] text-white dark:text-black font-bold uppercase tracking-widest text-xs rounded-xl shadow-[0_10px_20px_-10px_rgba(212,175,55,0.4)] transition-all mt-6"
             >
-              {loading ? (
-                <div className="flex items-center gap-2">
-                  <div className="h-5 w-5 rounded-full border-2 border-white/30 border-t-white animate-spin" />
-                  <span>Mendaftar...</span>
-                </div>
-              ) : (
-                <div className="flex items-center gap-2">
-                  <span>Buat Akun</span>
-                  <UserPlus className="h-5 w-5" />
-                </div>
-              )}
+              {loading ? "MEMPROSES..." : "BUAT IDENTITAS"}
             </Button>
-
-            <div className="pt-4 text-center">
-              <p className={`text-sm font-medium ${theme === 'dark' ? 'text-white/40' : 'text-slate-500'}`}>
-                Sudah punya akun?{" "}
-                <Link href="/login" className={`font-bold transition underline-offset-4 hover:underline ${theme === 'dark' ? 'text-white hover:text-primary' : 'text-primary'}`}>
-                  Masuk di sini
-                </Link>
-              </p>
-            </div>
           </form>
-        </div>
+        </motion.div>
 
-        {/* Footer info */}
-        <p className={`text-center mt-10 text-[10px] font-bold uppercase tracking-[0.2em] ${theme === 'dark' ? 'text-white/20' : 'text-slate-300'}`}>
-          Join Thousands of Shoppers &bull; Reliable & Secure
-        </p>
+        {/* Footer */}
+        <motion.div 
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.2 }}
+          className="mt-8 text-center"
+        >
+          <p className="text-xs text-gray-500 dark:text-white/40 font-medium transition-colors">
+            Sudah Terdaftar?{" "}
+            <Link href="/login" className="text-[#D4AF37] hover:text-[#B89A36] dark:hover:text-white transition-colors font-bold">
+              Masuk Sekarang
+            </Link>
+          </p>
+        </motion.div>
       </div>
     </div>
   );

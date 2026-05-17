@@ -87,7 +87,7 @@ const CartContext = createContext<CartContextType | undefined>(undefined);
 
 // Provider Component
 export function CartProvider({ children }: { children: ReactNode }) {
-  const { user } = useAuth();
+  const { user, addWalletTransaction } = useAuth();
   const cartKey = `toko_cart_${user ? user.id : "guest"}`;
   
   const [state, dispatch] = useReducer(cartReducer, initialState);
@@ -118,48 +118,36 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   // Payout to Sellers
   const processPayouts = (items: CartItem[]) => {
+    if (!addWalletTransaction) return; // safety check
+    
     items.forEach(item => {
       const itemTotal = item.price * item.quantity;
       const sId = item.sellerId || "admin-001"; // Fallback to Admin if missing
       const sName = item.sellerName || "Admin Toko";
       
-      const targetBalanceKey = `wallet_balance_${sId}`;
-      const targetTxKey = `wallet_tx_${sId}`;
-      const targetUserKey = "toko_users";
-      
-      const targetBalance = Number(localStorage.getItem(targetBalanceKey) || "0");
-      const targetTxs = JSON.parse(localStorage.getItem(targetTxKey) || "[]");
-      
-      let finalAmt = itemTotal;
-      let compensation = 0;
-      const MAX_LIMIT = 999_999_999_999_999;
-      const CONV_RATE = 1_000_000_000;
+      addWalletTransaction(
+        sId,
+        itemTotal,
+        `Hasil Penjualan: ${item.name}`,
+        "topup",
+        user?.id,
+        user?.name
+      );
 
-      if (targetBalance + itemTotal > MAX_LIMIT) {
-        finalAmt = MAX_LIMIT - targetBalance;
-        compensation = Math.floor((itemTotal - finalAmt) / CONV_RATE);
-        
-        const users = JSON.parse(localStorage.getItem(targetUserKey) || "[]");
-        const updatedUsers = users.map((u: any) => u.id === sId ? { ...u, coins: (u.coins || 0) + (compensation || 0) } : u);
-        localStorage.setItem(targetUserKey, JSON.stringify(updatedUsers));
-      }
-      
-      const recipientTx = {
-        id: Math.random().toString(36).substr(2, 9),
-        type: "topup", 
-        amount: finalAmt,
-        description: compensation > 0 
-          ? `Hasil Penjualan: ${item.name} (Limit! +${compensation} Koin)` 
-          : `Hasil Penjualan: ${item.name}`,
-        date: new Date().toISOString(),
-        senderId: user?.id,
-        senderName: user?.name,
-        recipientId: sId,
-        recipientName: sName,
-      };
-      
-      localStorage.setItem(targetBalanceKey, (targetBalance + finalAmt).toString());
-      localStorage.setItem(targetTxKey, JSON.stringify([recipientTx, ...targetTxs]));
+      // Send Notification to Seller
+      try {
+        const notifKey = `toko_notifs_${sId}`;
+        const existingNotifs = JSON.parse(localStorage.getItem(notifKey) || "[]");
+        const newNotif = {
+          id: `notif-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+          type: "system",
+          title: "Dana Penjualan Masuk!",
+          message: `Kamu menerima ${itemTotal.toLocaleString("id-ID")} dari penjualan ${item.name}.`,
+          createdAt: new Date().toISOString(),
+          read: false
+        };
+        localStorage.setItem(notifKey, JSON.stringify([newNotif, ...existingNotifs].slice(0, 50)));
+      } catch(e) {}
     });
   };
 

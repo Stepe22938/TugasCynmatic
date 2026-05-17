@@ -221,7 +221,7 @@ export function ProductDetailPage() {
 
   return (
     <div className="min-h-screen bg-background pb-20">
-      <div className="container mx-auto px-4 py-12 max-w-6xl">
+      <div className="container mx-auto px-4 py-8 max-w-6xl">
 
       {/* Breadcrumb */}
       <div className="flex items-center gap-2 mb-6 text-sm text-muted-foreground">
