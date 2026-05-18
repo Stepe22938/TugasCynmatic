@@ -145,7 +145,7 @@ function ProductRow({ product, onApprove, onReject, onDelete }: {
   );
 }
 
-function UserRow({ user, currentUser, onRoleChange, onBanToggle, onUpdateBalance, onViewDetails, onToggleVerifiedSeller, onToggleVerifiedReseller, onDelete }: { 
+function UserRow({ user, currentUser, onRoleChange, onBanToggle, onUpdateBalance, onViewDetails, onToggleVerifiedSeller, onToggleVerifiedReseller, onDelete, onUpdatePassword }: { 
   user: User; currentUser: User; 
   onRoleChange: (id: string, role: UserRole) => void;
   onBanToggle: (id: string, type: "permanent" | "trial", reason: string) => void;
@@ -154,6 +154,7 @@ function UserRow({ user, currentUser, onRoleChange, onBanToggle, onUpdateBalance
   onToggleVerifiedSeller: (id: string) => void;
   onToggleVerifiedReseller: (id: string) => void;
   onDelete: (id: string, name: string) => void;
+  onUpdatePassword: (id: string, newPassword: string) => void;
 }) {
   const isCurrentUser = user.id === currentUser.id;
   const isMainAdmin   = user.id === "admin-001";
@@ -162,6 +163,9 @@ function UserRow({ user, currentUser, onRoleChange, onBanToggle, onUpdateBalance
   const [banReason, setBanReason] = useState("");
   const [editingBalance, setEditingBalance] = useState(false);
   const [balanceInput, setBalanceInput] = useState(user.balance?.toString() || "0");
+  const [editingPassword, setEditingPassword] = useState(false);
+  const [passwordInput, setPasswordInput] = useState("");
+  const [showPlainPassword, setShowPlainPassword] = useState(false);
 
   return (
     <div className={`flex flex-col gap-2 px-8 py-8 transition-all duration-500 border-b border-white/5 ${user.isBanned ? 'bg-rose-500/5' : 'hover:bg-white/5'}`}>
@@ -241,6 +245,10 @@ function UserRow({ user, currentUser, onRoleChange, onBanToggle, onUpdateBalance
               <CreditCard className="h-4.5 w-4.5" />
             </Button>
 
+            <Button size="icon" variant="ghost" className="h-11 w-11 rounded-xl bg-white/5 text-yellow-500 border border-white/5 hover:bg-yellow-600 hover:text-white transition-all" onClick={() => setEditingPassword(true)} title="Reset / Ganti Password">
+              <KeyRound className="h-4.5 w-4.5" />
+            </Button>
+
             {!isMainAdmin && !isCurrentUser && (
               <>
                 <button onClick={() => user.isBanned ? onBanToggle(user.id, "permanent", "") : setShowBanModal(true)} 
@@ -288,6 +296,47 @@ function UserRow({ user, currentUser, onRoleChange, onBanToggle, onUpdateBalance
             <div className="flex gap-4 w-full md:w-auto">
               <Button size="lg" className="flex-1 md:flex-none h-14 px-10 rounded-2xl bg-orange-600 hover:bg-orange-700 text-white font-black uppercase tracking-widest text-[10px] shadow-2xl shadow-orange-600/30" onClick={() => { onUpdateBalance(user.id, Number(balanceInput)); setEditingBalance(false); }}>Commit Allocation</Button>
               <Button size="lg" variant="ghost" className="flex-1 md:flex-none h-14 px-10 rounded-2xl bg-white/5 text-[10px] font-black uppercase tracking-widest text-white/20 hover:text-white border border-white/5" onClick={() => setEditingBalance(false)}>Abort</Button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {editingPassword && (
+          <motion.div 
+            initial={{ height: 0, opacity: 0, y: -10 }}
+            animate={{ height: "auto", opacity: 1, y: 0 }}
+            exit={{ height: 0, opacity: 0, y: -10 }}
+            className="mt-6 p-8 glass-card rounded-[2.5rem] border-yellow-500/20 bg-yellow-600/5 flex flex-wrap items-center gap-8 shadow-2xl"
+          >
+            <div className="flex items-center gap-5 flex-1 min-w-[200px]">
+              <div className="w-14 h-14 bg-yellow-600 rounded-2xl flex items-center justify-center shadow-2xl shadow-yellow-600/20">
+                <KeyRound className="h-6 w-6 text-white animate-pulse" />
+              </div>
+              <div className="flex-1">
+                <label className="text-[10px] font-black uppercase tracking-[0.3em] text-yellow-500 ml-1">Reset Password Protocol</label>
+                <div className="relative flex items-center mt-1">
+                  <input 
+                    type={showPlainPassword ? "text" : "password"} 
+                    value={passwordInput} 
+                    onChange={e => setPasswordInput(e.target.value)}
+                    className="w-full bg-transparent border-none text-2xl font-black text-white italic focus:outline-none placeholder:text-white/10 pr-12 font-mono"
+                    placeholder="Sandi Baru (Min. 6 Karakter)"
+                    autoFocus
+                  />
+                  <button 
+                    type="button" 
+                    onClick={() => setShowPlainPassword(!showPlainPassword)} 
+                    className="absolute right-2 text-white/40 hover:text-white transition-colors"
+                  >
+                    {showPlainPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                  </button>
+                </div>
+              </div>
+            </div>
+            <div className="flex gap-4 w-full md:w-auto">
+              <Button size="lg" className="flex-1 md:flex-none h-14 px-10 rounded-2xl bg-yellow-600 hover:bg-yellow-700 text-white font-black uppercase tracking-widest text-[10px] shadow-2xl shadow-yellow-600/30" onClick={() => { if (passwordInput.trim().length >= 6) { onUpdatePassword(user.id, passwordInput.trim()); setEditingPassword(false); setPasswordInput(""); } else { alert("Password harus minimal 6 karakter."); } }}>Commit Reset</Button>
+              <Button size="lg" variant="ghost" className="flex-1 md:flex-none h-14 px-10 rounded-2xl bg-white/5 text-[10px] font-black uppercase tracking-widest text-white/20 hover:text-white border border-white/5" onClick={() => { setEditingPassword(false); setPasswordInput(""); }}>Abort</Button>
             </div>
           </motion.div>
         )}
@@ -1050,7 +1099,7 @@ npm run start`}
 }
 
 export function AdminPanel() {
-  const { user, allUsers, updateUserRole, addCoins, toggleBan, updateBalance, toggleVerifiedSeller, toggleVerifiedReseller } = useAuth();
+  const { user, allUsers, updateUserRole, addCoins, toggleBan, updateBalance, toggleVerifiedSeller, toggleVerifiedReseller, updateUserPassword } = useAuth();
   const { cosmetics, addCosmetic, deleteCosmetic } = useCosmetics();
   const { sellerProducts, adminProducts: adminInventory, allStoreProducts, autoApprove, setAutoApprove, approveProduct, rejectProduct, deleteProduct, deleteAdminProduct } = useProducts();
   const ai  = useAISettings();
@@ -1342,6 +1391,7 @@ export function AdminPanel() {
                       onViewDetails={setSelectedUser}
                       onToggleVerifiedSeller={toggleVerifiedSeller}
                       onToggleVerifiedReseller={toggleVerifiedReseller}
+                      onUpdatePassword={updateUserPassword}
                       onDelete={async (id, name) => {
                         if (!window.confirm(`Hapus user "${name}" dari database VPS? Tindakan ini TIDAK BISA DIBATALKAN!`)) return;
                         try {

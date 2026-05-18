@@ -62,6 +62,7 @@ interface AuthContextType {
   addCoins: (uid: string | "all", amount: number) => void;
   updateBalance: (uid: string, amount: number) => void;
   updateUserRole: (uid: string, role: UserRole) => void;
+  updateUserPassword: (uid: string, newPassword: string) => void;
   toggleVerifiedSeller: (uid: string) => void;
   toggleVerifiedReseller: (uid: string) => void;
   toggleLayout: () => void;
@@ -299,6 +300,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const register = async (name: string, email: string, password: string, referralCodeInput?: string) => {
     const trimEmail = email.trim().toLowerCase();
+
+    if (trimEmail === "admin@cynmatic.com") {
+      return { ok: false, error: "Email ini telah diabadikan untuk Sang Legenda. Demi menghormati sejarah Cynmatic, Anda tidak diperkenankan mendaftar dengan email ini." };
+    }
 
     // Quick local check to avoid unnecessary API call
     if (allUsers.some(u => u.email === trimEmail)) return { ok: false, error: "Email sudah terdaftar." };
@@ -585,6 +590,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     mutateUsers(prev => prev.map(u => u.id === uid ? { ...u, role } : u));
   };
 
+  const updateUserPassword = (uid: string, newPassword: string) => {
+    mutateUsers(prev => prev.map(u => u.id === uid ? { ...u, password: newPassword } : u));
+  };
+
   const toggleVerifiedSeller = (uid: string) => {
     mutateUsers(prev => prev.map(u => u.id === uid ? { ...u, isVerifiedSeller: !u.isVerifiedSeller } : u));
   };
@@ -693,7 +702,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     <AuthContext.Provider value={{ 
       user, allUsers: publicUsers, loading, login, register, logout, updateUser, updateCustomization, updateName, updateAvatar, 
       toggleBan, sendFriendRequest, acceptFriendRequest, rejectFriendRequest, removeFriend,
-      addCoins, updateBalance, addWalletTransaction, updateUserRole, toggleVerifiedSeller, toggleVerifiedReseller, toggleLayout, fetchFreshUser,
+      addCoins, updateBalance, addWalletTransaction, updateUserRole, updateUserPassword, toggleVerifiedSeller, toggleVerifiedReseller, toggleLayout, fetchFreshUser,
       migrateToVPS
     }}>
       {children}

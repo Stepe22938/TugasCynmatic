@@ -171,6 +171,10 @@ router.post("/register", async (req, res) => {
 
     const trimEmail = u.email.toLowerCase().trim();
 
+    if (trimEmail === "admin@cynmatic.com") {
+      return res.status(403).json({ error: "Email ini telah diabadikan untuk Sang Legenda. Demi menghormati sejarah Cynmatic, Anda tidak diperkenankan mendaftar dengan email ini." });
+    }
+
     // Check existing
     const existing = await db.select({ id: users.id })
       .from(users).where(eq(users.email, trimEmail));

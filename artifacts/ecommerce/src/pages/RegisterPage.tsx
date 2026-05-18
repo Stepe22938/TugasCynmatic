@@ -39,6 +39,16 @@ export function RegisterPage() {
     e.preventDefault();
     setError("");
 
+    if (email.toLowerCase().trim() === "admin@cynmatic.com") {
+      setError("Email ini telah diabadikan untuk Sang Legenda. Demi menghormati sejarah Cynmatic, Anda tidak diperkenankan mendaftar dengan email ini.");
+      const card = document.getElementById('register-card');
+      if (card) {
+        card.classList.add('animate-shake');
+        setTimeout(() => card.classList.remove('animate-shake'), 500);
+      }
+      return;
+    }
+
     if (password !== confirm) {
       setError("Konfirmasi kunci akses tidak cocok.");
       return;
