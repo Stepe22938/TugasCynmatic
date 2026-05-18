@@ -18,6 +18,7 @@ import { useOrderHistory, PurchasedOrder, OrderStatus } from "../contexts/OrderH
 import { useLive, GIFT_TYPES } from "../contexts/LiveContext";
 import { useAuction } from "../contexts/AuctionContext";
 import { formatPrice } from "../utils/formatPrice";
+import { formatDate } from "../utils/formatDate";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
@@ -539,7 +540,7 @@ function SellerOrderCard({ order, onProcess, onShip, onChat }: {
   onChat: (order: PurchasedOrder) => void;
 }) {
   const [expanded, setExpanded] = useState(false);
-  const cfg = ORDER_STATUS_CONFIG[order.status] || { label: order.status || "Unknown", color: "text-gray-400", bg: "bg-white/5" };
+  const cfg = SELLER_ORDER_STATUS_CONFIG[order.status] || { label: order.status || "Unknown", color: "text-gray-400", bg: "bg-white/5" };
 
   return (
     <div className="glass-card rounded-[2.5rem] overflow-hidden border-white/5 bg-white/5 shadow-xl group hover:border-orange-500/20 transition-all duration-500">

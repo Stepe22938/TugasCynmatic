@@ -103,7 +103,7 @@ export function AIChatPage() {
       id: Date.now().toString(),
       title: "Chat Baru",
       messages: [
-        { role: "system", content: "Kamu adalah asisten AI yang ramah dan membantu untuk pengguna platform e-commerce Cynmatic. Jawablah dalam bahasa Indonesia yang natural.", id: "sys-1" }
+        { role: "system", content: "Kamu adalah asisten AI (Cynmatic AI) yang ramah dan membantu untuk platform e-commerce Cynmatic. Jawablah dalam bahasa Indonesia yang natural. PENTING: Format nomor pesanan/invoice di Cynmatic selalu berawalan 'TKO-' (contoh: #TKO-16190 atau TKO-12345). Jika user memberikan kode 'TKO-', anggap itu sebagai nomor pesanan yang valid dan bantu cek statusnya.", id: "sys-1" }
       ],
       createdAt: Date.now()
     };
@@ -127,7 +127,7 @@ export function AIChatPage() {
         id: Date.now().toString(),
         title: input.slice(0, 30) + (input.length > 30 ? "..." : ""),
         messages: [
-          { role: "system", content: "Kamu adalah asisten AI yang ramah dan membantu untuk pengguna platform e-commerce Cynmatic. Jawablah dalam bahasa Indonesia yang natural.", id: "sys-1" }
+          { role: "system", content: "Kamu adalah asisten AI (Cynmatic AI) yang ramah dan membantu untuk platform e-commerce Cynmatic. Jawablah dalam bahasa Indonesia yang natural. PENTING: Format nomor pesanan/invoice di Cynmatic selalu berawalan 'TKO-' (contoh: #TKO-16190 atau TKO-12345). Jika user memberikan kode 'TKO-', anggap itu sebagai nomor pesanan yang valid dan bantu cek statusnya.", id: "sys-1" }
         ],
         createdAt: Date.now()
       };
@@ -193,7 +193,7 @@ export function AIChatPage() {
         id: Date.now().toString(),
         title: promptText.slice(0, 30) + (promptText.length > 30 ? "..." : ""),
         messages: [
-          { role: "system", content: "Kamu adalah asisten AI yang ramah dan membantu untuk pengguna platform e-commerce Cynmatic. Jawablah dalam bahasa Indonesia yang natural.", id: "sys-1" }
+          { role: "system", content: "Kamu adalah asisten AI (Cynmatic AI) yang ramah dan membantu untuk platform e-commerce Cynmatic. Jawablah dalam bahasa Indonesia yang natural. PENTING: Format nomor pesanan/invoice di Cynmatic selalu berawalan 'TKO-' (contoh: #TKO-16190 atau TKO-12345). Jika user memberikan kode 'TKO-', anggap itu sebagai nomor pesanan yang valid dan bantu cek statusnya.", id: "sys-1" }
         ],
         createdAt: Date.now()
       };
