@@ -52,13 +52,27 @@ export function AuctionProvider({ children }: { children: React.ReactNode }) {
     const init = async () => {
       const vpsAuctions = await fetchAllAuctionsFromVPS();
       if (vpsAuctions) {
-        setAuctions(vpsAuctions.map((a: any) => ({
-          ...a,
-          startPrice: Number(a.startPrice),
-          currentPrice: Number(a.currentPrice),
-          minStep: Number(a.minStep),
-          bids: a.bids || []
-        })));
+        setAuctions(vpsAuctions.map((a: any) => {
+          let parsedBids = [];
+          if (a.bids) {
+            if (typeof a.bids === "string") {
+              try {
+                parsedBids = JSON.parse(a.bids);
+              } catch (e) {
+                parsedBids = [];
+              }
+            } else if (Array.isArray(a.bids)) {
+              parsedBids = a.bids;
+            }
+          }
+          return {
+            ...a,
+            startPrice: Number(a.startPrice),
+            currentPrice: Number(a.currentPrice),
+            minStep: Number(a.minStep),
+            bids: parsedBids
+          };
+        }));
       }
     };
     init();

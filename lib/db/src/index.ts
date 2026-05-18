@@ -23,11 +23,35 @@ export const pool = mysql.createPool({
   keepAliveInitialDelay: 0,
 });
 
-// Test connection on startup and log result
+// Test connection on startup and log result & run self-healing schema checks
 pool.getConnection()
-  .then(conn => {
+  .then(async (conn) => {
     console.log("✅ MariaDB Connected successfully!");
-    conn.release();
+    try {
+      console.log("📡 Running self-healing schema check on users table...");
+      
+      // Check & Add isSultan
+      const [hasIsSultan]: any = await conn.execute("SHOW COLUMNS FROM users LIKE 'isSultan'");
+      if (hasIsSultan.length === 0) {
+        console.log("🛠️  Column 'isSultan' is missing. Altering table...");
+        await conn.execute("ALTER TABLE users ADD COLUMN isSultan TINYINT(1) DEFAULT 0");
+        console.log("   → Column 'isSultan' added successfully!");
+      }
+
+      // Check & Add sultanExpiry
+      const [hasSultanExpiry]: any = await conn.execute("SHOW COLUMNS FROM users LIKE 'sultanExpiry'");
+      if (hasSultanExpiry.length === 0) {
+        console.log("🛠️  Column 'sultanExpiry' is missing. Altering table...");
+        await conn.execute("ALTER TABLE users ADD COLUMN sultanExpiry TIMESTAMP NULL DEFAULT NULL");
+        console.log("   → Column 'sultanExpiry' added successfully!");
+      }
+
+      console.log("✅ Users table schema is fully verified & up to date.");
+    } catch (schemaErr: any) {
+      console.warn("⚠️  Self-healing schema migration check failed (non-blocking):", schemaErr.message);
+    } finally {
+      conn.release();
+    }
   })
   .catch(err => {
     console.error("❌ MariaDB Connection FAILED:", err.message);

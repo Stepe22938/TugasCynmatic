@@ -3,7 +3,8 @@
  * Halaman kurir — lihat pesanan yang siap dikirim, update status pengiriman.
  */
 import React, { useState, useMemo } from "react";
-import { Package, Truck, CheckCircle2, MapPin, User, Phone, Clock, ChevronDown, ChevronUp, MessageSquare, Send } from "lucide-react";
+import { Package, Truck, CheckCircle2, MapPin, User, Phone, Clock, ChevronDown, ChevronUp, MessageSquare, Send, X } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "../contexts/AuthContext";
 import { useOrderHistory, PurchasedOrder, OrderStatus } from "../contexts/OrderHistoryContext";
 import { formatPrice } from "../utils/formatPrice";

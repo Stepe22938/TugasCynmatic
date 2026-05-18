@@ -106,6 +106,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       balance: Number(rest.balance || 0),
       coins: Number(rest.coins || 0),
       points: Number(rest.points || 0),
+      isSultan: rest.isSultan === true || rest.isSultan === 1 || String(rest.isSultan) === "1" || String(rest.isSultan) === "true",
+      isMyCryptoMember: rest.isMyCryptoMember === true || rest.isMyCryptoMember === 1 || String(rest.isMyCryptoMember) === "1" || String(rest.isMyCryptoMember) === "true",
       friends: ensureArray(rest.friends),
       friendRequests: ensureArray(rest.friendRequests),
       sentRequests: ensureArray(rest.sentRequests),

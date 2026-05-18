@@ -27,6 +27,20 @@ export function AuctionPage() {
   const [selectedAuction, setSelectedAuction] = useState<Auction | null>(null);
   const [bidAmount, setBidAmount] = useState("");
 
+  const selectedBids = selectedAuction
+    ? (Array.isArray(selectedAuction.bids)
+      ? selectedAuction.bids
+      : (typeof selectedAuction.bids === "string"
+        ? (() => {
+            try {
+              return JSON.parse(selectedAuction.bids);
+            } catch (e) {
+              return [];
+            }
+          })()
+        : []))
+    : [];
+
   const filtered = auctions.filter(a => {
     const matchesSearch = a.title.toLowerCase().includes(search.toLowerCase());
     const matchesFilter = filter === "all" || a.status === filter;
@@ -168,7 +182,7 @@ export function AuctionPage() {
                  <div className="bg-muted p-3 rounded-2xl border border-border">
                     <Users className="h-4 w-4 text-amber-600 mb-1" />
                     <p className="text-[10px] text-gray-500 font-bold">PENAMBAL</p>
-                    <p className="text-sm font-black text-card-foreground">{selectedAuction.bids.length} Bid</p>
+                    <p className="text-sm font-black text-card-foreground">{selectedBids.length} Bid</p>
                  </div>
               </div>
 
@@ -208,10 +222,10 @@ export function AuctionPage() {
                   <History className="h-4 w-4 text-amber-600" /> Riwayat Bid
                 </h3>
                 <div className="max-h-40 overflow-y-auto space-y-2 pr-2 custom-scrollbar">
-                  {selectedAuction.bids.length === 0 ? (
+                  {selectedBids.length === 0 ? (
                     <p className="text-xs text-center text-muted-foreground py-4 italic">Belum ada penawaran.</p>
                   ) : (
-                    selectedAuction.bids.map((bid, i) => (
+                    selectedBids.map((bid, i) => (
                       <div key={i} className={`flex justify-between items-center p-3 rounded-xl border ${i === 0 ? "bg-amber-50 border-amber-200" : "bg-muted border-border"}`}>
                          <div className="flex items-center gap-2">
                             <div className="w-6 h-6 bg-card rounded-full flex items-center justify-center text-[10px] font-bold border border-gray-200">

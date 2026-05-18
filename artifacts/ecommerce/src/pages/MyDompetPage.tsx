@@ -97,6 +97,49 @@ export function MyDompetPage() {
             </div>
           </div>
 
+          {/* Active Account Identity Card */}
+          <div className="glass-card p-4 rounded-[2rem] border-white/5 mb-6 flex items-center gap-4 relative overflow-hidden group shadow-lg">
+            {/* Ambient Background Glow */}
+            <div className="absolute -left-10 -top-10 w-24 h-24 bg-orange-500/10 blur-xl rounded-full" />
+            
+            {/* Avatar with Status Ring */}
+            <div className="relative flex-shrink-0">
+              <div className="w-12 h-12 rounded-full overflow-hidden border border-white/10 bg-slate-800">
+                <img 
+                  src={user.avatar || `https://api.dicebear.com/7.x/bottts/svg?seed=${user.id}`} 
+                  alt={user.name} 
+                  className="w-full h-full object-cover" 
+                />
+              </div>
+              <div className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-emerald-500 rounded-full border border-slate-950 flex items-center justify-center">
+                <div className="w-1.5 h-1.5 bg-white rounded-full animate-pulse" />
+              </div>
+            </div>
+
+            {/* Profile Info */}
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2">
+                <p className="text-xs font-black tracking-tight text-white truncate">{user.name}</p>
+                <span className={`px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-wider ${
+                  user.role === 'admin' 
+                    ? 'bg-red-500/20 text-red-400 border border-red-500/30' 
+                    : user.role === 'seller'
+                      ? 'bg-purple-500/20 text-purple-400 border border-purple-500/30'
+                      : 'bg-orange-500/20 text-orange-400 border border-orange-500/30'
+                }`}>
+                  {user.role}
+                </span>
+              </div>
+              <p className="text-[10px] text-white/50 truncate mt-0.5">{user.email}</p>
+            </div>
+
+            {/* Session Tag */}
+            <div className="text-right flex-shrink-0">
+              <p className="text-[8px] font-black text-white/30 uppercase tracking-widest">Session ID</p>
+              <p className="text-[10px] font-mono font-bold text-orange-500 uppercase tracking-tighter mt-0.5">{user.id}</p>
+            </div>
+          </div>
+
           <motion.div 
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}

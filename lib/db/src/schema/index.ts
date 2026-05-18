@@ -37,6 +37,8 @@ export const users = mysqlTable("users", {
   sultanBadgeColor: varchar("sultanBadgeColor", { length: 50 }),
   sultanGlowEffect: boolean("sultanGlowEffect").default(false),
   sultanCustomTag: varchar("sultanCustomTag", { length: 100 }),
+  isSultan: boolean("isSultan").default(false),
+  sultanExpiry: timestamp("sultanExpiry"),
   // MyCrypto membership
   isMyCryptoMember: boolean("isMyCryptoMember").default(false),
   myCryptoExpiry: timestamp("myCryptoExpiry"),

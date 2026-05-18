@@ -32,6 +32,8 @@ router.get("/", async (req, res) => {
       sultanBadgeColor: users.sultanBadgeColor,
       sultanGlowEffect: users.sultanGlowEffect,
       sultanCustomTag: users.sultanCustomTag,
+      isSultan: users.isSultan,
+      sultanExpiry: users.sultanExpiry,
       isMyCryptoMember: users.isMyCryptoMember,
       myCryptoExpiry: users.myCryptoExpiry,
       bio: users.bio,
@@ -104,6 +106,8 @@ router.post("/sync", async (req, res) => {
       sultanBadgeColor: u.sultanBadgeColor,
       sultanGlowEffect: !!u.sultanGlowEffect,
       sultanCustomTag: u.sultanCustomTag,
+      isSultan: !!u.isSultan,
+      sultanExpiry: u.sultanExpiry ? new Date(u.sultanExpiry) : null,
       isMyCryptoMember: !!u.isMyCryptoMember,
       myCryptoExpiry: u.myCryptoExpiry ? new Date(u.myCryptoExpiry) : null,
       bio: u.bio,
@@ -255,7 +259,7 @@ router.post("/reset-all", async (req, res) => {
         bio: "Administrator Cynmatic", theme: "from-yellow-600 to-amber-900",
         youtubeId: null, useAnimation: false, profileLayout: "premium" as const, avatar: null,
         isMyCryptoMember: false, myCryptoExpiry: null,
-        sultanBadgeColor: null, sultanGlowEffect: false, sultanCustomTag: null, isSultan: false,
+        sultanBadgeColor: null, sultanGlowEffect: false, sultanCustomTag: null, isSultan: false, sultanExpiry: null,
       },
       {
         id: "seller-001", name: "Cynmatic Seller", email: "seller@cynmatic.com",
@@ -269,7 +273,7 @@ router.post("/reset-all", async (req, res) => {
         bio: "Official Cynmatic Seller", theme: "from-green-600 to-teal-900",
         youtubeId: null, useAnimation: false, profileLayout: "premium" as const, avatar: null,
         isMyCryptoMember: false, myCryptoExpiry: null,
-        sultanBadgeColor: null, sultanGlowEffect: false, sultanCustomTag: null, isSultan: false,
+        sultanBadgeColor: null, sultanGlowEffect: false, sultanCustomTag: null, isSultan: false, sultanExpiry: null,
       },
       {
         id: "kurir-001", name: "Cynmatic Kurir", email: "kurir@cynmatic.com",
@@ -283,7 +287,7 @@ router.post("/reset-all", async (req, res) => {
         bio: "Kurir resmi Cynmatic", theme: "from-blue-600 to-indigo-900",
         youtubeId: null, useAnimation: false, profileLayout: "premium" as const, avatar: null,
         isMyCryptoMember: false, myCryptoExpiry: null,
-        sultanBadgeColor: null, sultanGlowEffect: false, sultanCustomTag: null, isSultan: false,
+        sultanBadgeColor: null, sultanGlowEffect: false, sultanCustomTag: null, isSultan: false, sultanExpiry: null,
       },
       {
         id: "user-001", name: "Cynmatic User", email: "user@cynmatic.com",
@@ -297,7 +301,7 @@ router.post("/reset-all", async (req, res) => {
         bio: "Member Cynmatic", theme: "from-violet-600 to-indigo-900",
         youtubeId: null, useAnimation: false, profileLayout: "premium" as const, avatar: null,
         isMyCryptoMember: false, myCryptoExpiry: null,
-        sultanBadgeColor: null, sultanGlowEffect: false, sultanCustomTag: null, isSultan: false,
+        sultanBadgeColor: null, sultanGlowEffect: false, sultanCustomTag: null, isSultan: false, sultanExpiry: null,
       },
     ];
 
