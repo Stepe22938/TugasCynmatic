@@ -1,0 +1,50 @@
+Created At: 2026-05-23T03:56:07Z
+Completed At: 2026-05-23T03:56:48Z
+
+				The command failed with exit code: 1
+				Output:
+				npm warn Unknown project config "auto-install-peers". This will stop working in the next major version of npm. See `npm help npmrc` for supported config options.
+npm warn Unknown project config "strict-peer-dependencies". This will stop working in the next major version of npm. See `npm help npmrc` for supported config options.
+
+> workspace@0.0.0 typecheck
+> pnpm run typecheck:libs && pnpm -r --filter "./artifacts/**" --filter "./scripts" --if-present run typecheck
+
+$ tsc --build
+Scope: 4 of 9 workspace projects
+artifacts/api-server typecheck$ tsc -p tsconfig.json --noEmit
+artifacts/ecommerce typecheck$ tsc -p tsconfig.json --noEmit
+scripts typecheck$ tsc -p tsconfig.json --noEmit
+artifacts/mockup-sandbox typecheck$ tsc -p tsconfig.json --noEmit
+scripts typecheck: Done
+artifacts/ecommerce typecheck: src/pages/ProfilePage.tsx(364,6): error TS17008: JSX element 'div' has no corresponding closing tag.
+artifacts/ecommerce typecheck: src/pages/ProfilePage.tsx(545,10): error TS17008: JSX element 'AnimatePresence' has no corresponding closing tag.
+artifacts/ecommerce typecheck: src/pages/ProfilePage.tsx(698,21): error TS2657: JSX expressions must have one parent element.
+artifacts/ecommerce typecheck: src/pages/ProfilePage.tsx(701,60): error TS1005: '...' expected.
+artifacts/ecommerce typecheck: src/pages/ProfilePage.tsx(702,15): error TS1003: Identifier expected.
+artifacts/ecommerce typecheck: src/pages/ProfilePage.tsx(1223,39): error TS17002: Expected corresponding JSX closing tag for 'motion.div'.
+artifacts/ecommerce typecheck: src/pages/ProfilePage.tsx(1224,37): error TS17002: Expected corresponding JSX closing tag for 'div'.
+artifacts/ecommerce typecheck: src/pages/ProfilePage.tsx(1225,33): error TS1005: ')' expected.
+artifacts/ecommerce typecheck: src/pages/ProfilePage.tsx(1226,32): error TS1381: Unexpected token. Did you mean `{'}'}` or `&rbrace;`?
+artifacts/ecommerce typecheck: src/pages/
+<truncated 158 bytes>
+error TS1005: ')' expected.
+artifacts/ecommerce typecheck: src/pages/ProfilePage.tsx(1237,15): error TS17002: Expected corresponding JSX closing tag for 'div'.
+artifacts/ecommerce typecheck: src/pages/ProfilePage.tsx(1238,12): error TS1381: Unexpected token. Did you mean `{'}'}` or `&rbrace;`?
+artifacts/ecommerce typecheck: src/pages/ProfilePage.tsx(1239,11): error TS17002: Expected corresponding JSX closing tag for 'div'.
+artifacts/ecommerce typecheck: src/pages/ProfilePage.tsx(1252,9): error TS17002: Expected corresponding JSX closing tag for 'motion.div'.
+artifacts/ecommerce typecheck: src/pages/ProfilePage.tsx(1254,7): error TS1005: ')' expected.
+artifacts/ecommerce typecheck: src/pages/ProfilePage.tsx(1287,1): error TS1381: Unexpected token. Did you mean `{'}'}` or `&rbrace;`?
+artifacts/ecommerce typecheck: src/pages/ProfilePage.tsx(1289,46): error TS1005: '}' expected.
+artifacts/ecommerce typecheck: src/pages/ProfilePage.tsx(1289,85): error TS1381: Unexpected token. Did you mean `{'}'}` or `&rbrace;`?
+artifacts/ecommerce typecheck: src/pages/ProfilePage.tsx(1290,3): error TS1109: Expression expected.
+artifacts/ecommerce typecheck: src/pages/ProfilePage.tsx(1318,1): error TS1381: Unexpected token. Did you mean `{'}'}` or `&rbrace;`?
+artifacts/ecommerce typecheck: src/pages/ProfilePage.tsx(1320,45): error TS1005: '}' expected.
+artifacts/ecommerce typecheck: src/pages/ProfilePage.tsx(1320,69): error TS1381: Unexpected token. Did you mean `{'}'}` or `&rbrace;`?
+artifacts/ecommerce typecheck: src/pages/ProfilePage.tsx(1321,3): error TS1109: Expression expected.
+artifacts/ecommerce typecheck: src/pages/ProfilePage.tsx(1327,1): error TS1381: Unexpected token. Did you mean `{'}'}` or `&rbrace;`?
+artifacts/ecommerce typecheck: src/pages/ProfilePage.tsx(1329,1): error TS1005: '</' expected.
+artifacts/ecommerce typecheck: Failed
+C:\Users\Zaidan\Desktop\TESTCLAUDE\TugasCynmatic\artifacts\ecommerce:
+[ERR_PNPM_RECURSIVE_RUN_FIRST_FAIL] @workspace/ecommerce@0.0.0 typecheck: `tsc -p tsconfig.json --noEmit`
+Exit status 2
+

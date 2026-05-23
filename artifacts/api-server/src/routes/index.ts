@@ -10,6 +10,9 @@ import pollsRouter from "./polls";
 import ticketsRouter from "./tickets";
 import vouchersRouter from "./vouchers";
 import redeemCodesRouter from "./redeemCodes";
+import androidPackageRouter from "./androidPackage";
+import nftsRouter from "./nfts";
+import messagesRouter from "./messages";
 
 const router: IRouter = Router();
 
@@ -24,5 +27,8 @@ router.use("/polls", pollsRouter);
 router.use("/tickets", ticketsRouter);
 router.use("/vouchers", vouchersRouter);
 router.use("/redeem-codes", redeemCodesRouter);
+router.use("/android-packages", androidPackageRouter);
+router.use("/nfts", nftsRouter);
+router.use("/messages", messagesRouter);
 
 export default router;

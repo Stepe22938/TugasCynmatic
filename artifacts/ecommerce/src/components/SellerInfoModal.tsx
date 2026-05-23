@@ -100,7 +100,7 @@ export function SellerInfoModal({ seller, onClose }: SellerInfoModalProps) {
               </div>
               <div>
                 <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest leading-none">Bergabung Sejak</p>
-                <p className="font-bold">{new Date(seller.createdAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
+                <p className="font-bold">{new Date(seller.createdAt || Date.now()).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
               </div>
             </div>
 

@@ -1,20 +1,10 @@
 import { useMemo } from "react";
 import { useProducts } from "../contexts/ProductsContext";
-
-const ALL_REVIEWS_KEY = "toko_all_reviews";
-
-interface Review {
-  productId: number;
-  rating: number;
-}
-
-function loadAllReviews(): Review[] {
-  try { return JSON.parse(localStorage.getItem(ALL_REVIEWS_KEY) ?? "[]"); }
-  catch { return []; }
-}
+import { useOrderHistory } from "../contexts/OrderHistoryContext";
 
 export function useSellerStats(sellerId: string) {
   const { allStoreProducts } = useProducts();
+  const { allReviews } = useOrderHistory();
 
   return useMemo(() => {
     // 1. Get all products from this seller
@@ -22,7 +12,6 @@ export function useSellerStats(sellerId: string) {
     const sellerProductIds = new Set(sellerProducts.map(p => p.id));
 
     // 2. Get all reviews for these products
-    const allReviews = loadAllReviews();
     const sellerReviews = allReviews.filter(r => sellerProductIds.has(r.productId));
 
     // 3. Calculate average rating
@@ -35,5 +24,5 @@ export function useSellerStats(sellerId: string) {
       totalProducts: sellerProducts.length,
       products: sellerProducts
     };
-  }, [sellerId, allStoreProducts]);
+  }, [sellerId, allStoreProducts, allReviews]);
 }

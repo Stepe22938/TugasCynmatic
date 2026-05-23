@@ -1,6 +1,7 @@
 import express, { type Express } from "express";
 import cors from "cors";
 import pinoHttp from "pino-http";
+import path from "node:path";
 import router from "./routes";
 import aiRouter from "./routes/ai";
 import { logger } from "./lib/logger";
@@ -29,6 +30,9 @@ app.use(cors({
 
 app.use(express.json({ limit: "50mb" }));
 app.use(express.urlencoded({ extended: true, limit: "50mb" }));
+
+// ─── SERVE UPLOADS STATICALLY ──────────────────────────────────────────────
+app.use("/uploads", express.static(path.resolve(process.cwd(), "uploads")));
 
 // ─── AI ROUTES (public, no auth) ──────────────────────────────────────────
 app.use("/api", aiRouter);

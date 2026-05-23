@@ -1,0 +1,58 @@
+Created At: 2026-05-23T03:56:54Z
+Completed At: 2026-05-23T03:56:54Z
+File Path: `file:///c:/Users/Zaidan/Desktop/TESTCLAUDE/TugasCynmatic/artifacts/ecommerce/src/pages/ProfilePage.tsx`
+Total Lines: 1329
+Total Bytes: 83856
+Showing lines 1180 to 1329
+The following code has been modified to include a line number before every line, in the format: <line_number>: <original_line>. Please note that any changes targeting the original code should remove the line number, colon, and leading space.
+1180:                               {/* Slot screen */}
+1181:                               <div className="relative rounded-2xl h-44 overflow-hidden border border-white/10 bg-slate-950 flex flex-col items-center justify-center max-w-md mx-auto shadow-inner">
+1182:                                 <div className="absolute inset-0 bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.15)_50%)] bg-[size:100%_3px] pointer-events-none z-20" />
+1183:                                 <div className="absolute inset-0 shadow-[inset_0_0_40px_rgba(0,0,0,0.9)] pointer-events-none z-20" />
+1184: 
+1185:                                 {rollingGacha ? (
+1186:                                   <div className="absolute inset-0 flex flex-col items-center justify-center p-4 text-center space-y-3 bg-purple-950/10">
+1187:                                     <motion.div
+1188:                                       animate={{ scale: [1, 1.03, 1], rotate: [0, 1, -1, 0] }}
+1189:                                       transition={{ repeat: Infinity, duration: 0.4 }}
+1190:                                       className="w-20 h-20 rounded-xl overflow-hidden border border-purple-500/20 shadow-[0_0_20px_rgba(168,85,247,0.25)] bg-slate-900"
+1191:                                     >
+1192:                                       <img
+1193:                                         src={simulationImg}
+1194:                                         alt="Quantum Roll"
+1195:                                         className="w-full h-full object-cover brightn
+<truncated 6037 bytes>
+/[0.03] shadow-inner transition-transform duration-500 ${isSultanCard ? 'rotate-[-8deg] group-hover:rotate-0' : 'group-hover:rotate-6'}`}>
+1298:           <Icon className={`h-6.5 w-6.5 ${color}`} />
+1299:         </div>
+1300:         <div className="flex-1 min-w-0">
+1301:           <p className={`text-sm font-black tracking-tight uppercase italic transition-colors duration-300 ${isSultanCard ? 'text-[#ff5c00] group-hover:text-orange-400' : 'text-white group-hover:text-orange-500'}`}>
+1302:             {title}
+1303:           </p>
+1304:           <p className="text-[9px] font-black text-white/30 uppercase tracking-[0.15em] mt-0.5 font-sans">
+1305:             {sub}
+1306:           </p>
+1307:           {liveValue && (
+1308:             <p className="text-[10px] font-bold font-mono uppercase tracking-wider mt-1 flex items-center gap-1.5">
+1309:               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping inline-block" />
+1310:               <span className="text-white/70">{liveValue}</span>
+1311:             </p>
+1312:           )}
+1313:         </div>
+1314:         <span className="text-xl font-light text-white/20 group-hover:text-white group-hover:translate-x-1.5 transition-all duration-300 pr-1 select-none">→</span>
+1315:       </motion.div>
+1316:     </Link>
+1317:   );
+1318: }
+1319: 
+1320: function SystemRow({ label, value }: { label: string; value: string }) {
+1321:   return (
+1322:     <div className="flex items-center justify-between px-10 py-5 group hover:bg-white/5 transition-colors">
+1323:       <span className="text-[9px] font-black uppercase tracking-widest text-white/20">{label}</span>
+1324:       <span className="text-[11px] font-mono font-bold text-white/60 group-hover:text-white transition-colors">{value}</span>
+1325:     </div>
+1326:   );
+1327: }
+1328: 
+1329: 
+The above content does NOT show the entire file contents. If you need to view any lines of the file which were not shown to complete your task, call this tool again to view those lines.

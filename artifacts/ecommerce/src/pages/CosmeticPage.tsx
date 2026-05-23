@@ -21,12 +21,12 @@ export function CosmeticPage() {
   const [tab, setTab] = useState<"owned" | "shop">("owned");
   const { toast } = useToast();
 
-  const isOwned = (id: string) => user?.ownedCosmetics.includes(id);
-  const isEquipped = (id: string) => user?.equippedCosmetics.includes(id);
+  const isOwned = (id: string) => (user?.ownedCosmetics ?? []).includes(id);
+  const isEquipped = (id: string) => (user?.equippedCosmetics ?? []).includes(id);
 
   const toggleEquip = (cosmetic: Cosmetic) => {
     if (!user) return;
-    let newEquipped = [...user.equippedCosmetics];
+    let newEquipped = [...(user.equippedCosmetics ?? [])];
     
     if (isEquipped(cosmetic.id)) {
       newEquipped = newEquipped.filter(id => id !== cosmetic.id);
@@ -45,16 +45,16 @@ export function CosmeticPage() {
 
   const buyCosmetic = (cosmetic: Cosmetic) => {
     if (!user) return;
-    if (user.balance < cosmetic.price) {
+    if ((user.balance || 0) < cosmetic.price) {
       toast({ title: "Saldo Tidak Cukup", variant: "destructive" });
       return;
     }
     
     updateUser({ 
       ...user, 
-      balance: user.balance - cosmetic.price,
-      ownedCosmetics: [...user.ownedCosmetics, cosmetic.id],
-      purchaseHistory: [...user.purchaseHistory, { itemName: `Cosmetic: ${cosmetic.name}`, price: cosmetic.price, timestamp: new Date().toISOString() }]
+      balance: (user.balance || 0) - cosmetic.price,
+      ownedCosmetics: [...(user.ownedCosmetics ?? []), cosmetic.id],
+      purchaseHistory: [...(user.purchaseHistory ?? []), { itemName: `Cosmetic: ${cosmetic.name}`, price: cosmetic.price, timestamp: new Date().toISOString() }]
     });
     toast({ title: "Pembelian Berhasil!", description: `${cosmetic.name} sekarang milikmu.` });
   };
@@ -79,7 +79,7 @@ export function CosmeticPage() {
               <Palette className="h-8 w-8" />
             </div>
             <div>
-              <h1 className="text-4xl font-black text-white tracking-tighter">Cynmatic Cosmetics</h1>
+              <h1 className="text-4xl font-black text-white tracking-tighter">TokoArthur Cosmetics</h1>
               <p className="text-indigo-100 font-medium">Kustomisasi identitasmu agar terlihat premium.</p>
             </div>
           </div>

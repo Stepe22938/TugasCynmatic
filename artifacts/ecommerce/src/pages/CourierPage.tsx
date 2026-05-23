@@ -18,6 +18,7 @@ function formatDate(iso: string) {
 const STATUS_CONFIG: Record<OrderStatus, { label: string; color: string; bg: string }> = {
   placed:      { label: "Pesanan Masuk",       color: "text-blue-700",   bg: "bg-blue-100" },
   processing:  { label: "Diproses Penjual",    color: "text-amber-700",  bg: "bg-amber-100" },
+  pending_po:  { label: "Delayed Protocol",    color: "text-cyan-700",   bg: "bg-cyan-100" },
   shipped:     { label: "Siap Diambil Kurir",  color: "text-orange-700", bg: "bg-orange-100" },
   in_delivery: { label: "Dalam Pengiriman",    color: "text-purple-700", bg: "bg-purple-100" },
   delivered:   { label: "Terkirim",            color: "text-green-700",  bg: "bg-green-100" },

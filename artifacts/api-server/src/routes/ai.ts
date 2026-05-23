@@ -15,6 +15,7 @@ router.post("/ai/check-product", async (req, res) => {
     description?: string;
     price?: number;
     category?: string;
+    provider?: string;
     apiKey?: string;
     model?: string;
   };

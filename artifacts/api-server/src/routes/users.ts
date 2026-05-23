@@ -41,6 +41,11 @@ router.get("/", async (req, res) => {
       youtubeId: users.youtubeId,
       useAnimation: users.useAnimation,
       profileLayout: users.profileLayout,
+      myCoinNft: users.myCoinNft,
+      balanceBtc: users.balanceBtc,
+      balanceEth: users.balanceEth,
+      balanceUsdt: users.balanceUsdt,
+      wishlist: users.wishlist,
       createdAt: users.createdAt,
     }).from(users);
     res.json(allUsers);
@@ -103,6 +108,7 @@ router.post("/sync", async (req, res) => {
       ownedCosmetics: ensureJson(u.ownedCosmetics),
       equippedCosmetics: ensureJson(u.equippedCosmetics),
       walletTransactions: ensureJson(u.walletTransactions),
+      wishlist: ensureJson(u.wishlist),
       sultanBadgeColor: u.sultanBadgeColor,
       sultanGlowEffect: !!u.sultanGlowEffect,
       sultanCustomTag: u.sultanCustomTag,
@@ -116,6 +122,10 @@ router.post("/sync", async (req, res) => {
       useAnimation: !!u.useAnimation,
       profileLayout: u.profileLayout || "premium",
       avatar: u.avatar,
+      myCoinNft: String(u.myCoinNft ?? "0"),
+      balanceBtc: String(u.balanceBtc ?? "1.42"),
+      balanceEth: String(u.balanceEth ?? "8.50"),
+      balanceUsdt: String(u.balanceUsdt ?? "500.00"),
     };
 
     await db.insert(users).values(payload).onDuplicateKeyUpdate({ set: payload });

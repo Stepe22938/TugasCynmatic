@@ -1,0 +1,57 @@
+Created At: 2026-05-23T03:53:26Z
+Completed At: 2026-05-23T03:53:26Z
+File Path: `file:///c:/Users/Zaidan/Desktop/TESTCLAUDE/TugasCynmatic/artifacts/ecommerce/src/pages/ProfilePage.tsx`
+Total Lines: 1512
+Total Bytes: 101093
+Showing lines 750 to 1150
+The following code has been modified to include a line number before every line, in the format: <line_number>: <original_line>. Please note that any changes targeting the original code should remove the line number, colon, and leading space.
+750: 
+751:                   {/* Tab Showcase Content */}
+752:                   <div className="p-8 lg:p-10 relative z-10 min-h-[400px]">
+753:                     {loadingNfts ? (
+754:                       <div className="flex flex-col items-center justify-center py-20 space-y-4">
+755:                         <div className="w-12 h-12 rounded-full border-4 border-t-purple-600 border-white/10 animate-spin" />
+756:                         <p className="text-[10px] font-black uppercase tracking-widest text-white/40 animate-pulse">Accessing TokoArthur NFT Node Ledger...</p>
+757:                       </div>
+758:                     ) : (
+759:                       <AnimatePresence mode="wait">
+760:                         {activeNftTab === "collection" && (
+761:                           <motion.div
+762:                             key="collection-tab"
+763:                             initial={{ opacity: 0, y: 10 }}
+764:                             animate={{ opacity: 1, y: 0 }}
+765:                             exit={{ opacity: 0, y: -10 }}
+766:                             className="space-y-6"
+767:                           >
+768:                             {nfts.filter(n => n.ownerId === user.id).length === 0 ? (
+769:                               <div className="border border-dashed border-white/10 rounded-[2.5rem] p-16 text-center flex flex-col items-center justify-center space-y-6 bg-white/[0.01]">
+770:                                 <div className="w-16 h-16 rounded-full bg-white/5 flex items-center justify
+<truncated 30690 bytes>
+            ).slice(0, 8).length === 0) ? (
+1125:                                   <p className="text-[10px] font-bold text-white/30 uppercase tracking-widest text-center py-6">
+1126:                                     No blockchain or transaction activities logged yet.
+1127:                                   </p>
+1128:                                 ) : (
+1129:                                   user.activityLog.filter((l: any) =>
+1130:                                     l.action?.toLowerCase().includes("nft") ||
+1131:                                     l.action?.toLowerCase().includes("crypto") ||
+1132:                                     l.action?.toLowerCase().includes("swap") ||
+1133:                                     l.action?.toLowerCase().includes("mcnft")
+1134:                                   ).slice(0, 8).map((log: any, idx: number) => (
+1135:                                     <div key={idx} className="flex justify-between items-center py-3.5 text-[10px] first:pt-0 font-mono">
+1136:                                       <span className="font-bold text-white/70 flex items-center gap-2">
+1137:                                         <div className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
+1138:                                         {log.action}
+1139:                                       </span>
+1140:                                       <span className="text-white/30">{formatTxDate(log.timestamp)}</span>
+1141:                                     </div>
+1142:                                   ))
+1143:                                 )}
+1144:                               </div>
+1145:                             </div>
+1146: 
+1147:                           </motion.div>
+1148:                         )}
+1149: 
+1150:                         {activeNftTab === "gacha" && (
+The above content does NOT show the entire file contents. If you need to view any lines of the file which were not shown to complete your task, call this tool again to view those lines.

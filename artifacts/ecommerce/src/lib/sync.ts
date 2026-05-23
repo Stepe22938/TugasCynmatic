@@ -120,6 +120,16 @@ export const fetchAllProductsFromVPS = async () => {
   return null;
 };
 
+export const deleteProductFromVPS = async (id: number) => {
+  try {
+    const res = await fetch(`${API_BASE}/products/${id}`, {
+      method: "DELETE"
+    });
+    return res.ok;
+  } catch (error) { }
+  return false;
+};
+
 export const fetchAllOrdersFromVPS = async () => {
   try {
     const res = await fetch(`${API_BASE}/orders`);

@@ -67,7 +67,7 @@ export interface PurchasedOrder {
   grandTotal: number;
   reviews: Record<number, Review>;
   shippingInfo?: ShippingInfo;
-  paymentMethod?: "dana" | "qris";
+  paymentMethod?: "dana" | "qris" | "mydompet";
   voucherCode?: string;
   voucherDiscount?: number;
   coinDiscount?: number;
@@ -87,6 +87,7 @@ interface OrderHistoryContextType {
   addMessage: (orderId: string, msg: Omit<OrderMessage, "id" | "createdAt">) => void;
   getAllOrders: () => PurchasedOrder[];
   reportProblem: (orderId: string, report: string) => void;
+  allReviews: Review[];
 }
 
 const OrderHistoryContext = createContext<OrderHistoryContextType | undefined>(undefined);
@@ -225,6 +226,7 @@ export function OrderHistoryProvider({ children }: { children: ReactNode }) {
       state: { orders: myOrders },
       addOrder, addReview, getOrder, getProductReviews,
       updateOrderStatus, addMessage, getAllOrders, reportProblem,
+      allReviews
     }}>
       {children}
     </OrderHistoryContext.Provider>

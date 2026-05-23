@@ -71,7 +71,7 @@ export function BackroomsGame({ addCoins, userId, toast, onFinish }: any) {
   const [gridSize, setGridSize] = useState(16);
   
   const gameRef = useRef<HTMLDivElement>(null);
-  const frameRef = useRef<number>();
+  const frameRef = useRef<number | undefined>(undefined);
   const level = getLevelConfig(currentLevelIdx);
 
   // Keys state
@@ -367,12 +367,11 @@ export function BackroomsGame({ addCoins, userId, toast, onFinish }: any) {
 
   // 1. Animation Loop Effect
   useEffect(() => {
-    if (gameState === "playing") {
-      frameRef.current = requestAnimationFrame(gameLoop);
-      return () => {
-        if (frameRef.current) cancelAnimationFrame(frameRef.current);
-      };
-    }
+    if (gameState !== "playing") return;
+    frameRef.current = requestAnimationFrame(gameLoop);
+    return () => {
+      if (frameRef.current) cancelAnimationFrame(frameRef.current);
+    };
   }, [gameState, gameLoop]);
 
   // 2. Timer Effect (Stable)

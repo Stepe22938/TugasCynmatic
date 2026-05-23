@@ -1,0 +1,23 @@
+Created At: 2026-05-23T04:12:47Z
+Completed At: 2026-05-23T04:12:48Z
+{"File":"c:\\Users\\Zaidan\\Desktop\\TESTCLAUDE\\TugasCynmatic\\artifacts\\ecommerce\\src\\pages\\ProfilePage.tsx","LineNumber":74,"LineContent":"  const [activeNftTab, setActiveNftTab] = useState\u003c\"collection\" | \"marketplace\" | \"exchange\" | \"gacha\"\u003e(\"collection\");"}
+{"File":"c:\\Users\\Zaidan\\Desktop\\TESTCLAUDE\\TugasCynmatic\\artifacts\\ecommerce\\src\\pages\\ProfilePage.tsx","LineNumber":77,"LineContent":"  // Gacha System states"}
+{"File":"c:\\Users\\Zaidan\\Desktop\\TESTCLAUDE\\TugasCynmatic\\artifacts\\ecommerce\\src\\pages\\ProfilePage.tsx","LineNumber":78,"LineContent":"  const [rollingGacha, setRollingGacha] = useState(false);"}
+{"File":"c:\\Users\\Zaidan\\Desktop\\TESTCLAUDE\\TugasCynmatic\\artifacts\\ecommerce\\src\\pages\\ProfilePage.tsx","LineNumber":81,"LineContent":"  const [showGachaReveal, setShowGachaReveal] = useState(false);"}
+{"File":"c:\\Users\\Zaidan\\Desktop\\TESTCLAUDE\\TugasCynmatic\\artifacts\\ecommerce\\src\\pages\\ProfilePage.tsx","LineNumber":82,"LineContent":"  const [gachaRollStep, setGachaRollStep] = useState\u003cnumber\u003e(0);"}
+{"File":"c:\\Users\\Zaidan\\Desktop\\TESTCLAUDE\\TugasCynmatic\\artifacts\\ecommerce\\src\\pages\\ProfilePage.tsx","LineNumber":287,"LineContent":"  const handleGachaDraw = async () =\u003e {"}
+{"File":"c:\\Users\\Zaidan\\Desktop\\TESTCLAUDE\\TugasCynmatic\\artifacts\\ecommerce\\src\\pages\\ProfilePage.tsx","LineNumber":310,"LineContent":"    setRollingGacha(true);"}
+{"File":"c:\\Users\\Zaidan\\Desktop\\TESTCLAUDE\\TugasCynmatic\\artifacts\\ecommerce\\src\\pages\\ProfilePage.tsx","LineNumber":312,"LineContent":"    setGachaRollStep(0);"}
+{"File":"c:\\Users\\Zaidan\\Desktop\\TESTCLAUDE\\TugasCynmatic\\artifacts\\ecommerce\\src\\pages\\ProfilePage.tsx","LineNumber":331,"LineContent":"      setGachaRollStep(prev =\u003e (prev \u003c 100 ? prev + 4 : prev));"}
+{"File":"c:\\Users\\Zaidan\\Desktop\\TESTCLAUDE\\TugasCynmatic\\artifacts\\ecommerce\\src\\pages\\ProfilePage.
+<truncated 1177 bytes>
+\\src\\pages\\ProfilePage.tsx","LineNumber":726,"LineContent":"                      { id: \"gacha\", label: \"Lucky Mint\", count: null, icon: Sparkles }"}
+{"File":"c:\\Users\\Zaidan\\Desktop\\TESTCLAUDE\\TugasCynmatic\\artifacts\\ecommerce\\src\\pages\\ProfilePage.tsx","LineNumber":1170,"LineContent":"                        {activeNftTab === \"gacha\" \u0026\u0026 ("}
+{"File":"c:\\Users\\Zaidan\\Desktop\\TESTCLAUDE\\TugasCynmatic\\artifacts\\ecommerce\\src\\pages\\ProfilePage.tsx","LineNumber":1172,"LineContent":"                            key=\"gacha-tab\""}
+{"File":"c:\\Users\\Zaidan\\Desktop\\TESTCLAUDE\\TugasCynmatic\\artifacts\\ecommerce\\src\\pages\\ProfilePage.tsx","LineNumber":1201,"LineContent":"                                {rollingGacha ? ("}
+{"File":"c:\\Users\\Zaidan\\Desktop\\TESTCLAUDE\\TugasCynmatic\\artifacts\\ecommerce\\src\\pages\\ProfilePage.tsx","LineNumber":1222,"LineContent":"                                          style={{ width: `${Math.min(gachaRollStep, 100)}%` }}"}
+{"File":"c:\\Users\\Zaidan\\Desktop\\TESTCLAUDE\\TugasCynmatic\\artifacts\\ecommerce\\src\\pages\\ProfilePage.tsx","LineNumber":1275,"LineContent":"                                        disabled={rollingGacha}"}
+{"File":"c:\\Users\\Zaidan\\Desktop\\TESTCLAUDE\\TugasCynmatic\\artifacts\\ecommerce\\src\\pages\\ProfilePage.tsx","LineNumber":1295,"LineContent":"                                  onClick={handleGachaDraw}"}
+{"File":"c:\\Users\\Zaidan\\Desktop\\TESTCLAUDE\\TugasCynmatic\\artifacts\\ecommerce\\src\\pages\\ProfilePage.tsx","LineNumber":1296,"LineContent":"                                  disabled={rollingGacha}"}
+{"File":"c:\\Users\\Zaidan\\Desktop\\TESTCLAUDE\\TugasCynmatic\\artifacts\\ecommerce\\src\\pages\\ProfilePage.tsx","LineNumber":1298,"LineContent":"                                    rollingGacha"}
+{"File":"c:\\Users\\Zaidan\\Desktop\\TESTCLAUDE\\TugasCynmatic\\artifacts\\ecommerce\\src\\pages\\ProfilePage.tsx","LineNumber":1303,"LineContent":"                                  {rollingGacha ? ("}

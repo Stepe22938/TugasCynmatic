@@ -103,7 +103,7 @@ export function AIChatPage() {
       id: Date.now().toString(),
       title: "Chat Baru",
       messages: [
-        { role: "system", content: "Kamu adalah asisten AI (Cynmatic AI) yang ramah dan membantu untuk platform e-commerce Cynmatic. Jawablah dalam bahasa Indonesia yang natural. PENTING: Format nomor pesanan/invoice di Cynmatic selalu berawalan 'TKO-' (contoh: #TKO-16190 atau TKO-12345). Jika user memberikan kode 'TKO-', anggap itu sebagai nomor pesanan yang valid dan bantu cek statusnya.", id: "sys-1" }
+        { role: "system", content: "Kamu adalah asisten AI (TokoArthur AI) yang ramah dan membantu untuk platform e-commerce TokoArthur. Jawablah dalam bahasa Indonesia yang natural. PENTING: Format nomor pesanan/invoice di TokoArthur selalu berawalan 'TKO-' (contoh: #TKO-16190 atau TKO-12345). Jika user memberikan kode 'TKO-', anggap itu sebagai nomor pesanan yang valid dan bantu cek statusnya.", id: "sys-1" }
       ],
       createdAt: Date.now()
     };
@@ -127,7 +127,7 @@ export function AIChatPage() {
         id: Date.now().toString(),
         title: input.slice(0, 30) + (input.length > 30 ? "..." : ""),
         messages: [
-          { role: "system", content: "Kamu adalah asisten AI (Cynmatic AI) yang ramah dan membantu untuk platform e-commerce Cynmatic. Jawablah dalam bahasa Indonesia yang natural. PENTING: Format nomor pesanan/invoice di Cynmatic selalu berawalan 'TKO-' (contoh: #TKO-16190 atau TKO-12345). Jika user memberikan kode 'TKO-', anggap itu sebagai nomor pesanan yang valid dan bantu cek statusnya.", id: "sys-1" }
+          { role: "system", content: "Kamu adalah asisten AI (TokoArthur AI) yang ramah dan membantu untuk platform e-commerce TokoArthur. Jawablah dalam bahasa Indonesia yang natural. PENTING: Format nomor pesanan/invoice di TokoArthur selalu berawalan 'TKO-' (contoh: #TKO-16190 atau TKO-12345). Jika user memberikan kode 'TKO-', anggap itu sebagai nomor pesanan yang valid dan bantu cek statusnya.", id: "sys-1" }
         ],
         createdAt: Date.now()
       };
@@ -193,7 +193,7 @@ export function AIChatPage() {
         id: Date.now().toString(),
         title: promptText.slice(0, 30) + (promptText.length > 30 ? "..." : ""),
         messages: [
-          { role: "system", content: "Kamu adalah asisten AI (Cynmatic AI) yang ramah dan membantu untuk platform e-commerce Cynmatic. Jawablah dalam bahasa Indonesia yang natural. PENTING: Format nomor pesanan/invoice di Cynmatic selalu berawalan 'TKO-' (contoh: #TKO-16190 atau TKO-12345). Jika user memberikan kode 'TKO-', anggap itu sebagai nomor pesanan yang valid dan bantu cek statusnya.", id: "sys-1" }
+          { role: "system", content: "Kamu adalah asisten AI (TokoArthur AI) yang ramah dan membantu untuk platform e-commerce TokoArthur. Jawablah dalam bahasa Indonesia yang natural. PENTING: Format nomor pesanan/invoice di TokoArthur selalu berawalan 'TKO-' (contoh: #TKO-16190 atau TKO-12345). Jika user memberikan kode 'TKO-', anggap itu sebagai nomor pesanan yang valid dan bantu cek statusnya.", id: "sys-1" }
         ],
         createdAt: Date.now()
       };
@@ -281,7 +281,7 @@ export function AIChatPage() {
                   messages: [
                     { 
                       role: "system", 
-                      content: `Kamu adalah asisten AI khusus Crypto (MYCRYPTO) untuk platform Cynmatic. 
+                      content: `Kamu adalah asisten AI khusus Crypto (MYCRYPTO) untuk platform TokoArthur. 
                       Karakteristik: Pro, Analitis, Objektif.
                       Tugas Utama: 
                       1. Memberikan analisis teknikal (RSI, MACD, Support/Resistance) berdasarkan data pasar terbaru (simulasi).
@@ -358,7 +358,7 @@ export function AIChatPage() {
               </div>
               <div>
                 <h2 className="font-bold text-sm tracking-tight text-white flex items-center gap-2">
-                  Cynmatic AI 
+                  TokoArthur AI 
                   <span className="text-[9px] font-medium bg-white/10 text-white/80 px-2 py-0.5 rounded-full uppercase tracking-wider border border-white/5">Beta</span>
                 </h2>
                 <p className="text-[8px] font-semibold text-white/40 uppercase tracking-widest mt-0.5">Official AI Companion</p>
@@ -445,7 +445,7 @@ export function AIChatPage() {
                   <div className={`flex-1 space-y-2 overflow-hidden ${msg.role === "user" ? "max-w-[80%] flex-initial bg-amber-500/[0.03] border border-amber-500/15 rounded-2xl p-5 shadow-lg" : ""}`}>
                     <div className="flex items-center gap-2">
                       <p className={`text-[9px] font-bold uppercase tracking-widest opacity-50 ${msg.role === "assistant" ? "text-white/60" : "text-white/40"}`}>
-                        {msg.role === "assistant" ? "Cynmatic AI" : "Anda"}
+                        {msg.role === "assistant" ? "TokoArthur AI" : "Anda"}
                       </p>
                       {msg.role === "user" && isCryptoMember && <CryptoBadge className="scale-75 origin-left" />}
                     </div>
@@ -469,7 +469,7 @@ export function AIChatPage() {
                   <Bot className="h-4.5 w-4.5" />
                 </div>
                 <div className="flex-1 space-y-3">
-                  <p className="text-[9px] font-bold uppercase tracking-widest text-white/30">Cynmatic AI</p>
+                  <p className="text-[9px] font-bold uppercase tracking-widest text-white/30">TokoArthur AI</p>
                   <div className="flex items-center gap-1.5 py-1">
                     <div className="w-1.5 h-1.5 bg-white/40 rounded-full animate-bounce" style={{ animationDelay: "0ms" }} />
                     <div className="w-1.5 h-1.5 bg-white/40 rounded-full animate-bounce" style={{ animationDelay: "200ms" }} />
@@ -493,7 +493,7 @@ export function AIChatPage() {
                   handleSend();
                 }
               }}
-              placeholder="Kirim pesan ke Cynmatic AI..."
+              placeholder="Kirim pesan ke TokoArthur AI..."
               className="w-full bg-transparent border-0 px-4 py-3 text-sm focus:outline-none focus:ring-0 placeholder:text-white/20 resize-none min-h-[48px] max-h-48 text-white"
               rows={1}
             />
@@ -519,7 +519,7 @@ export function AIChatPage() {
             )}
           </div>
           <p className="text-[9px] font-semibold text-center text-white/20 mt-3 uppercase tracking-wider">
-            Cynmatic AI dapat membuat kesalahan. Harap validasi informasi penting.
+            TokoArthur AI dapat membuat kesalahan. Harap validasi informasi penting.
           </p>
         </div>
       </main>

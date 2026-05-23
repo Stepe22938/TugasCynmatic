@@ -133,7 +133,7 @@ export function LoginPage() {
             <Crown className="h-10 w-10 text-white dark:text-black" />
           </div>
           <h1 className="text-3xl font-black uppercase tracking-widest text-gray-900 dark:text-white mb-2 transition-colors">
-            Cynmatic
+            TokoArthur
           </h1>
           <p className="text-[10px] text-[#D4AF37] dark:text-[#D4AF37]/80 font-bold uppercase tracking-[0.4em]">
             Sultan Authentication

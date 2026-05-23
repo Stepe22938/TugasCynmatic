@@ -72,7 +72,7 @@ export function TicketDashboardPage() {
 
                 <div>
                   <label className="block text-[10px] font-black text-white/40 uppercase tracking-widest mb-2">Platform / Layanan</label>
-                  <input type="text" value="Toko Online Cynmatic" disabled className="w-full bg-white/5 text-white/50 border border-white/10 rounded-2xl p-4 text-sm outline-none cursor-not-allowed font-medium" />
+                  <input type="text" value="Toko Online TokoArthur" disabled className="w-full bg-white/5 text-white/50 border border-white/10 rounded-2xl p-4 text-sm outline-none cursor-not-allowed font-medium" />
                 </div>
               </div>
 

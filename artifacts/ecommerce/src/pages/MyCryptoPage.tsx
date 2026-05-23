@@ -79,7 +79,7 @@ export function MyCryptoPage() {
           
           <h1 className="text-4xl font-black mb-6 tracking-tight">Eksklusif MyCrypto <span className="text-blue-400">Membership</span></h1>
           <p className="text-white/40 text-lg font-medium leading-relaxed mb-10">
-            Dapatkan akses penuh ke sistem analisis AI crypto tercanggih, sinyal trading akurat, dan pelacakan portofolio real-time di Cynmatic.
+            Dapatkan akses penuh ke sistem analisis AI crypto tercanggih, sinyal trading akurat, dan pelacakan portofolio real-time di TokoArthur.
           </p>
           
           <div className="grid grid-cols-2 gap-4 mb-12 text-left">
@@ -547,7 +547,7 @@ export function MyCryptoPage() {
         {activeTab === "bots" && (
            <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-500">
              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-3xl font-black tracking-tighter italic">Cynmatic Auto Trading <span className="text-blue-500">Bots</span></h2>
+                <h2 className="text-3xl font-black tracking-tighter italic">TokoArthur Auto Trading <span className="text-blue-500">Bots</span></h2>
                 <div className="w-10 h-10 bg-blue-600/10 rounded-xl flex items-center justify-center text-blue-500 animate-pulse"><Bot className="h-6 w-6" /></div>
              </div>
 

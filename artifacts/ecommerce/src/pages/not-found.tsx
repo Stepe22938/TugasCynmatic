@@ -45,7 +45,7 @@ export default function NotFound() {
       </div>
 
       <div className="absolute bottom-10 left-1/2 -translate-x-1/2">
-        <p className="text-[9px] font-black text-white/10 uppercase tracking-[0.5em]">Cynmatic Identity Protocol v3.0</p>
+        <p className="text-[9px] font-black text-white/10 uppercase tracking-[0.5em]">TokoArthur Identity Protocol v3.0</p>
       </div>
     </div>
   );

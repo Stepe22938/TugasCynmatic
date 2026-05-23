@@ -61,7 +61,12 @@ function FriendProfileCard({
   const { cosmetics } = useCosmetics();
   const equippedTags = (Array.isArray(selectedUser.equippedCosmetics) ? selectedUser.equippedCosmetics : [])
     .map(id => cosmetics.find(c => c.id === id))
-    .filter(c => c?.type === "tag");
+    .filter((c): c is NonNullable<typeof c> => !!c && c.type === "tag");
+  
+  const equippedVisual = (Array.isArray(selectedUser.equippedCosmetics) ? selectedUser.equippedCosmetics : [])
+    .map(id => cosmetics.find(c => c.id === id))
+    .find(c => c?.type === "visual");
+  const selectedUserAvatar = equippedVisual?.value || selectedUser.avatar || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(selectedUser.name)}&backgroundColor=6d28d9&fontColor=ffffff&fontSize=40`;
   
   const stats = getUserStats(selectedUser.id, selectedUser.role);
   
@@ -124,7 +129,7 @@ function FriendProfileCard({
                <div className={`absolute -inset-6 bg-${selectedUser.sultanBadgeColor || 'yellow'}-500/20 rounded-[3rem] blur-2xl animate-pulse z-0`} />
              )}
              <img
-              src={selectedUser.avatar || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(selectedUser.name)}&backgroundColor=6d28d9&fontColor=ffffff&fontSize=40`}
+              src={selectedUserAvatar}
               alt={selectedUser.name}
               className="w-32 h-32 sm:w-40 sm:h-40 rounded-[2.5rem] border-4 border-white shadow-2xl relative z-10 bg-slate-900 object-cover"
             />
@@ -133,6 +138,22 @@ function FriendProfileCard({
           <div className="flex-1 min-w-0 pb-4 text-center sm:text-left">
             <div className="flex items-center justify-center sm:justify-start gap-3 flex-wrap mb-1">
               <h2 className="text-3xl font-black text-white drop-shadow-lg tracking-tighter">{selectedUser.name}</h2>
+              {equippedTags.map((tag) => (
+                <span
+                  key={tag.id}
+                  className={`px-2.5 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest border transition-all ${
+                    tag.rarity === "legendary"
+                      ? "bg-amber-500/10 text-amber-400 border-amber-500/30 shadow-[0_0_12px_rgba(245,158,11,0.2)] animate-pulse"
+                      : tag.rarity === "epic"
+                      ? "bg-purple-500/10 text-purple-400 border-purple-500/30 shadow-[0_0_12px_rgba(168,85,247,0.2)]"
+                      : tag.rarity === "rare"
+                      ? "bg-blue-500/10 text-blue-400 border-blue-500/30 shadow-[0_0_12px_rgba(59,130,246,0.2)]"
+                      : "bg-slate-500/10 text-slate-400 border-slate-500/30"
+                  }`}
+                >
+                  {tag.value}
+                </span>
+              ))}
               {selectedUser.isSultan && (
                 <div className={`flex items-center gap-1.5 bg-gradient-to-r from-${selectedUser.sultanBadgeColor || 'yellow'}-400 to-${selectedUser.sultanBadgeColor || 'yellow'}-600 text-white text-[10px] font-black px-3 py-1 rounded-lg shadow-xl border border-white/20 animate-pulse`}>
                   <Crown className="h-3.5 w-3.5 fill-white" /> SULTAN
@@ -289,8 +310,8 @@ export function FriendsPage() {
   const filtered = useMemo(() => {
     let base = [];
     if (tab === "friends") base = friendUsers;
-    else if (tab === "requests" || tab === "followers") base = followerUsers;
-    else if (tab === "sent" || tab === "following") base = followingUsers;
+    else if (tab === "followers") base = followerUsers;
+    else if (tab === "following") base = followingUsers;
     else base = discoverUsers;
 
     return base.filter(u =>
@@ -483,6 +504,15 @@ export function FriendsPage() {
                 const isRequest = myRequests.includes(u.id);
                 const isSent = mySent.includes(u.id);
 
+                const uEquippedTags = (Array.isArray(u.equippedCosmetics) ? u.equippedCosmetics : [])
+                  .map(id => cosmetics.find(c => c.id === id))
+                  .filter((c): c is NonNullable<typeof c> => !!c && c.type === "tag");
+
+                const uEquippedVisual = (Array.isArray(u.equippedCosmetics) ? u.equippedCosmetics : [])
+                  .map(id => cosmetics.find(c => c.id === id))
+                  .find(c => c?.type === "visual");
+                const uAvatar = uEquippedVisual?.value || u.avatar || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(u.name)}&backgroundColor=6d28d9&fontColor=ffffff&fontSize=40`;
+
                 return (
                   <motion.div
                     initial={{ opacity: 0, x: -20 }}
@@ -511,7 +541,7 @@ export function FriendsPage() {
                           <div className={`absolute -inset-3 bg-${u.sultanBadgeColor || 'yellow'}-500/20 rounded-full blur-xl animate-pulse z-0`} />
                         )}
                         <img
-                          src={u.avatar || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(u.name)}&backgroundColor=6d28d9&fontColor=ffffff&fontSize=40`}
+                          src={uAvatar}
                           alt={u.name}
                           className="w-16 h-16 rounded-2xl object-cover bg-slate-900 relative z-10 border border-white/10 group-hover/node:scale-105 transition-transform duration-500"
                         />
@@ -525,6 +555,22 @@ export function FriendsPage() {
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-3 mb-1.5 flex-wrap">
                           <p className="text-sm font-black text-white uppercase italic tracking-tight group-hover/node:text-violet-400 transition-colors">{u.name}</p>
+                          {uEquippedTags.map((tag) => (
+                            <span
+                              key={tag.id}
+                              className={`px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-widest border transition-all ${
+                                tag.rarity === "legendary"
+                                  ? "bg-amber-500/10 text-amber-400 border-amber-500/30 shadow-[0_0_12px_rgba(245,158,11,0.2)] animate-pulse"
+                                  : tag.rarity === "epic"
+                                  ? "bg-purple-500/10 text-purple-400 border-purple-500/30 shadow-[0_0_12px_rgba(168,85,247,0.2)]"
+                                  : tag.rarity === "rare"
+                                  ? "bg-blue-500/10 text-blue-400 border-blue-500/30 shadow-[0_0_12px_rgba(59,130,246,0.2)]"
+                                  : "bg-slate-500/10 text-slate-400 border-slate-500/30"
+                              }`}
+                            >
+                              {tag.value}
+                            </span>
+                          ))}
                           {u.isSultan && u.sultanCustomTag && (
                             <span className={`text-[8px] font-black px-2 py-0.5 rounded-md bg-${u.sultanBadgeColor || 'yellow'}-500/10 text-${u.sultanBadgeColor || 'yellow'}-400 border border-${u.sultanBadgeColor || 'yellow'}-500/20 uppercase tracking-widest`}>
                               {u.sultanCustomTag}

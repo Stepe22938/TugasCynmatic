@@ -1,0 +1,60 @@
+Created At: 2026-05-23T03:53:29Z
+Completed At: 2026-05-23T03:53:29Z
+File Path: `file:///c:/Users/Zaidan/Desktop/TESTCLAUDE/TugasCynmatic/artifacts/ecommerce/src/pages/ProfilePage.tsx`
+Total Lines: 1512
+Total Bytes: 101093
+Showing lines 1150 to 1512
+The following code has been modified to include a line number before every line, in the format: <line_number>: <original_line>. Please note that any changes targeting the original code should remove the line number, colon, and leading space.
+1150:                         {activeNftTab === "gacha" && (
+1151:                           <motion.div
+1152:                             key="gacha-tab"
+1153:                             initial={{ opacity: 0, y: 10 }}
+1154:                             animate={{ opacity: 1, y: 0 }}
+1155:                             exit={{ opacity: 0, y: -10 }}
+1156:                             className="space-y-8"
+1157:                           >
+1158:                             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch">
+1159:                               
+1160:                               {/* LEFT COLUMN: GACHA SLOT SCANNER (CRT BOX) */}
+1161:                               <div className="lg:col-span-7 glass-card rounded-[2.5rem] p-6 lg:p-8 border border-white/5 flex flex-col justify-between shadow-2xl relative overflow-hidden bg-slate-950/80 min-h-[480px]">
+1162:                                 {/* Neon Grid Accent Lines */}
+1163:                                 <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:24px_24px] pointer-events-none" />
+1164:                                 <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-purple-500 via-pink-500 to-yellow-500" />
+1165:                                 
+1166:                                 <div className="space-y-4 relative z-10">
+1167:                                   <div c
+<truncated 25670 bytes>
+/[0.03] shadow-inner transition-transform duration-500 ${isSultanCard ? 'rotate-[-8deg] group-hover:rotate-0' : 'group-hover:rotate-6'}`}>
+1481:           <Icon className={`h-6.5 w-6.5 ${color}`} />
+1482:         </div>
+1483:         <div className="flex-1 min-w-0">
+1484:           <p className={`text-sm font-black tracking-tight uppercase italic transition-colors duration-300 ${isSultanCard ? 'text-[#ff5c00] group-hover:text-orange-400' : 'text-white group-hover:text-orange-500'}`}>
+1485:             {title}
+1486:           </p>
+1487:           <p className="text-[9px] font-black text-white/30 uppercase tracking-[0.15em] mt-0.5 font-sans">
+1488:             {sub}
+1489:           </p>
+1490:           {liveValue && (
+1491:             <p className="text-[10px] font-bold font-mono uppercase tracking-wider mt-1 flex items-center gap-1.5">
+1492:               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping inline-block" />
+1493:               <span className="text-white/70">{liveValue}</span>
+1494:             </p>
+1495:           )}
+1496:         </div>
+1497:         <span className="text-xl font-light text-white/20 group-hover:text-white group-hover:translate-x-1.5 transition-all duration-300 pr-1 select-none">→</span>
+1498:       </motion.div>
+1499:     </Link>
+1500:   );
+1501: }
+1502: 
+1503: function SystemRow({ label, value }: { label: string; value: string }) {
+1504:   return (
+1505:     <div className="flex items-center justify-between px-10 py-5 group hover:bg-white/5 transition-colors">
+1506:       <span className="text-[9px] font-black uppercase tracking-widest text-white/20">{label}</span>
+1507:       <span className="text-[11px] font-mono font-bold text-white/60 group-hover:text-white transition-colors">{value}</span>
+1508:     </div>
+1509:   );
+1510: }
+1511: 
+1512: 
+The above content does NOT show the entire file contents. If you need to view any lines of the file which were not shown to complete your task, call this tool again to view those lines.

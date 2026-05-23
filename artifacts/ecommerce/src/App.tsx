@@ -2,7 +2,7 @@
  * App.tsx
  */
 import React, { useEffect } from "react";
-import { Switch, Route, Router as WouterRouter, useLocation } from "wouter";
+import { Switch, Route, Router as WouterRouter, useLocation, Redirect } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -63,11 +63,14 @@ import { VotingPage } from "./pages/VotingPage";
 import { BanLeaderboardPage } from "./pages/BanLeaderboardPage";
 import { CosmeticPage } from "./pages/CosmeticPage";
 import { MyCryptoPage } from "./pages/MyCryptoPage";
+
 import { ChatPage } from "./pages/ChatPage";
 import { NotificationsPage } from "./pages/NotificationsPage";
 import { AffiliatePage } from "./pages/AffiliatePage";
 import { AboutUsPage } from "./pages/AboutUsPage";
 import { GameTopUpPage } from "./pages/GameTopUpPage";
+import { SettingsPage } from "./pages/SettingsPage";
+import { TopUpPage } from "./pages/TopUpPage";
 import { CosmeticProvider } from "./contexts/CosmeticContext";
 import { MessageProvider } from "./contexts/MessageContext";
 import NotFound from "@/pages/not-found";
@@ -201,6 +204,15 @@ function Router() {
       <Route path="/profile">
         <ProtectedRoute component={ProfilePage} />
       </Route>
+      <Route path="/settings">
+        <ProtectedRoute component={SettingsPage} />
+      </Route>
+      <Route path="/settings/:subpage">
+        <ProtectedRoute component={SettingsPage} />
+      </Route>
+      <Route path="/topup">
+        <ProtectedRoute component={TopUpPage} />
+      </Route>
       <Route path="/tickets">
         <ProtectedRoute component={TicketDashboardPage} />
       </Route>
@@ -254,6 +266,9 @@ function Router() {
       </Route>
       <Route path="/mycrypto">
         <ProtectedRoute component={MyCryptoPage} />
+      </Route>
+      <Route path="/mynft">
+        <Redirect to="/profile#nft" replace />
       </Route>
       <Route path="/chat/:id">
         <ProtectedRoute component={ChatPage} />

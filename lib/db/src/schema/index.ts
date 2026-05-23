@@ -33,6 +33,7 @@ export const users = mysqlTable("users", {
   ownedCosmetics: json("ownedCosmetics"),
   equippedCosmetics: json("equippedCosmetics"),
   walletTransactions: json("walletTransactions"),
+  wishlist: json("wishlist"),
   // Sultan customization
   sultanBadgeColor: varchar("sultanBadgeColor", { length: 50 }),
   sultanGlowEffect: boolean("sultanGlowEffect").default(false),
@@ -49,6 +50,10 @@ export const users = mysqlTable("users", {
   useAnimation: boolean("useAnimation").default(false),
   profileLayout: varchar("profileLayout", { length: 20 }).default("premium"),
   avatar: varchar("avatar", { length: 500 }),
+  myCoinNft: varchar("myCoinNft", { length: 255 }).default("0"),
+  balanceBtc: varchar("balanceBtc", { length: 255 }).default("1.42"),
+  balanceEth: varchar("balanceEth", { length: 255 }).default("8.50"),
+  balanceUsdt: varchar("balanceUsdt", { length: 255 }).default("500.00"),
   createdAt: timestamp("createdAt").defaultNow(),
 });
 
@@ -195,5 +200,50 @@ export const redeemCodes = mysqlTable("redeem_codes", {
   maxUses: int("maxUses").default(0),
   usedBy: json("usedBy"),
   isActive: boolean("isActive").default(true),
+  createdAt: timestamp("createdAt").defaultNow(),
+});
+
+// ============================================================
+// ANDROID PACKAGES TABLE
+// ============================================================
+export const androidPackages = mysqlTable("android_packages", {
+  id: int("id").primaryKey().autoincrement(),
+  versionName: varchar("version_name", { length: 255 }).notNull(),
+  versionCode: int("version_code").notNull(),
+  changelog: text("changelog").notNull(),
+  fileUrl: varchar("file_url", { length: 500 }),
+  fileHash: varchar("file_hash", { length: 255 }),
+  buildStatus: mysqlEnum("build_status", ["queued", "building", "success", "failed"]).default("queued").notNull(),
+  releaseStatus: mysqlEnum("release_status", ["draft", "latest"]).default("draft").notNull(),
+  createdBy: varchar("created_by", { length: 255 }).notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// ============================================================
+// NFTS TABLE
+// ============================================================
+export const nfts = mysqlTable("nfts", {
+  id: int("id").primaryKey().autoincrement(),
+  name: varchar("name", { length: 255 }).notNull(),
+  description: text("description").notNull(),
+  image: varchar("image", { length: 500 }).notNull(),
+  priceCrypto: varchar("price_crypto", { length: 50 }).notNull(),
+  cryptoType: varchar("crypto_type", { length: 20 }).notNull(),
+  priceMcnft: varchar("price_mcnft", { length: 50 }).notNull(),
+  ownerId: varchar("owner_id", { length: 255 }),
+  isForSale: boolean("is_for_sale").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// ============================================================
+// MESSAGES TABLE — Direct Chat between users (with media)
+// ============================================================
+export const messages = mysqlTable("messages", {
+  id: varchar("id", { length: 255 }).primaryKey(),
+  senderId: varchar("senderId", { length: 255 }).notNull(),
+  receiverId: varchar("receiverId", { length: 255 }).notNull(),
+  text: text("text"),
+  mediaUrl: varchar("mediaUrl", { length: 500 }),
+  mediaType: varchar("mediaType", { length: 20 }), // "image" | "video" | null
   createdAt: timestamp("createdAt").defaultNow(),
 });

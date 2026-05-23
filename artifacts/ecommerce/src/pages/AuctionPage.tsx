@@ -225,7 +225,7 @@ export function AuctionPage() {
                   {selectedBids.length === 0 ? (
                     <p className="text-xs text-center text-muted-foreground py-4 italic">Belum ada penawaran.</p>
                   ) : (
-                    selectedBids.map((bid, i) => (
+                    (selectedBids as any[]).map((bid: any, i: number) => (
                       <div key={i} className={`flex justify-between items-center p-3 rounded-xl border ${i === 0 ? "bg-amber-50 border-amber-200" : "bg-muted border-border"}`}>
                          <div className="flex items-center gap-2">
                             <div className="w-6 h-6 bg-card rounded-full flex items-center justify-center text-[10px] font-bold border border-gray-200">

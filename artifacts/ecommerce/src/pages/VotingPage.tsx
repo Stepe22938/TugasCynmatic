@@ -135,7 +135,7 @@ function PollCard({ poll, index, isClosed }: { poll: any, index: number, isClose
         <h3 className="font-black text-xl leading-tight mb-3 pr-16 text-white group-hover:text-cyan-400 transition-colors">{poll.title}</h3>
         <div className="flex items-center gap-2 text-[10px] text-white/40 font-black uppercase tracking-wider">
           <Users className="h-4 w-4 text-white/20" />
-          <span>{poll.votedUserIds.length} Rakyat Cynmatic Telah Memilih</span>
+          <span>{poll.votedUserIds.length} Rakyat TokoArthur Telah Memilih</span>
         </div>
       </div>
 

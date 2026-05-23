@@ -48,7 +48,8 @@ export function FlashSalePage() {
         price: finalPrice,
         image: p.image,
         sellerId: p.sellerId,
-        sellerName: p.sellerName
+        sellerName: p.sellerName,
+        stock: p.stock
       }
     });
     toast({ 

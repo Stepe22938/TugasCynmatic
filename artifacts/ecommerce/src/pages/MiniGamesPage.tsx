@@ -135,7 +135,7 @@ function GameDashboard({ onSelect }: { onSelect: (g: GameType) => void }) {
     { id: "rps", title: "Suwit Koin", icon: Scissors, color: "bg-orange-500", desc: "Batu Gunting Kertas!" },
     { id: "sawit", title: "Petualangan Sawit", icon: TreePalm, color: "bg-green-700", desc: "Kumpulkan hasil panen!" },
     { id: "backrooms", title: "Backrooms 2D", icon: Skull, color: "bg-neutral-800", desc: "Bertahan hidup dari entitas!" },
-    { id: "pino", title: "Story Pino", icon: BookOpen, color: "bg-blue-600", desc: "Kisah CEO Cynmatic." },
+    { id: "pino", title: "Story Pino", icon: BookOpen, color: "bg-blue-600", desc: "Kisah CEO TokoArthur." },
   ];
 
   return (
@@ -267,7 +267,7 @@ function FlappyBirdGame({ addCoins, userId, toast, onFinish }: any) {
   const [score, setScore] = useState(0);
   const [birdY, setBirdY] = useState(150);
   const [pipes, setPipes] = useState<{ x: number; hole: number }[]>([]);
-  const frameRef = useRef<number>();
+  const frameRef = useRef<number | undefined>(undefined);
   const velocity = useRef(0);
   const frameCount = useRef(0);
 
@@ -552,7 +552,7 @@ function SawitAdventureGame({ addCoins, userId, toast, onFinish }: any) {
   const [items, setItems] = useState<{ x: number; y: number; id: number }[]>([]);
   const [bgOffset, setBgOffset] = useState(0);
   
-  const frameRef = useRef<number>();
+  const frameRef = useRef<number | undefined>(undefined);
   const velocity = useRef(0);
   const nextItemId = useRef(0);
   const frameCount = useRef(0);

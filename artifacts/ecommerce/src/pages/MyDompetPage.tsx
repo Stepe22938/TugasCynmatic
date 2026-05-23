@@ -158,22 +158,29 @@ export function MyDompetPage() {
             
             <div className="grid grid-cols-4 gap-4">
               {[
-                { icon: Plus, label: "Top Up", color: "text-orange-500", onClick: () => setIsTopUpOpen(true) },
+                { icon: Plus, label: "Top Up", color: "text-orange-500", href: "/topup" },
                 { icon: ArrowUpRight, label: "Send", color: "text-emerald-500", onClick: () => setIsSendOpen(true) },
                 { icon: ArrowDownLeft, label: "Request", color: "text-blue-500", onClick: () => setIsRequestOpen(true) },
                 { icon: History, label: "Logs", color: "text-white", onClick: () => {} }
-              ].map((btn, i) => (
-                <button 
-                  key={i} 
-                  onClick={btn.onClick}
-                  className="flex flex-col items-center gap-3 group/btn"
-                >
-                  <div className="w-14 h-14 bg-white/5 rounded-2xl flex items-center justify-center border border-white/5 group-hover/btn:bg-white/10 transition-all shadow-lg">
-                    <btn.icon className={`h-6 w-6 ${btn.color}`} />
-                  </div>
-                  <span className="text-[9px] font-black uppercase tracking-widest text-muted-foreground group-hover/btn:text-white">{btn.label}</span>
-                </button>
-              ))}
+              ].map((btn, i) => {
+                const btnContent = (
+                  <button 
+                    onClick={btn.onClick}
+                    className="flex flex-col items-center gap-3 group/btn w-full"
+                  >
+                    <div className="w-14 h-14 bg-white/5 rounded-2xl flex items-center justify-center border border-white/5 group-hover/btn:bg-white/10 transition-all shadow-lg mx-auto">
+                      <btn.icon className={`h-6 w-6 ${btn.color}`} />
+                    </div>
+                    <span className="text-[9px] font-black uppercase tracking-widest text-muted-foreground group-hover/btn:text-white mt-3 block">{btn.label}</span>
+                  </button>
+                );
+
+                return btn.href ? (
+                  <Link href={btn.href} key={i} className="block w-full">{btnContent}</Link>
+                ) : (
+                  <div key={i} className="block w-full">{btnContent}</div>
+                );
+              })}
             </div>
           </motion.div>
         </div>

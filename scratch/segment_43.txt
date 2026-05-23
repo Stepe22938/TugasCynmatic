@@ -1,0 +1,24 @@
+Created At: 2026-05-23T03:53:12Z
+Completed At: 2026-05-23T03:53:15Z
+{"File":"c:\\Users\\Zaidan\\Desktop\\TESTCLAUDE\\TugasCynmatic\\artifacts\\ecommerce\\src\\App.tsx","LineNumber":259,"LineContent":"      \u003cRoute path=\"/mynft\"\u003e"}
+{"File":"c:\\Users\\Zaidan\\Desktop\\TESTCLAUDE\\TugasCynmatic\\artifacts\\ecommerce\\src\\App.tsx","LineNumber":260,"LineContent":"        \u003cRedirect to=\"/profile#nft\" replace /\u003e"}
+{"File":"c:\\Users\\Zaidan\\Desktop\\TESTCLAUDE\\TugasCynmatic\\artifacts\\ecommerce\\src\\contexts\\AuthContext.tsx","LineNumber":51,"LineContent":"  myCoinNft?: string;"}
+{"File":"c:\\Users\\Zaidan\\Desktop\\TESTCLAUDE\\TugasCynmatic\\artifacts\\ecommerce\\src\\contexts\\AuthContext.tsx","LineNumber":137,"LineContent":"      myCoinNft: String(rest.myCoinNft ?? \"0\"),"}
+{"File":"c:\\Users\\Zaidan\\Desktop\\TESTCLAUDE\\TugasCynmatic\\artifacts\\ecommerce\\src\\contexts\\AuthContext.tsx","LineNumber":235,"LineContent":"            myCoinNft: String(source.myCoinNft ?? u.myCoinNft ?? \"0\"),"}
+{"File":"c:\\Users\\Zaidan\\Desktop\\TESTCLAUDE\\TugasCynmatic\\artifacts\\ecommerce\\src\\contexts\\AuthContext.tsx","LineNumber":287,"LineContent":"              myCoinNft: String(freshUser.myCoinNft ?? \"0\"),"}
+{"File":"c:\\Users\\Zaidan\\Desktop\\TESTCLAUDE\\TugasCynmatic\\artifacts\\ecommerce\\src\\contexts\\AuthContext.tsx","LineNumber":736,"LineContent":"          myCoinNft: String(freshUser.myCoinNft ?? \"0\"),"}
+{"File":"c:\\Users\\Zaidan\\Desktop\\TESTCLAUDE\\TugasCynmatic\\artifacts\\ecommerce\\src\\pages\\ProfilePage.tsx","LineNumber":68,"LineContent":"  // Profile Tab state (\"dashboard\" | \"nft\")"}
+{"File":"c:\\Users\\Zaidan\\Desktop\\TESTCLAUDE\\TugasCynmatic\\artifacts\\ecommerce\\src\\pages\\ProfilePage.tsx","LineNumber":69,"LineContent":"  const [activeProfileTab, setActiveProfileTab] = useState\u003c\"dashboard\" | \"nft\"\u003e(\"dashboard\");"}
+{"File":"c:\\Users\\Zaidan\\Desktop\\TESTCLAUDE\\TugasCynmatic\\artifacts\\ecommerce\\src\\pages\\ProfilePage.tsx","LineNumber":71,"
+<truncated 6314 bytes>
+\\Zaidan\\Desktop\\TESTCLAUDE\\TugasCynmatic\\artifacts\\ecommerce\\src\\pages\\ProfilePage.tsx","LineNumber":210,"LineContent":"    setSubmittingNft(\"buy-crypto\");"}
+{"File":"c:\\Users\\Zaidan\\Desktop\\TESTCLAUDE\\TugasCynmatic\\artifacts\\ecommerce\\src\\pages\\ProfilePage.tsx","LineNumber":212,"LineContent":"      const res = await fetch(`/api/nfts/buy-crypto`, {"}
+{"File":"c:\\Users\\Zaidan\\Desktop\\TESTCLAUDE\\TugasCynmatic\\artifacts\\ecommerce\\src\\pages\\ProfilePage.tsx","LineNumber":228,"LineContent":"      setSubmittingNft(null);"}
+{"File":"c:\\Users\\Zaidan\\Desktop\\TESTCLAUDE\\TugasCynmatic\\artifacts\\ecommerce\\src\\pages\\ProfilePage.tsx","LineNumber":237,"LineContent":"    setSubmittingNft(\"swap-crypto\");"}
+{"File":"c:\\Users\\Zaidan\\Desktop\\TESTCLAUDE\\TugasCynmatic\\artifacts\\ecommerce\\src\\pages\\ProfilePage.tsx","LineNumber":239,"LineContent":"      const res = await fetch(`/api/nfts/swap-crypto`, {"}
+{"File":"c:\\Users\\Zaidan\\Desktop\\TESTCLAUDE\\TugasCynmatic\\artifacts\\ecommerce\\src\\pages\\ProfilePage.tsx","LineNumber":255,"LineContent":"      setSubmittingNft(null);"}
+{"File":"c:\\Users\\Zaidan\\Desktop\\TESTCLAUDE\\TugasCynmatic\\artifacts\\ecommerce\\src\\pages\\ProfilePage.tsx","LineNumber":259,"LineContent":"  const handleCashoutMcnft = async () =\u003e {"}
+{"File":"c:\\Users\\Zaidan\\Desktop\\TESTCLAUDE\\TugasCynmatic\\artifacts\\ecommerce\\src\\pages\\ProfilePage.tsx","LineNumber":261,"LineContent":"      toast({ title: \"Nominal tidak valid\", description: \"Masukkan jumlah MyCoinNFT yang ingin dicairkan\", variant: \"destructive\" });"}
+{"File":"c:\\Users\\Zaidan\\Desktop\\TESTCLAUDE\\TugasCynmatic\\artifacts\\ecommerce\\src\\pages\\ProfilePage.tsx","LineNumber":264,"LineContent":"    setSubmittingNft(\"cashout-mcnft\");"}
+{"File":"c:\\Users\\Zaidan\\Desktop\\TESTCLAUDE\\TugasCynmatic\\artifacts\\ecommerce\\src\\pages\\ProfilePage.tsx","LineNumber":266,"LineContent":"      const res = await fetch(`/api/nfts/swap-mcnft-to-wallet`, {"}
+(...104 more results not shown)

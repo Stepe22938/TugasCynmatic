@@ -13,6 +13,14 @@ export function TicketPage() {
   const [text, setText] = useState("");
   const [showStatusPanel, setShowStatusPanel] = useState(false);
 
+  const ensureArray = (val: any) => {
+    if (Array.isArray(val)) return val;
+    if (typeof val === "string") {
+      try { return JSON.parse(val); } catch (e) { return []; }
+    }
+    return [];
+  };
+
   if (!user || !params?.id) return null;
 
   const ticket = tickets.find(t => t.id === params.id);
@@ -124,7 +132,7 @@ export function TicketPage() {
           </div>
 
           {/* Subsequent Messages */}
-          {(ticket.messages || []).map(msg => {
+          {ensureArray(ticket.messages).map((msg: any) => {
             const isMe = msg.senderId === user.id;
             if (isMe) {
               return (

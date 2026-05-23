@@ -58,7 +58,7 @@ const STORY_SCENES: Record<string, Scene> = {
   start: {
     id: "start",
     title: "Masa Muda: Garasi Sempit",
-    text: "Pino muda memulai Cynmatic di garasi. Ini adalah awal dari segalanya. Langkah pertamamu menentukan arah hidupmu.",
+    text: "Pino muda memulai TokoArthur di garasi. Ini adalah awal dari segalanya. Langkah pertamamu menentukan arah hidupmu.",
     choices: [
       { text: "Fokus Teknologi (Visionary)", next: "path_visionary_1", stats: { moral: 10, wealth: 2, rep: 5 } },
       { text: "Fokus Profit (Shark)", next: "path_shark_1", stats: { moral: -10, wealth: 25, rep: 2 } },
@@ -72,7 +72,7 @@ const STORY_SCENES: Record<string, Scene> = {
   path_visionary_1: {
     id: "path_visionary_1",
     title: "Masa Dewasa: Membangun Keluarga",
-    text: "Cynmatic sukses besar. Pino kini di usia matang. Saatnya memikirkan masa depan pribadi. Siapa yang akan mendampingimu?",
+    text: "TokoArthur sukses besar. Pino kini di usia matang. Saatnya memikirkan masa depan pribadi. Siapa yang akan mendampingimu?",
     choices: [
       { text: "Nikahi Teman Masa Kecil", next: "family_stage", stats: { moral: 20, wealth: 0, rep: 10 } },
       { text: "Nikahi Anak Konglomerat", next: "family_stage", stats: { moral: 0, wealth: 100, rep: 30 } },
@@ -122,7 +122,7 @@ const STORY_SCENES: Record<string, Scene> = {
   succession_stage: {
     id: "succession_stage",
     title: "Senja Hari: Warisan Pino",
-    text: "Rambut Pino memutih. Cynmatic kini dijalankan oleh keturunanmu. Pino duduk di kursi goyang, merenungi arti hidup.",
+    text: "Rambut Pino memutih. TokoArthur kini dijalankan oleh keturunanmu. Pino duduk di kursi goyang, merenungi arti hidup.",
     choices: [
       { text: "Meninggal dengan Tenang", next: "final_result", stats: { moral: 10, wealth: 0, rep: 10 } },
       { text: "Tulis Memoar Terakhir", next: "final_result", stats: { moral: 20, wealth: 0, rep: 30 } },
@@ -343,7 +343,7 @@ export function StoryPinoGame({ addCoins, userId, toast, onFinish, isSultan }: a
 
       {/* Footer Info */}
       <div className="relative z-10 p-6 pt-0 text-center">
-        <p className="text-[10px] text-gray-500 uppercase font-black tracking-[0.2em]">Cynmatic Original Story — Visual Novel Series</p>
+        <p className="text-[10px] text-gray-500 uppercase font-black tracking-[0.2em]">TokoArthur Original Story — Visual Novel Series</p>
       </div>
     </div>
   );

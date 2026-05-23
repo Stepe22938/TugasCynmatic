@@ -1,0 +1,77 @@
+Created At: 2026-05-23T04:12:56Z
+Completed At: 2026-05-23T04:12:58Z
+The following changes were made by the replace_file_content tool to: c:\Users\Zaidan\Desktop\TESTCLAUDE\TugasCynmatic\artifacts\ecommerce\src\pages\ProfilePage.tsx. If relevant, proactively run terminal commands to execute this code for the USER. Don't ask for permission.
+[diff_block_start]
+@@ -279,6 +279,69 @@
+       }
+     } catch (err) {
+       toast({ title: "Error", description: "Terjadi kesalahan jaringan", variant: "destructive" });
++  const handleBuyNftRupiah = async (nftId: number) => {
++    setSubmittingNft(`buy-${nftId}`);
++    try {
++      const res = await fetch(`/api/nfts/${nftId}/buy-rupiah`, {
++        method: "POST",
++        headers: { "Content-Type": "application/json" },
++        body: JSON.stringify({ userId: user?.id })
++      });
++      const data = await res.json();
++      if (!res.ok) {
++        toast({ title: "Transaksi Gagal", description: data.error || "Gagal membeli NFT dengan Rupiah", variant: "destructive" });
++      } else {
++        toast({ title: "NFT Didapatkan!", description: data.message });
++        await fetchFreshUser();
++        await fetchNfts();
++      }
++    } catch (err) {
++      toast({ title: "Error", description: "Terjadi kesalahan jaringan", variant: "destructive" });
++    } finally {
++      setSubmittingNft(null);
++    }
++  };
++
++  const handleBuyNftCrypto = async (nftId: number) => {
++    setSubmittingNft(`buy-${nftId}`);
++    try {
++      const res = await fetch(`/api/nfts/${nftId}/buy-crypto-direct`, {
++        method: "POST",
++        headers: { "Content-Type": "application/json" },
++        body: JSON.stringify({ userId: user?.id })
++      });
++      const data = await res.json();
++      if (!res.ok) {
++        toast({ title: "Transaksi Gagal", description: data.error || "Gagal membeli NFT dengan Crypto", variant: "destructive" });
++      } else {
++        toast({ title: "NFT Didapatkan!", description: data.message });
++        await fetchFreshUser();
++        await fetchNfts();
++      }
++    } catch (err) {
++      toast({ title: "Error", description: "Terjadi kesalahan jaringan", variant: "destructive" });
++    } finally {
++      setSubmittingNft(null);
++    }
++  };
++
++  const handleClaimFaucet = async () => {
++    setSubmittingNft("faucet");
++    try {
++      const res = await fetch(`/api/nfts/faucet`, {
++        method: "POST",
++        headers: { "Content-Type": "application/json" },
++        body: JSON.stringify({ userId: user?.id })
++      });
++      const data = await res.json();
++      if (!res.ok) {
++        toast({ title: "Faucet Gagal", description: data.error || "Gagal klaim faucet", variant: "destructive" });
++      } else {
++        toast({ title: "Faucet Sukses!", description: data.message });
++        await fetchFreshUser();
++      }
++    } catch (err) {
++      toast({ title: "Error", description: "Terjadi kesalahan jaringan", variant: "destructive" });
+     } finally {
+       setSubmittingNft(null);
+     }
+[diff_block_end]
+
+Please note that the above snippet only shows the MODIFIED lines from the last change. It shows up to 3 lines of unchanged lines before and after the modified lines. The actual file contents may have many more lines not shown.

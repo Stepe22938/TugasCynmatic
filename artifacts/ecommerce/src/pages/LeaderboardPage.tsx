@@ -56,7 +56,7 @@ export function LeaderboardPage() {
         buyers[buyerId].totalItemsBought += qty;
 
         // Seller stats
-        const sellerId = item.sellerId;
+        const sellerId = item.sellerId || "unknown";
         let sName = item.sellerName;
         
         // Better name resolution for sellers

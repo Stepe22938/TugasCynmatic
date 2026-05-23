@@ -35,7 +35,7 @@ export function AffiliatePage() {
   const myTotalCommission = (myReferralsCount * 1000).toLocaleString("id-ID");
 
   const copyReferral = () => {
-    if (!user) return;
+    if (!user || !user.referralCode) return;
     const text = user.referralCode;
 
     const onSuccess = () => {
@@ -76,9 +76,9 @@ export function AffiliatePage() {
   };
 
   const shareLink = () => {
-    const text = `Ayo gabung di Cynmatic! Gunakan kode referral saya: ${user?.referralCode} untuk dapet bonus koin!`;
+    const text = `Ayo gabung di TokoArthur! Gunakan kode referral saya: ${user?.referralCode} untuk dapet bonus koin!`;
     if (navigator.share) {
-      navigator.share({ title: "Cynmatic Affiliate", text, url: window.location.origin });
+      navigator.share({ title: "TokoArthur Affiliate", text, url: window.location.origin });
     } else {
       copyReferral();
     }
@@ -133,7 +133,7 @@ export function AffiliatePage() {
             className="inline-flex items-center gap-2 bg-white/5 backdrop-blur-md px-4 py-2 rounded-full border border-white/10 mb-8"
           >
             <Sparkles className="h-4 w-4 text-amber-400" />
-            <span className="text-xs font-black text-white/95 uppercase tracking-[0.2em]">Cynmatic Affiliate Program</span>
+            <span className="text-xs font-black text-white/95 uppercase tracking-[0.2em]">TokoArthur Affiliate Program</span>
           </motion.div>
           
           <h1 className="text-5xl md:text-7xl font-black text-white tracking-tighter mb-6 leading-[0.9] uppercase italic">
@@ -141,7 +141,7 @@ export function AffiliatePage() {
           </h1>
           
           <p className="text-white/60 text-lg font-medium max-w-xl mx-auto mb-10 leading-relaxed">
-            Dapatkan komisi koin dan Cynmatic Points untuk setiap teman yang kamu ajak bergabung.
+            Dapatkan komisi koin dan TokoArthur Points untuk setiap teman yang kamu ajak bergabung.
           </p>
 
           <div className="max-w-md mx-auto glass-card rounded-[2rem] p-4 shadow-[0_0_50px_rgba(234,179,8,0.05)] border border-white/10 flex items-center gap-4">
@@ -190,7 +190,7 @@ export function AffiliatePage() {
                 <Star className="h-6 w-6 text-violet-400" />
               </div>
               <p className="text-3xl font-black tracking-tight text-white">{user?.points || 0}</p>
-              <p className="text-[10px] font-black text-white/40 uppercase tracking-widest mt-1">Cynmatic Points</p>
+              <p className="text-[10px] font-black text-white/40 uppercase tracking-widest mt-1">TokoArthur Points</p>
            </div>
         </div>
 
@@ -242,7 +242,7 @@ export function AffiliatePage() {
               <div className="flex-1 text-center md:text-left">
                 <h2 className="text-3xl font-black tracking-tighter mb-3 uppercase italic">Tukarkan Points Kamu</h2>
                 <p className="text-white/60 font-medium leading-relaxed mb-6">
-                  Cynmatic Points bisa ditukarkan dengan Voucher Diskon, Merchandise, atau Role Eksklusif di platform kami.
+                  TokoArthur Points bisa ditukarkan dengan Voucher Diskon, Merchandise, atau Role Eksklusif di platform kami.
                 </p>
                 <div className="flex flex-wrap justify-center md:justify-start gap-3">
                    <div className="bg-white/5 px-4 py-2 rounded-xl border border-white/10 flex items-center gap-2">

@@ -1,0 +1,63 @@
+Created At: 2026-05-23T04:04:37Z
+Completed At: 2026-05-23T04:04:37Z
+File Path: `file:///c:/Users/Zaidan/Desktop/TESTCLAUDE/TugasCynmatic/artifacts/ecommerce/src/pages/ProfilePage.tsx`
+Total Lines: 1433
+Total Bytes: 91286
+Showing lines 830 to 950
+The following code has been modified to include a line number before every line, in the format: <line_number>: <original_line>. Please note that any changes targeting the original code should remove the line number, colon, and leading space.
+830:                                 ))}
+831:                               </div>
+832:                             )}
+833:                           </motion.div>
+834:                         )}
+835: 
+836:                         {activeNftTab === "marketplace" && (
+837:                           <motion.div
+838:                             key="marketplace-tab"
+839:                             initial={{ opacity: 0, y: 10 }}
+840:                             animate={{ opacity: 1, y: 0 }}
+841:                             exit={{ opacity: 0, y: -10 }}
+842:                             className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"
+843:                           >
+844:                             {nfts.filter(n => n.ownerId === null || n.ownerId === "market" || n.isForSale).map(nft => {
+845:                               const userHasEnough = Number(mcnftBalance) >= Number(nft.priceMcnft);
+846:                               return (
+847:                                 <div
+848:                                   key={nft.id}
+849:                                   className="glass-card rounded-2xl overflow-hidden border border-white/5 hover:border-white/15 transition-all group flex flex-col justify-between shadow-md"
+850:                                 >
+851:                                   <div className="relative h-40 overflow-hidden bg-slate-950">
+852:                                     <img
+853:                                       src={nft.image}
+854:                                       alt={nft.name}
+855:  
+<truncated 5459 bytes>
+                                   : "text-white/40 hover:text-white"
+924:                                   }`}
+925:                                 >
+926:                                   Deposit Terminal
+927:                                 </button>
+928:                                 <button
+929:                                   onClick={() => setSwapTerminalMode("withdraw")}
+930:                                   className={`px-6 py-2.5 rounded-lg font-black uppercase tracking-widest text-[9px] transition-all ${
+931:                                     swapTerminalMode === "withdraw"
+932:                                       ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 shadow-md"
+933:                                       : "text-white/40 hover:text-white"
+934:                                   }`}
+935:                                 >
+936:                                   Withdraw Terminal
+937:                                 </button>
+938:                               </div>
+939:                             </div>
+940: 
+941:                             <AnimatePresence mode="wait">
+942:                               {swapTerminalMode === "deposit" ? (
+943:                                 <motion.div
+944:                                   key="deposit-terminal"
+945:                                   initial={{ opacity: 0, x: -10 }}
+946:                                   animate={{ opacity: 1, x: 0 }}
+947:                                   exit={{ opacity: 0, x: 10 }}
+948:                                   className="glass-card rounded-[2rem] p-6 border border-white/5 space-y-6 shadow-xl relative overflow-hidden"
+949:                                 >
+950:                                   <div className="absolute top-0 right-0 w-24 h-24 bg-cyan-500/5 blur-xl rounded-full pointer-events-none" />
+The above content does NOT show the entire file contents. If you need to view any lines of the file which were not shown to complete your task, call this tool again to view those lines.

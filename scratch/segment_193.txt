@@ -1,0 +1,56 @@
+Created At: 2026-05-23T04:08:35Z
+Completed At: 2026-05-23T04:08:35Z
+File Path: `file:///C:/Users/Zaidan/.gemini/antigravity-ide/brain/517c6e8b-f047-4e14-ba2d-db47137f4627/implementation_plan.md`
+Total Lines: 62
+Total Bytes: 4088
+Showing lines 1 to 62
+The following code has been modified to include a line number before every line, in the format: <line_number>: <original_line>. Please note that any changes targeting the original code should remove the line number, colon, and leading space.
+1: # Redesign MCNFT PRO Suite to be Compact, Elegant & Stunning ("Wah")
+2: 
+3: The user requested a redesign of the NFT UI/UX inside the **MCNFT PRO Suite** (on the Profile Page) to make it lightweight ("jangan terlalu berat"), compact, and look extremely elegant and high-tech ("kecil tapi tampak wah + elegant").
+4: 
+5: ## User Review Required
+6: 
+7: We are proposing a complete overhaul of the MCNFT tab UI inside `ProfilePage.tsx` with these elite, compact design choices:
+8: 
+9: > [!IMPORTANT]
+10: > **Key Design Improvements:**
+11: > 1. **Live Blockchain Node Matrix**: Instead of the bulky full-width banner, we will transform it into a ultra-slim, clean **Live Network Status Bar** with glowing neon mini-badges.
+12: > 2. **VIP Portfolio Row**: Convert the huge 5-column grid into a compact, gorgeous horizontal **financial status ticker**.
+13: > 3. **Compact NFT Art Cards**: Replace the massive vertical collection/marketplace cards (which have tall images and large descriptions) with a **sleek micro-grid or horizontal row layout**. Each item will have a premium square avatar with a color-coded rarity aura/glow, and actions will be tucked into dynamic compact buttons.
+14: > 4. **Unified Swap Terminal**: Instead of two massive side-by-side terminal columns (Deck A and B) that clutter the screen, we will merge them into a single, highly polished **integrated dual-mode swapping box** with a smooth toggle switch (Deposit ⇄ Liquidate).
+15: > 5. **Compact Lucky Mint Core (Gacha)**: We will shrink the massive CRT screen to a **futuristic 
+<truncated 807 bytes>
+.
+32: * Tiny mono-spaced gas fee and block height pills.
+33: 
+34: ##### 2. Premium Portfolio Ticker (Replaces lines 695-715)
+35: * Instead of the heavy vertical boxes, create a sleek grid of micro-pills with thin golden/purple cyber-borders.
+36: * Make the text size small, with bright glowing colors, making it look like a high-end crypto wallet extension.
+37: 
+38: ##### 3. Compact Art & Marketplace Cards (Replaces lines 790-833 and 851-909)
+39: * Grid will be changed to a 3-column micro-grid or sleek horizontal rows.
+40: * Image: 80x80px square with a custom gold, purple, or cyan neon border based on price/rarity.
+41: * Display the name and price in an elegant inline format, and description in small font.
+42: * Shrink the checkout and refund buttons to sleek, space-saving icon-based or compact pill buttons.
+43: 
+44: ##### 4. Unified Swap Hub (Replaces lines 923-1107)
+45: * Create a single, beautifully centered card with a high-end toggle: **Deposit (Refill)** or **Liquidate (Cashout)**.
+46: * Selecting either mode dynamically shows the inputs and exchange rates.
+47: * Reduces page height by 400px while making it feel like a real Web3 bridge interface.
+48: 
+49: ##### 5. Cyber Quantum Mint (Replaces lines 1161-1348)
+50: * Instead of the gigantic vertical aspect box, we'll design a compact circular **Quantum core scanner**.
+51: * An interactive slot display with a pulsing cyan/magenta ring, drawing the user's focus on the actual gacha reveal.
+52: * Payment protocol pills will be laid out horizontally in a single sleek line.
+53: 
+54: ---
+55: 
+56: ## Verification Plan
+57: 
+58: ### Manual Verification
+59: 1. We will verify the page loads correctly and has zero compile/lint issues.
+60: 2. We will check the active development server console to ensure the code compiled successfully.
+61: 3. We will inspect the UI elements to ensure they conform to premium styling: glassmorphism, glowing custom borders, and perfect responsive alignments.
+62: 
+The above content shows the entire, complete file contents of the requested file.

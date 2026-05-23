@@ -1,0 +1,49 @@
+Created At: 2026-05-23T04:13:08Z
+Completed At: 2026-05-23T04:13:08Z
+File Path: `file:///c:/Users/Zaidan/Desktop/TESTCLAUDE/TugasCynmatic/artifacts/ecommerce/src/pages/ProfilePage.tsx`
+Total Lines: 363
+Total Bytes: 22410
+Showing lines 255 to 295
+The following code has been modified to include a line number before every line, in the format: <line_number>: <original_line>. Please note that any changes targeting the original code should remove the line number, colon, and leading space.
+255:               <PremiumLink href="/ban-leaderboard" title="Enforcement Log" sub="Security Matrix" icon={ShieldAlert} color="text-slate-500" />
+256:             )}
+257:           </div>
+258:         </div>
+259: 
+260:         {/* ── System & Support ─────────────────────────────────────── */}
+261:         <div className="space-y-4">
+262:           <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-white/30 px-2">System & Support</h3>
+263:           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+264:             <PremiumLink href="/tickets" title="Support Center" sub="Help & Assistance" icon={HelpCircle} color="text-blue-500" />
+265:             <PremiumLink href="/customize" title="Personalization" sub="Visual Settings" icon={Palette} color="text-pink-500" />
+266:             <PremiumLink href="/notifications" title="Signal Alerts" sub="Notification Logs" icon={Bell} color="text-orange-400" />
+267:             <PremiumLink href="/about-us" title="Cynmatic Story" sub="Identity Protocol" icon={Globe} color="text-white" />
+268:           </div>
+269:         </div>
+270: 
+271:         {/* ── System Details ─────────────────────────────────────── */}
+272:         <div className="glass-card rounded-[3rem] overflow-hidden">
+273:           <div className="px-10 py-6 bg-white/5 border-b border-white/5 flex items-center justify-between">
+274:             <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-white/40">Vault Security & System Details</h3>
+275:             <ShieldCheck className="h-4 w-4 text-emerald-500" />
+276:           </div>
+277:           <div className="divide-y divide-white/5">
+278:             <SystemRow label="Authentication ID" value={user.id.toUpperCase()} />
+279:             <SystemRow label="Authorized IP" value={user.publicIp || "Scanning..."} />
+280:             <SystemRow label="System Role" value={user.role.toUpperCase()} />
+281:             <SystemRow label="Network Node" value="MariaDB VPS Node-1" />
+282:           </div>
+283:         </div>
+284: 
+285:         {/* ── Action Footer ───────────────────────────────────────── */}
+286:         <div className="flex flex-col sm:flex-row gap-4 pt-8">
+287:           <Button 
+288:             onClick={handleLogout}
+289:             variant="outline" 
+290:             className="flex-1 h-16 rounded-[2rem] border-white/5 bg-white/5 hover:bg-red-500/10 hover:border-red-500/50 text-red-500 font-black uppercase tracking-widest text-[10px] transition-all"
+291:           >
+292:             <LogOut className="h-4 w-4 mr-2" /> Terminate Session
+293:           </Button>
+294:         </div>
+295: 
+The above content does NOT show the entire file contents. If you need to view any lines of the file which were not shown to complete your task, call this tool again to view those lines.

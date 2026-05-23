@@ -45,7 +45,22 @@ export function TicketProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const init = async () => {
       const vpsTickets = await fetchAllTicketsFromVPS();
-      if (vpsTickets) setTickets(vpsTickets);
+      if (vpsTickets) {
+        const parsed = vpsTickets.map((t: any) => {
+          const ensureArray = (val: any) => {
+            if (Array.isArray(val)) return val;
+            if (typeof val === "string") {
+              try { return JSON.parse(val); } catch (e) { return []; }
+            }
+            return [];
+          };
+          return {
+            ...t,
+            messages: ensureArray(t.messages)
+          };
+        });
+        setTickets(parsed);
+      }
     };
     init();
     // Poll every 30s

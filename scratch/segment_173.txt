@@ -1,0 +1,22 @@
+Created At: 2026-05-23T04:07:35Z
+Completed At: 2026-05-23T04:07:36Z
+{"File":"c:\\Users\\Zaidan\\Desktop\\TESTCLAUDE\\TugasCynmatic\\artifacts\\ecommerce\\src\\pages\\TopUpPage.tsx","LineNumber":2,"LineContent":" * TopUpPage.tsx"}
+{"File":"c:\\Users\\Zaidan\\Desktop\\TESTCLAUDE\\TugasCynmatic\\artifacts\\ecommerce\\src\\pages\\TopUpPage.tsx","LineNumber":52,"LineContent":"export function TopUpPage() {"}
+{"File":"c:\\Users\\Zaidan\\Desktop\\TESTCLAUDE\\TugasCynmatic\\artifacts\\ecommerce\\src\\pages\\TopUpPage.tsx","LineNumber":54,"LineContent":"  const { balance, topUp } = useWallet();"}
+{"File":"c:\\Users\\Zaidan\\Desktop\\TESTCLAUDE\\TugasCynmatic\\artifacts\\ecommerce\\src\\pages\\TopUpPage.tsx","LineNumber":80,"LineContent":"  const handleProcessTopUp = () =\u003e {"}
+{"File":"c:\\Users\\Zaidan\\Desktop\\TESTCLAUDE\\TugasCynmatic\\artifacts\\ecommerce\\src\\pages\\TopUpPage.tsx","LineNumber":93,"LineContent":"      topUp(Number(amount));"}
+{"File":"c:\\Users\\Zaidan\\Desktop\\TESTCLAUDE\\TugasCynmatic\\artifacts\\ecommerce\\src\\pages\\TopUpPage.tsx","LineNumber":259,"LineContent":"                  onClick={handleProcessTopUp}"}
+{"File":"c:\\Users\\Zaidan\\Desktop\\TESTCLAUDE\\TugasCynmatic\\artifacts\\ecommerce\\src\\pages\\ProfilePage.tsx","LineNumber":572,"LineContent":"                  \u003cPremiumLink href=\"/game-topup\" title=\"Direct Game TopUp\" sub=\"Instant Recharge\" icon={Gamepad2} color=\"text-yellow-500\" /\u003e"}
+{"File":"c:\\Users\\Zaidan\\Desktop\\TESTCLAUDE\\TugasCynmatic\\artifacts\\ecommerce\\src\\pages\\MyDompetPage.tsx","LineNumber":21,"LineContent":"  const { balance, transactions, topUp, transfer, request } = useWallet();"}
+{"File":"c:\\Users\\Zaidan\\Desktop\\TESTCLAUDE\\TugasCynmatic\\artifacts\\ecommerce\\src\\pages\\MyDompetPage.tsx","LineNumber":26,"LineContent":"  const [isTopUpOpen, setIsTopUpOpen] = useState(false);"}
+{"File":"c:\\Users\\Zaidan\\Desktop\\TESTCLAUDE\\TugasCynmatic\\artifacts\\ecommerce\\src\\pages\\MyDompetPage.tsx","LineNumber":30,"LineContent":"  const [to
+<truncated 3454 bytes>
+racking-widest text-xs\"\u003eConfirm Payment\u003c/Button\u003e"}
+{"File":"c:\\Users\\Zaidan\\Desktop\\TESTCLAUDE\\TugasCynmatic\\artifacts\\ecommerce\\src\\pages\\GameTopUpPage.tsx","LineNumber":2,"LineContent":" * GameTopUpPage.tsx"}
+{"File":"c:\\Users\\Zaidan\\Desktop\\TESTCLAUDE\\TugasCynmatic\\artifacts\\ecommerce\\src\\pages\\GameTopUpPage.tsx","LineNumber":94,"LineContent":"export function GameTopUpPage() {"}
+{"File":"c:\\Users\\Zaidan\\Desktop\\TESTCLAUDE\\TugasCynmatic\\artifacts\\ecommerce\\src\\pages\\GameTopUpPage.tsx","LineNumber":150,"LineContent":"              TOKOARTHUR \u003cspan style={{ color: COLORS.accent }} className=\"group-hover:animate-pulse\"\u003eTOPUP\u003c/span\u003e"}
+{"File":"c:\\Users\\Zaidan\\Desktop\\TESTCLAUDE\\TugasCynmatic\\artifacts\\ecommerce\\src\\pages\\GameTopUpPage.tsx","LineNumber":210,"LineContent":"          /* ── Topup Page 1:1 Pointgo ────────────────────────────────────────── */"}
+{"File":"c:\\Users\\Zaidan\\Desktop\\TESTCLAUDE\\TugasCynmatic\\artifacts\\ecommerce\\src\\pages\\GameTopUpPage.tsx","LineNumber":212,"LineContent":"            key=\"topup\""}
+{"File":"c:\\Users\\Zaidan\\Desktop\\TESTCLAUDE\\TugasCynmatic\\artifacts\\ecommerce\\src\\pages\\GameTopUpPage.tsx","LineNumber":519,"LineContent":"             \u003ch4 className=\"font-black italic tracking-tighter text-4xl\"\u003eTOKOARTHUR \u003cspan style={{ color: COLORS.accent }}\u003eTOPUP\u003c/span\u003e\u003c/h4\u003e"}
+{"File":"c:\\Users\\Zaidan\\Desktop\\TESTCLAUDE\\TugasCynmatic\\artifacts\\ecommerce\\src\\pages\\GameTopUpPage.tsx","LineNumber":550,"LineContent":"           \u003cp className=\"text-[10px] font-black uppercase tracking-[1em] text-white/5\"\u003e© 2026 TOKOARTHUR TOPUP • ALL RIGHTS RESERVED\u003c/p\u003e"}
+{"File":"c:\\Users\\Zaidan\\Desktop\\TESTCLAUDE\\TugasCynmatic\\artifacts\\ecommerce\\src\\pages\\AIChatPage.tsx","LineNumber":414,"LineContent":"                      href=\"/game-topup\" "}

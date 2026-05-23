@@ -1,0 +1,54 @@
+Created At: 2026-05-23T03:55:28Z
+Completed At: 2026-05-23T03:56:04Z
+The following changes were made by the multi_replace_file_content tool to: c:\Users\Zaidan\Desktop\TESTCLAUDE\TugasCynmatic\artifacts\ecommerce\src\pages\ProfilePage.tsx. If relevant, proactively run terminal commands to execute this code for the USER. Don't ask for permission.
+[diff_block_start]
+@@ -88,6 +88,7 @@
+   const [swapCryptoType, setSwapCryptoType] = useState<"BTC" | "ETH" | "USDT">("BTC");
+   const [swapCryptoAmount, setSwapCryptoAmount] = useState<string>("");
+   const [cashoutAmount, setCashoutAmount] = useState<string>("");
++  const [swapTerminalMode, setSwapTerminalMode] = useState<"deposit" | "withdraw">("deposit");
+ 
+   // Live Simulated Network Stats
+   const [blockHeight, setBlockHeight] = useState(8219301);
+@@ -654,77 +654,57 @@
+                   </span>
+                 </div>
+ 
+-                {/* Holographic Network Nodes Info Banner */}
+-                <div className="glass-card p-6 rounded-[2rem] border-white/5 flex flex-col md:flex-row items-center justify-between gap-6 relative overflow-hidden group shadow-2xl">
+-                  {/* Ambient Line */}
+-                  <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-cyan-500 via-purple-500 to-emerald-500" />
+-                  <div className="flex items-center gap-4">
+-                    <div className="w-12 h-12 bg-gradient-to-tr from-purple-600 to-pink-600 rounded-2xl flex items-center justify-center shadow-lg shadow-purple-900/30">
+-                      <Cpu className="h-6 w-6 text-white" />
+-                    </div>
+-                    <div>
+-                      <div className="flex items-center gap-2">
+-                        <h4 className="text-xs font-black tracking-tight text-white uppercase font-sans">Blockchain Node Matrix</h4>
+-                        <span className="px-2 py-0.5 rounded bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[7px] font-black uppercase tracking-widest ani
+<truncated 45283 bytes>
+                      className="h-12 bg-white/5 border border-white/10 rounded-xl px-3 text-xs font-black uppercase text-white focus:outline-none"
+-                                        >
+-                                          <option value="BTC" className="bg-slate-900">BTC</option>
+-                                          <option value="ETH" className="bg-slate-900">ETH</option>
+-                                          <option value="USDT" className="bg-slate-900">USDT</option>
++                                          className="h-10 bg-slate-900 border border-white/10 rounded-lg px-2 text-[10px] font-black uppercase text-white focus:outline-none"
++                                        >
++                                          <option value="BTC">BTC</option>
++                                          <option value="ETH">ETH</option>
++                                          <option value="USDT">USDT</option>
+                                         </select>
+                                         <input
+                                           type="number"
+@@ -996,12 +996,12 @@
+                                           value={swapCryptoAmount}
+                                           onChange={e => setSwapCryptoAmount(e.target.value)}
+-                                          placeholder="Crypto amount to swap"
+-                                          className="flex-1 h-12 bg-white/5 border border-white/10 rounded-xl px-4 text-sm font-black focus:outline-none text-white focus:border-yellow-500/50"
++                                          placeholder="Crypto to swap"
++                                          className="flex-1 h-10 bg-white/5 border border-white/10 rounded-lg px-3 text-xs font-black focus:outline-none text-white focus:border-yellow-500/50"
+                                         />
+   
+<truncated 43940 bytes>
+
+NOTE: The output was truncated because it was too long. Use a more targeted query or a smaller range to get the information you need.

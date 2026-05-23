@@ -1,0 +1,89 @@
+Created At: 2026-05-23T04:04:28Z
+Completed At: 2026-05-23T04:04:28Z
+File Path: `file:///c:/Users/Zaidan/Desktop/TESTCLAUDE/TugasCynmatic/artifacts/ecommerce/src/pages/ProfilePage.tsx`
+Total Lines: 1433
+Total Bytes: 91286
+Showing lines 150 to 230
+The following code has been modified to include a line number before every line, in the format: <line_number>: <original_line>. Please note that any changes targeting the original code should remove the line number, colon, and leading space.
+150:   };
+151: 
+152:   const handleLogout = () => { logout(); setLocation("/login"); };
+153: 
+154:   const mcnftBalance = user?.myCoinNft || "0";
+155:   const btcBalance = user?.balanceBtc || "0.00";
+156:   const ethBalance = user?.balanceEth || "0.00";
+157:   const usdtBalance = user?.balanceUsdt || "0.00";
+158:   const walletBalance = user?.balance || 0;
+159: 
+160:   const handleBuyNft = async (nftId: number) => {
+161:     setSubmittingNft(`buy-${nftId}`);
+162:     try {
+163:       const res = await fetch(`/api/nfts/${nftId}/buy`, {
+164:         method: "POST",
+165:         headers: { "Content-Type": "application/json" },
+166:         body: JSON.stringify({ userId: user?.id })
+167:       });
+168:       const data = await res.json();
+169:       if (!res.ok) {
+170:         toast({ title: "Transaksi Gagal", description: data.error || "Gagal membeli NFT", variant: "destructive" });
+171:       } else {
+172:         toast({ title: "NFT Didapatkan!", description: data.message });
+173:         await fetchFreshUser();
+174:         await fetchNfts();
+175:       }
+176:     } catch (err) {
+177:       toast({ title: "Error", description: "Terjadi kesalahan jaringan", variant: "destructive" });
+178:     } finally {
+179:       setSubmittingNft(null);
+180:     }
+181:   };
+182: 
+183:   const handleSellNft = async (nftId: number) => {
+184:     setSubmittingNft(`sell-${nftId}`);
+185:     try {
+186:       const res = await fetch(`/api/nfts/${nftId}/sell`, {
+187:         method: "POST",
+188:         headers: { "Content-Type": "application/json" },
+189:         body: JSON.stringify({ userId: user?.id })
+190:       });
+191:       const data = await res.json();
+192:       if (!res.ok) {
+193:         toast({ title: "Transaksi Gagal", description: data.error || "Gagal menjual NFT", variant: "destructive" });
+194:       } else {
+195:         toast({ title: "NFT Berhasil Dijual!", description: data.message });
+196:         await fetchFreshUser();
+197:         await fetchNfts();
+198:       }
+199:     } catch (err) {
+200:       toast({ title: "Error", description: "Terjadi kesalahan jaringan", variant: "destructive" });
+201:     } finally {
+202:       setSubmittingNft(null);
+203:     }
+204:   };
+205: 
+206:   const handleBuyCrypto = async () => {
+207:     if (!buyCryptoAmount || Number(buyCryptoAmount) <= 0) {
+208:       toast({ title: "Nominal tidak valid", description: "Masukkan jumlah crypto yang ingin dibeli", variant: "destructive" });
+209:       return;
+210:     }
+211:     setSubmittingNft("buy-crypto");
+212:     try {
+213:       const res = await fetch(`/api/nfts/buy-crypto`, {
+214:         method: "POST",
+215:         headers: { "Content-Type": "application/json" },
+216:         body: JSON.stringify({ userId: user?.id, cryptoType: buyCryptoType, amount: buyCryptoAmount })
+217:       });
+218:       const data = await res.json();
+219:       if (!res.ok) {
+220:         toast({ title: "Transaksi Gagal", description: data.error || "Gagal membeli cryptocurrency", variant: "destructive" });
+221:       } else {
+222:         toast({ title: "Pembelian Sukses!", description: data.message });
+223:         setBuyCryptoAmount("");
+224:         await fetchFreshUser();
+225:       }
+226:     } catch (err) {
+227:       toast({ title: "Error", description: "Terjadi kesalahan jaringan", variant: "destructive" });
+228:     } finally {
+229:       setSubmittingNft(null);
+230:     }
+The above content does NOT show the entire file contents. If you need to view any lines of the file which were not shown to complete your task, call this tool again to view those lines.

@@ -120,7 +120,7 @@ export function HomePage() {
                     <ShoppingBag className="h-5 w-5" /> Start Shopping
                   </motion.a>
                   
-                  <Link href="/auctions">
+                  <Link href="/auction">
                     <motion.button 
                       whileHover={{ scale: 1.05, y: -5 }}
                       whileTap={{ scale: 0.95 }}

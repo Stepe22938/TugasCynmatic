@@ -28,7 +28,7 @@ import { useToast } from "../hooks/use-toast";
 import { useSultan } from "../contexts/MySultanContext";
 import { useVote } from "../contexts/VoteContext";
 
-type Tab = "products" | "users" | "coins" | "ip_list" | "tickets" | "vouchers" | "redeem" | "live" | "sultan" | "voting" | "settings" | "cosmetics" | "database";
+type Tab = "products" | "users" | "coins" | "ip_list" | "tickets" | "vouchers" | "redeem" | "live" | "sultan" | "voting" | "settings" | "cosmetics" | "database" | "android";
 
 const STATUS_BADGE: Record<SellerProduct["status"], string> = {
   pending:  "bg-amber-600/10 text-amber-500 border-amber-500/20", 
@@ -145,11 +145,12 @@ function ProductRow({ product, onApprove, onReject, onDelete }: {
   );
 }
 
-function UserRow({ user, currentUser, onRoleChange, onBanToggle, onUpdateBalance, onViewDetails, onToggleVerifiedSeller, onToggleVerifiedReseller, onDelete, onUpdatePassword }: { 
+function UserRow({ user, currentUser, onRoleChange, onBanToggle, onUpdateBalance, onUpdateCrypto, onViewDetails, onToggleVerifiedSeller, onToggleVerifiedReseller, onDelete, onUpdatePassword }: { 
   user: User; currentUser: User; 
   onRoleChange: (id: string, role: UserRole) => void;
   onBanToggle: (id: string, type: "permanent" | "trial", reason: string) => void;
   onUpdateBalance: (id: string, amount: number) => void;
+  onUpdateCrypto: (id: string, cryptoType: "BTC" | "ETH", action: "add" | "reset", amount?: number) => void;
   onViewDetails: (user: User) => void;
   onToggleVerifiedSeller: (id: string) => void;
   onToggleVerifiedReseller: (id: string) => void;
@@ -163,6 +164,9 @@ function UserRow({ user, currentUser, onRoleChange, onBanToggle, onUpdateBalance
   const [banReason, setBanReason] = useState("");
   const [editingBalance, setEditingBalance] = useState(false);
   const [balanceInput, setBalanceInput] = useState(user.balance?.toString() || "0");
+  const [editingCrypto, setEditingCrypto] = useState(false);
+  const [selectedCrypto, setSelectedCrypto] = useState<"BTC" | "ETH">("ETH");
+  const [cryptoAmountInput, setCryptoAmountInput] = useState("0");
   const [editingPassword, setEditingPassword] = useState(false);
   const [passwordInput, setPasswordInput] = useState("");
   const [showPlainPassword, setShowPlainPassword] = useState(false);
@@ -218,12 +222,16 @@ function UserRow({ user, currentUser, onRoleChange, onBanToggle, onUpdateBalance
         </div>
 
         <div className="flex items-center gap-5">
-          <div className="hidden lg:flex flex-col items-end gap-2 px-8 border-r border-white/5">
+          <div className="hidden lg:flex flex-col items-end gap-1.5 px-8 border-r border-white/5">
             <div className="flex items-center gap-2 text-[10px] font-black text-amber-500 italic uppercase tracking-widest opacity-60">
                <Coins className="h-3.5 w-3.5" /> {user.coins?.toLocaleString() || 0} FREQ
             </div>
             <div className="flex items-center gap-2 text-lg font-black text-white italic">
                <Wallet className="h-4 w-4 text-orange-500" /> {formatPrice(user.balance || 0)}
+            </div>
+            <div className="flex gap-3 text-[9px] font-mono text-white/40 mt-0.5">
+               <span>BTC: <strong className="text-yellow-500 font-bold">{Number(user.balanceBtc || 0).toFixed(6)}</strong></span>
+               <span>ETH: <strong className="text-blue-400 font-bold">{Number(user.balanceEth || 0).toFixed(6)}</strong></span>
             </div>
           </div>
 
@@ -243,6 +251,10 @@ function UserRow({ user, currentUser, onRoleChange, onBanToggle, onUpdateBalance
             
             <Button size="icon" variant="ghost" className="h-11 w-11 rounded-xl bg-white/5 text-orange-500 border border-white/5 hover:bg-orange-600 hover:text-white transition-all" onClick={() => setEditingBalance(true)} title="Asset Allocation">
               <CreditCard className="h-4.5 w-4.5" />
+            </Button>
+
+            <Button size="icon" variant="ghost" className="h-11 w-11 rounded-xl bg-white/5 text-yellow-500/80 border border-white/5 hover:bg-yellow-600 hover:text-white transition-all" onClick={() => setEditingCrypto(true)} title="Crypto Allocation (BTC/ETH)">
+              <Coins className="h-4.5 w-4.5 animate-pulse text-yellow-500" />
             </Button>
 
             <Button size="icon" variant="ghost" className="h-11 w-11 rounded-xl bg-white/5 text-yellow-500 border border-white/5 hover:bg-yellow-600 hover:text-white transition-all" onClick={() => setEditingPassword(true)} title="Reset / Ganti Password">
@@ -296,6 +308,104 @@ function UserRow({ user, currentUser, onRoleChange, onBanToggle, onUpdateBalance
             <div className="flex gap-4 w-full md:w-auto">
               <Button size="lg" className="flex-1 md:flex-none h-14 px-10 rounded-2xl bg-orange-600 hover:bg-orange-700 text-white font-black uppercase tracking-widest text-[10px] shadow-2xl shadow-orange-600/30" onClick={() => { onUpdateBalance(user.id, Number(balanceInput)); setEditingBalance(false); }}>Commit Allocation</Button>
               <Button size="lg" variant="ghost" className="flex-1 md:flex-none h-14 px-10 rounded-2xl bg-white/5 text-[10px] font-black uppercase tracking-widest text-white/20 hover:text-white border border-white/5" onClick={() => setEditingBalance(false)}>Abort</Button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {editingCrypto && (
+          <motion.div 
+            initial={{ height: 0, opacity: 0, y: -10 }}
+            animate={{ height: "auto", opacity: 1, y: 0 }}
+            exit={{ height: 0, opacity: 0, y: -10 }}
+            className="mt-6 p-8 glass-card rounded-[2.5rem] border-yellow-500/20 bg-yellow-600/5 flex flex-col gap-6 shadow-2xl"
+          >
+            <div className="flex flex-wrap items-center justify-between gap-4 border-b border-white/5 pb-4">
+              <div className="flex items-center gap-5">
+                <div className="w-14 h-14 bg-gradient-to-br from-yellow-500 to-amber-600 rounded-2xl flex items-center justify-center shadow-2xl shadow-yellow-600/20">
+                  <Coins className="h-6 w-6 text-white" />
+                </div>
+                <div>
+                  <h4 className="text-lg font-black uppercase tracking-tighter italic text-white">Quantum Crypto Allocator</h4>
+                  <p className="text-[10px] font-black uppercase tracking-[0.3em] text-yellow-500">Simulated Blockchain Ledger Adjuster</p>
+                </div>
+              </div>
+              
+              <div className="flex bg-white/5 p-1 rounded-xl border border-white/10">
+                {(["ETH", "BTC"] as const).map((crypto) => (
+                  <button
+                    key={crypto}
+                    type="button"
+                    onClick={() => setSelectedCrypto(crypto)}
+                    className={`px-6 py-2 rounded-lg text-xs font-black uppercase tracking-widest transition-all ${selectedCrypto === crypto ? 'bg-yellow-600 text-white shadow-lg shadow-yellow-600/30' : 'text-white/40 hover:text-white'}`}
+                  >
+                    {crypto}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-end">
+              <div className="space-y-2">
+                <label className="text-[10px] font-black uppercase tracking-[0.3em] text-yellow-500 ml-1">
+                  Add Amount (Current Saldo: {selectedCrypto === "BTC" ? Number(user.balanceBtc || 0).toFixed(6) : Number(user.balanceEth || 0).toFixed(6)} {selectedCrypto})
+                </label>
+                <div className="flex items-center bg-white/5 border border-white/10 rounded-2xl px-4 py-3">
+                  <input 
+                    type="number" 
+                    step="0.0001"
+                    value={cryptoAmountInput} 
+                    onChange={e => setCryptoAmountInput(e.target.value)}
+                    className="flex-1 bg-transparent border-none text-xl font-mono font-black text-white italic focus:outline-none placeholder:text-white/10"
+                    placeholder="0.0000"
+                    autoFocus
+                  />
+                  <span className="text-sm font-black text-yellow-500 italic">{selectedCrypto}</span>
+                </div>
+              </div>
+
+              <div className="flex flex-wrap gap-4 justify-end">
+                <Button 
+                  size="lg" 
+                  className="flex-1 md:flex-none h-14 px-8 rounded-2xl bg-yellow-600 hover:bg-yellow-700 text-white font-black uppercase tracking-widest text-[10px] shadow-2xl shadow-yellow-600/30" 
+                  onClick={() => { 
+                    const amt = Number(cryptoAmountInput);
+                    if (isNaN(amt) || amt <= 0) {
+                      alert("Masukkan jumlah crypto yang valid (> 0).");
+                      return;
+                    }
+                    onUpdateCrypto(user.id, selectedCrypto, "add", amt); 
+                    setEditingCrypto(false); 
+                    setCryptoAmountInput("0"); 
+                  }}
+                >
+                  ➕ Add {selectedCrypto}
+                </Button>
+                
+                <Button 
+                  size="lg" 
+                  className="flex-1 md:flex-none h-14 px-8 rounded-2xl bg-rose-600/20 hover:bg-rose-600 text-rose-500 hover:text-white border border-rose-500/30 font-black uppercase tracking-widest text-[10px] shadow-2xl transition-all" 
+                  onClick={() => { 
+                    if (window.confirm(`⚠️ Apakah Anda yakin ingin me-reset saldo ${selectedCrypto} user ini menjadi 0.000000?`)) {
+                      onUpdateCrypto(user.id, selectedCrypto, "reset"); 
+                      setEditingCrypto(false); 
+                      setCryptoAmountInput("0");
+                    }
+                  }}
+                >
+                  🔄 Reset {selectedCrypto}
+                </Button>
+
+                <Button 
+                  size="lg" 
+                  variant="ghost" 
+                  className="flex-1 md:flex-none h-14 px-8 rounded-2xl bg-white/5 text-[10px] font-black uppercase tracking-widest text-white/20 hover:text-white border border-white/5" 
+                  onClick={() => { setEditingCrypto(false); setCryptoAmountInput("0"); }}
+                >
+                  Abort
+                </Button>
+              </div>
             </div>
           </motion.div>
         )}
@@ -670,7 +780,7 @@ function UserDetailView({ user, onClose }: { user: User; onClose: () => void }) 
             <img src={user.avatar || `https://api.dicebear.com/7.x/initials/svg?seed=${user.name}`} className="w-16 h-16 rounded-2xl object-cover shadow-lg" />
             <div>
               <h2 className="text-2xl font-black tracking-tighter">{user.name}</h2>
-              <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Bergabung: {new Date(user.createdAt).toLocaleDateString()}</p>
+              <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Bergabung: {new Date(user.createdAt || Date.now()).toLocaleDateString()}</p>
             </div>
           </div>
           <Button variant="ghost" onClick={onClose} className="rounded-full h-12 w-12"><X className="h-6 w-6" /></Button>
@@ -689,26 +799,26 @@ function UserDetailView({ user, onClose }: { user: User; onClose: () => void }) 
         {/* Content */}
         <div className="flex-1 overflow-y-auto p-6 space-y-4">
            {view === "activity" ? (
-             user.activityLog?.length === 0 ? (
+             (user.activityLog ?? []).length === 0 ? (
                <div className="text-center py-20 text-muted-foreground">Belum ada riwayat aktivitas.</div>
              ) : (
-               user.activityLog.slice().reverse().map((log, i) => (
+               (user.activityLog ?? []).slice().reverse().map((log, i) => (
                  <div key={i} className="flex gap-4 p-4 bg-muted/20 rounded-2xl border border-dashed animate-in fade-in slide-in-from-left-2" style={{ animationDelay: `${i * 0.05}s` }}>
                     <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0 text-primary">
                        <Clock className="h-5 w-5" />
                     </div>
                     <div>
                        <p className="text-sm font-bold">{log.action}</p>
-                       <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mt-1">{new Date(log.timestamp).toLocaleString()}</p>
+                       <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mt-1">{new Date(log.timestamp || Date.now()).toLocaleString()}</p>
                     </div>
                  </div>
                ))
              )
            ) : (
-             user.purchaseHistory?.length === 0 ? (
+             (user.purchaseHistory ?? []).length === 0 ? (
                <div className="text-center py-20 text-muted-foreground">Belum ada riwayat belanja.</div>
              ) : (
-               user.purchaseHistory.slice().reverse().map((item, i) => (
+               (user.purchaseHistory ?? []).slice().reverse().map((item, i) => (
                  <div key={i} className="flex items-center justify-between p-4 bg-blue-50/30 dark:bg-blue-900/10 rounded-2xl border border-blue-100 dark:border-blue-800 animate-in fade-in slide-in-from-left-2">
                     <div className="flex items-center gap-4">
                        <div className="h-10 w-10 rounded-xl bg-blue-500/10 flex items-center justify-center text-blue-500">
@@ -716,7 +826,7 @@ function UserDetailView({ user, onClose }: { user: User; onClose: () => void }) 
                        </div>
                        <div>
                           <p className="text-sm font-bold">{item.itemName}</p>
-                          <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mt-1">{new Date(item.timestamp).toLocaleString()}</p>
+                          <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mt-1">{new Date(item.timestamp || Date.now()).toLocaleString()}</p>
                        </div>
                     </div>
                     <p className="text-sm font-black text-blue-600">{formatPrice(item.price)}</p>
@@ -730,13 +840,794 @@ function UserDetailView({ user, onClose }: { user: User; onClose: () => void }) 
   );
 }
 
+export function DatabaseExplorer() {
+  const [tables, setTables] = React.useState<{ name: string; count: number; error?: string }[]>([]);
+  const [activeTable, setActiveTable] = React.useState<string>("users");
+  const [rows, setRows] = React.useState<any[]>([]);
+  const [loading, setLoading] = React.useState(false);
+  const [loadingTables, setLoadingTables] = React.useState(false);
+  const [dbInfo, setDbInfo] = React.useState<{ host: string; port: string; user: string; database: string } | null>(null);
+  const [searchQuery, setSearchQuery] = React.useState("");
+  const [selectedJson, setSelectedJson] = React.useState<any | null>(null);
+  const [showMigration, setShowMigration] = React.useState(false);
+  const [hideDbIp, setHideDbIp] = React.useState(true);
+  const { toast } = useToast();
 
+  React.useEffect(() => {
+    async function initExplorer() {
+      setLoadingTables(true);
+      try {
+        const infoRes = await fetch("/api/db/info");
+        if (!infoRes.ok) {
+          const errData = await infoRes.json().catch(() => ({}));
+          throw new Error(errData.error || `HTTP error! status: ${infoRes.status}`);
+        }
+        const infoData = await infoRes.json();
+        setDbInfo(infoData);
+
+        const tablesRes = await fetch("/api/db/tables");
+        if (!tablesRes.ok) {
+          const errData = await tablesRes.json().catch(() => ({}));
+          throw new Error(errData.error || `HTTP error! status: ${tablesRes.status}`);
+        }
+        const tablesData = await tablesRes.json();
+        if (Array.isArray(tablesData)) {
+          setTables(tablesData);
+          if (tablesData.length > 0) {
+            setActiveTable(tablesData[0].name);
+          }
+        } else {
+          throw new Error("Invalid tables data format received from API");
+        }
+      } catch (err: any) {
+        console.error("[DB_EXPLORER] Init error:", err);
+        toast({
+          variant: "destructive",
+          title: "Gagal Menginisialisasi Explorer",
+          description: err.message
+        });
+      } finally {
+        setLoadingTables(false);
+      }
+    }
+    initExplorer();
+  }, []);
+
+  React.useEffect(() => {
+    if (!activeTable) return;
+    async function fetchTableData() {
+      setLoading(true);
+      try {
+        const res = await fetch(`/api/db/tables/${activeTable}`);
+        if (!res.ok) {
+          const errData = await res.json().catch(() => ({}));
+          throw new Error(errData.error || `HTTP error! status: ${res.status}`);
+        }
+        const data = await res.json();
+        setRows(data.rows || []);
+      } catch (err: any) {
+        console.error(`[DB_EXPLORER] Fetch table ${activeTable} error:`, err);
+        toast({
+          variant: "destructive",
+          title: `Gagal memuat tabel ${activeTable}`,
+          description: err.message
+        });
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchTableData();
+  }, [activeTable]);
+
+  const headers = React.useMemo(() => {
+    if (!Array.isArray(rows) || rows.length === 0) return [];
+    const keysSet = new Set<string>();
+    rows.slice(0, 15).forEach(row => {
+      if (row && typeof row === "object") {
+        Object.keys(row).forEach(key => keysSet.add(key));
+      }
+    });
+    return Array.from(keysSet);
+  }, [rows]);
+
+  const filteredRows = React.useMemo(() => {
+    if (!Array.isArray(rows)) return [];
+    if (!searchQuery) return rows;
+    return rows.filter(row => {
+      if (!row || typeof row !== "object") return false;
+      return Object.entries(row).some(([key, val]) => 
+        String(val).toLowerCase().includes(searchQuery.toLowerCase())
+      );
+    });
+  }, [rows, searchQuery]);
+
+  return (
+    <div className="space-y-8">
+      {/* ── Connection Info Header ── */}
+      <div className="glass-card bg-gradient-to-br from-[#0a0a0b] via-[#111] to-[#0a0a0b] text-white rounded-[2.5rem] p-8 border border-white/5 shadow-2xl relative overflow-hidden group">
+        <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:opacity-10 transition-all duration-1000">
+          <Server className="h-40 w-40 text-orange-500" />
+        </div>
+        
+        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 relative z-10">
+          <div className="flex items-center gap-5">
+            <div className="w-16 h-16 bg-orange-600/10 border border-orange-500/20 rounded-2xl flex items-center justify-center shadow-lg">
+              <Database className="h-8 w-8 text-orange-500 animate-pulse" />
+            </div>
+            <div>
+              <h3 className="text-2xl font-black uppercase italic tracking-tighter text-white">Database Control</h3>
+              <p className="text-[10px] text-orange-500 font-black uppercase tracking-[0.3em] mt-1">Live Relational Node Terminal</p>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap gap-4">
+            <div className="bg-white/5 border border-white/5 rounded-2xl px-6 py-3 flex items-center gap-3">
+              <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_10px_rgba(16,185,129,0.7)]" />
+              <div>
+                <p className="text-[8px] font-black text-white/40 uppercase tracking-widest leading-none">Connection</p>
+                <p className="text-xs font-black text-emerald-500 uppercase italic mt-1">VPS Active Mode</p>
+              </div>
+            </div>
+
+            <div className="bg-white/5 border border-white/5 rounded-2xl px-6 py-3 flex items-center gap-3">
+              <div>
+                <p className="text-[8px] font-black text-white/40 uppercase tracking-widest leading-none">Database Host IP</p>
+                <p className="text-xs font-mono font-black text-white italic mt-1">
+                  {hideDbIp ? "•••.•••.•••.•••" : (dbInfo?.host || "185.128.227.237")}
+                </p>
+              </div>
+              <button 
+                type="button" 
+                onClick={() => setHideDbIp(!hideDbIp)}
+                className="text-white/40 hover:text-white transition-colors ml-2"
+                title={hideDbIp ? "Tampilkan IP" : "Sembunyikan IP"}
+              >
+                {hideDbIp ? <Eye className="h-3.5 w-3.5" /> : <EyeOff className="h-3.5 w-3.5" />}
+              </button>
+            </div>
+
+            <div className="bg-white/5 border border-white/5 rounded-2xl px-6 py-3">
+              <p className="text-[8px] font-black text-white/40 uppercase tracking-widest leading-none">Target Database</p>
+              <p className="text-xs font-mono font-black text-white mt-1 uppercase">{dbInfo?.database || "cynmatic_db"}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+        {/* ── Sidebar: Tables Navigator ── */}
+        <div className="lg:col-span-1 space-y-4">
+          <h4 className="text-[10px] font-black text-white/40 uppercase tracking-[0.3em] ml-4 flex items-center gap-2">
+            <ListTodo className="h-3.5 w-3.5" /> Database Tables
+          </h4>
+          
+          <div className="flex lg:flex-col gap-2 overflow-x-auto lg:overflow-x-visible pb-2 lg:pb-0 no-scrollbar">
+            {loadingTables ? (
+              <div className="flex items-center justify-center p-8 w-full">
+                <Loader2 className="h-6 w-6 text-orange-500 animate-spin" />
+              </div>
+            ) : (
+              Array.isArray(tables) && tables.map((t) => (
+                <button
+                  key={t.name}
+                  onClick={() => setActiveTable(t.name)}
+                  className={`w-full flex items-center justify-between gap-4 px-5 py-4 rounded-2xl border transition-all text-left flex-shrink-0 lg:flex-shrink ${
+                    activeTable === t.name
+                      ? "bg-orange-600 border-orange-500 text-white shadow-lg shadow-orange-600/20"
+                      : "glass-card border-white/5 text-white/60 hover:text-white hover:border-white/10"
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <Database className="h-4 w-4 text-orange-500" />
+                    <span className="text-xs font-black uppercase tracking-wider">{t.name}</span>
+                  </div>
+                  <span className={`text-[9px] font-black px-2 py-0.5 rounded-md ${
+                    activeTable === t.name ? "bg-white/20 text-white" : "bg-white/5 text-white/30"
+                  }`}>
+                    {t.count}
+                  </span>
+                </button>
+              ))
+            )}
+          </div>
+
+          <button
+            onClick={() => setShowMigration(!showMigration)}
+            className="w-full flex items-center justify-center gap-2 py-4 rounded-2xl border border-dashed border-white/10 text-white/40 hover:text-white hover:bg-white/5 text-[10px] font-black uppercase tracking-widest transition-all"
+          >
+            <Cpu className="h-4 w-4" /> {showMigration ? "Hide System Tools" : "Show System Tools"}
+          </button>
+        </div>
+
+        {/* ── Main View: Data Explorer ── */}
+        <div className="lg:col-span-3 space-y-6">
+          {/* Search bar & Metadata */}
+          <div className="glass-card border border-white/5 rounded-[2rem] p-6 flex flex-col sm:flex-row gap-4 items-center justify-between shadow-xl">
+            <div className="flex items-center gap-4 w-full sm:w-auto">
+              <Search className="h-5 w-5 text-white/30" />
+              <input
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+                placeholder={`Search table rows in ${activeTable}...`}
+                className="bg-transparent border-none focus:ring-0 text-sm font-bold text-white placeholder:text-white/20 flex-1 outline-none"
+              />
+            </div>
+            <div className="flex-shrink-0 text-[10px] font-black text-white/30 uppercase tracking-widest flex items-center gap-2">
+              Viewing: <span className="text-orange-500">{filteredRows.length} / {rows.length}</span> Records
+            </div>
+          </div>
+
+          {/* Table Container */}
+          <div className="glass-card border border-white/5 rounded-[2.5rem] overflow-hidden shadow-2xl bg-white/5 relative min-h-[300px]">
+            {loading ? (
+              <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/40 backdrop-blur-sm z-20">
+                <Loader2 className="h-10 w-10 text-orange-500 animate-spin" />
+                <p className="text-[10px] font-black text-orange-500 uppercase tracking-[0.4em] mt-4 animate-pulse">Fetching Matrix Data...</p>
+              </div>
+            ) : null}
+
+            {filteredRows.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-24 text-center">
+                <Database className="h-12 w-12 text-white/10 mb-4" />
+                <p className="text-xs font-black text-white/30 uppercase tracking-widest">No matching records found in table</p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs whitespace-nowrap">
+                  <thead className="bg-black/40 border-b border-white/5 text-[9px] font-black text-white/40 uppercase tracking-widest">
+                    <tr>
+                      {headers.map((h) => (
+                        <th key={h} className="px-6 py-4 font-black">{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-white/5">
+                    {filteredRows.map((row, idx) => (
+                      <tr key={idx} className="hover:bg-white/5 transition-colors group">
+                        {headers.map((h) => {
+                          const val = row[h];
+                          if (val === null || val === undefined) {
+                            return (
+                              <td key={h} className="px-6 py-4 font-mono text-white/20 italic">NULL</td>
+                            );
+                          }
+
+                          if (typeof val === "object" || Array.isArray(val) || (typeof val === "string" && (val.startsWith("[") || val.startsWith("{")))) {
+                            let parsedVal = val;
+                            if (typeof val === "string") {
+                              try { parsedVal = JSON.parse(val); } catch (e) {}
+                            }
+                            return (
+                              <td key={h} className="px-6 py-4">
+                                <button
+                                  onClick={() => setSelectedJson({ key: h, data: parsedVal })}
+                                  className="flex items-center gap-1.5 px-3 py-1 bg-orange-500/10 border border-orange-500/20 hover:bg-orange-500 hover:text-white rounded-lg text-[9px] font-black text-orange-400 uppercase tracking-wider transition-all"
+                                >
+                                  <Eye className="h-3 w-3" /> View Complex
+                                </button>
+                              </td>
+                            );
+                          }
+
+                          if (h.toLowerCase().includes("price") || h.toLowerCase().includes("balance")) {
+                            return (
+                              <td key={h} className="px-6 py-4 font-black text-emerald-500 italic">
+                                {formatPrice(Number(val))}
+                              </td>
+                            );
+                          }
+
+                          if (h.toLowerCase().includes("ip")) {
+                            return (
+                              <td key={h} className="px-6 py-4 font-mono font-bold text-blue-400">
+                                {hideDbIp ? "•••.•••.•••.•••" : String(val)}
+                              </td>
+                            );
+                          }
+
+                          return (
+                            <td key={h} className="px-6 py-4 font-medium text-white/70 max-w-[200px] truncate" title={String(val)}>
+                              {String(val)}
+                            </td>
+                          );
+                        })}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* ── JSON/Complex Object Modal Viewer ── */}
+      {selectedJson && (
+        <div className="fixed inset-0 z-[120] flex items-center justify-center p-6 bg-black/90 backdrop-blur-xl">
+          <div className="glass-card border-orange-500/20 bg-[#050505] rounded-[3rem] p-10 w-full max-w-2xl shadow-2xl relative animate-in zoom-in duration-300">
+            <div className="flex justify-between items-center mb-6">
+              <div className="flex items-center gap-3">
+                <Database className="h-6 w-6 text-orange-500" />
+                <h4 className="font-black text-lg text-white uppercase italic tracking-tighter">
+                  Data Viewer: <span className="text-orange-500">{selectedJson.key}</span>
+                </h4>
+              </div>
+              <Button size="icon" variant="ghost" className="h-10 w-10 rounded-full text-white/40 hover:text-white hover:bg-white/5" onClick={() => setSelectedJson(null)}>
+                <X className="h-5 w-5" />
+              </Button>
+            </div>
+            
+            <pre className="bg-black/60 border border-white/5 p-6 rounded-[1.5rem] text-[11px] font-mono text-emerald-400 overflow-y-auto max-h-[60vh] leading-relaxed select-all">
+              {JSON.stringify(selectedJson.data, null, 2)}
+            </pre>
+            
+            <div className="mt-6 flex justify-end">
+              <Button onClick={() => setSelectedJson(null)} className="h-12 px-8 rounded-xl bg-orange-600 hover:bg-orange-700 text-white font-black uppercase text-[10px] tracking-widest shadow-lg">
+                Close Viewer
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Old Migration View (Hidden by default, triggered by button) ── */}
+      {showMigration && (
+        <div className="animate-in fade-in slide-in-from-top-4 duration-500 border-t border-white/5 pt-8">
+          <div className="flex items-center justify-between mb-4">
+            <h4 className="text-xs font-black text-white/30 uppercase tracking-[0.2em] ml-2">System Schema Migration and Setup Logs</h4>
+          </div>
+          <DatabaseMigrationWizard hideDbIp={hideDbIp} setHideDbIp={setHideDbIp} />
+        </div>
+      )}
+    </div>
+  );
+}
+
+/**
+ * AndroidPackagePanel
+ * Komponen untuk manajemen pipeline build otomatis Android.
+ */
+export function AndroidPackagePanel() {
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const [packages, setPackages] = React.useState<any[]>([]);
+  const [loading, setLoading] = React.useState(true);
+  const [showBuildModal, setShowBuildModal] = React.useState(false);
+  
+  // Form states
+  const [versionName, setVersionName] = React.useState("");
+  const [versionCode, setVersionCode] = React.useState("");
+  const [changelog, setChangelog] = React.useState("");
+  const [releaseStatus, setReleaseStatus] = React.useState<"draft" | "latest">("draft");
+  const [buildingInProgress, setBuildingInProgress] = React.useState(false);
+  const [copyingHashId, setCopyingHashId] = React.useState<number | null>(null);
+
+  const fetchPackages = async () => {
+    try {
+      const res = await fetch("/api/android-packages", {
+        headers: {
+          "x-user-id": user?.id || "",
+        }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setPackages(data);
+        
+        const activeBuild = data.some((p: any) => p.buildStatus === "queued" || p.buildStatus === "building");
+        setBuildingInProgress(activeBuild);
+      }
+    } catch (err) {
+      console.error("Gagal memuat package Android", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  React.useEffect(() => {
+    fetchPackages();
+  }, []);
+
+  React.useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (buildingInProgress) {
+      interval = setInterval(() => {
+        fetchPackages();
+      }, 3000);
+    }
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [buildingInProgress]);
+
+  const handleBuildSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!versionName.trim() || !versionCode.trim() || !changelog.trim()) {
+      toast({ title: "Validasi Gagal", description: "Lengkapi semua field form.", variant: "destructive" });
+      return;
+    }
+    try {
+      const res = await fetch("/api/android-packages/build", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-user-id": user?.id || "",
+        },
+        body: JSON.stringify({
+          versionName,
+          versionCode,
+          changelog,
+          releaseStatus,
+        }),
+      });
+
+      if (!res.ok) {
+        const errData = await res.json();
+        throw new Error(errData.error || "Gagal mengirim build request");
+      }
+
+      toast({
+        title: "Build Terjadwal!",
+        description: `Antrean build untuk v${versionName} telah berhasil dimulai di server.`,
+      });
+
+      setShowBuildModal(false);
+      setVersionName("");
+      setVersionCode("");
+      setChangelog("");
+      setReleaseStatus("draft");
+      
+      fetchPackages();
+    } catch (err: any) {
+      toast({
+        title: "Build Gagal",
+        description: err.message || "Gagal memicu build server.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleToggleRelease = async (id: number, currentStatus: string) => {
+    const nextStatus = currentStatus === "latest" ? "draft" : "latest";
+    try {
+      const res = await fetch(`/api/android-packages/${id}/release-status`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-user-id": user?.id || "",
+        },
+        body: JSON.stringify({
+          releaseStatus: nextStatus,
+        }),
+      });
+
+      if (!res.ok) {
+        const errData = await res.json();
+        throw new Error(errData.error || "Gagal memperbarui status rilis.");
+      }
+
+      toast({
+        title: "Status Rilis Diubah",
+        description: `Status versi berhasil diubah menjadi ${nextStatus.toUpperCase()}`,
+      });
+      fetchPackages();
+    } catch (err: any) {
+      toast({
+        title: "Gagal Mengubah Rilis",
+        description: err.message,
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleCopyHash = (id: number, hash: string) => {
+    navigator.clipboard.writeText(hash);
+    setCopyingHashId(id);
+    toast({ title: "Hash Disalin!", description: "Cryptographic SHA-256 hash berhasil disalin ke clipboard." });
+    setTimeout(() => setCopyingHashId(null), 1500);
+  };
+
+  return (
+    <div className="space-y-8 animate-in fade-in duration-700">
+      {/* Build Server Connection Status Overview */}
+      <div className="relative overflow-hidden p-8 rounded-[2.5rem] border border-white/5 bg-white/5 shadow-2xl group">
+        <div className="absolute top-0 right-0 w-32 h-32 bg-orange-500/5 blur-[50px] rounded-full" />
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+          <div className="flex gap-4 items-center">
+            <div className="h-12 w-12 rounded-[1.25rem] bg-orange-600/10 flex items-center justify-center text-orange-500 shadow-2xl shadow-orange-500/10">
+              <Smartphone className="h-6 w-6" />
+            </div>
+            <div>
+              <h3 className="text-xl font-black uppercase italic tracking-tighter text-white">Android Package Pipeline</h3>
+              <p className="text-[10px] text-muted-foreground font-black uppercase tracking-widest mt-1">CI/CD Build & Release Automation Environment</p>
+            </div>
+          </div>
+          
+          <div className="flex flex-wrap gap-4 items-center">
+            <div className="glass-card px-4 py-2 rounded-xl flex items-center gap-2 border-white/5">
+              <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.6)]" />
+              <span className="text-[9px] font-black uppercase tracking-widest text-emerald-500 italic">Antigravity CI Server Active</span>
+            </div>
+            <Button
+              onClick={() => setShowBuildModal(true)}
+              className="h-11 px-6 rounded-xl bg-orange-600 hover:bg-orange-700 text-white font-black uppercase tracking-widest text-[10px] gap-2 shadow-2xl shadow-orange-600/30 transition-transform active:scale-95"
+            >
+              <Plus className="h-4 w-4" /> Build New Android App
+            </Button>
+          </div>
+        </div>
+      </div>
+
+      {/* Build Pipeline History Table */}
+      <div className="glass-card rounded-[2.5rem] p-6 border-white/5 bg-white/5 shadow-2xl space-y-6">
+        <div className="flex items-center justify-between border-b border-white/5 pb-4">
+          <h4 className="text-xs font-black text-white/30 uppercase tracking-[0.2em] ml-2">Pipeline Compilation History</h4>
+          {buildingInProgress && (
+            <div className="flex items-center gap-2 text-orange-500 text-[10px] font-black uppercase tracking-widest animate-pulse">
+              <Loader2 className="h-3 w-3 animate-spin" /> Compiling in progress...
+            </div>
+          )}
+        </div>
+
+        {loading ? (
+          <div className="flex flex-col items-center justify-center py-20 space-y-4">
+            <Loader2 className="h-8 w-8 text-orange-500 animate-spin" />
+            <p className="text-xs text-muted-foreground uppercase font-black tracking-widest">Retrieving build history database...</p>
+          </div>
+        ) : packages.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-20 text-center space-y-4 border border-dashed border-white/5 rounded-[2rem] bg-black/10">
+            <Smartphone className="h-12 w-12 text-white/10" />
+            <div>
+              <p className="text-sm font-bold text-white uppercase italic tracking-wider">Belum Ada Build Aplikasi</p>
+              <p className="text-[10px] text-muted-foreground uppercase tracking-widest mt-1">Silakan trigger build pertama Anda untuk memulai kompilasi.</p>
+            </div>
+          </div>
+        ) : (
+          <div className="overflow-x-auto rounded-[2rem] border border-white/5">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="bg-white/5 border-b border-white/5 text-[9px] font-black text-white/40 uppercase tracking-widest">
+                  <th className="px-6 py-4">Version & Build</th>
+                  <th className="px-6 py-4">Changelog</th>
+                  <th className="px-6 py-4">Status Rilis</th>
+                  <th className="px-6 py-4">Status Build</th>
+                  <th className="px-6 py-4">Hash & Storage</th>
+                  <th className="px-6 py-4 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-white/5 text-xs font-bold text-white/70">
+                {packages.map((pkg) => {
+                  const isQueued = pkg.buildStatus === "queued";
+                  const isBuilding = pkg.buildStatus === "building";
+                  const isSuccess = pkg.buildStatus === "success";
+                  const isFailed = pkg.buildStatus === "failed";
+                  
+                  return (
+                    <tr key={pkg.id} className="hover:bg-white/[0.02] transition-colors group">
+                      <td className="px-6 py-4">
+                        <div className="flex flex-col">
+                          <span className="text-sm font-black text-white italic uppercase tracking-tighter">v{pkg.versionName}</span>
+                          <span className="text-[9px] text-white/30 font-black uppercase tracking-widest mt-0.5">Build Code: {pkg.versionCode}</span>
+                          <span className="text-[8px] text-white/20 font-black tracking-widest mt-1">By: {pkg.createdBy}</span>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 max-w-xs">
+                        <p className="text-[11px] font-bold text-white/50 leading-relaxed italic truncate" title={pkg.changelog}>
+                          {pkg.changelog}
+                        </p>
+                        <span className="text-[8px] text-white/20 font-black tracking-widest uppercase">
+                          {new Date(pkg.createdAt).toLocaleString()}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4">
+                        {isSuccess ? (
+                          <div className="flex items-center gap-3">
+                            <span className={`px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest border ${
+                              pkg.releaseStatus === "latest" 
+                                ? "bg-emerald-600/10 text-emerald-400 border-emerald-500/20 shadow-[0_0_10px_rgba(16,185,129,0.1)]" 
+                                : "bg-white/5 text-white/40 border-white/10"
+                            }`}>
+                              {pkg.releaseStatus === "latest" ? "LATEST" : "DRAFT"}
+                            </span>
+                            <button
+                              onClick={() => handleToggleRelease(pkg.id, pkg.releaseStatus)}
+                              className="text-[9px] font-black uppercase tracking-widest text-orange-500/60 hover:text-orange-500 transition-colors underline decoration-dotted"
+                            >
+                              Toggle Status
+                            </button>
+                          </div>
+                        ) : (
+                          <span className="text-[9px] text-white/20 font-black uppercase tracking-widest">-</span>
+                        )}
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest border ${
+                          isQueued ? "bg-amber-600/10 text-amber-500 border-amber-500/20 animate-pulse" :
+                          isBuilding ? "bg-orange-600/10 text-orange-400 border-orange-500/20 shadow-[0_0_10px_rgba(249,115,22,0.1)]" :
+                          isSuccess ? "bg-emerald-600/10 text-emerald-400 border-emerald-500/20 shadow-[0_0_10px_rgba(16,185,129,0.1)]" :
+                          "bg-rose-600/10 text-rose-500 border-rose-500/20"
+                        }`}>
+                          {isQueued && <Clock className="h-3 w-3 animate-pulse" />}
+                          {isBuilding && <Loader2 className="h-3 w-3 animate-spin" />}
+                          {isSuccess && <CheckCircle2 className="h-3 w-3" />}
+                          {isFailed && <XCircle className="h-3 w-3" />}
+                          {pkg.buildStatus}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 max-w-xs">
+                        {isSuccess ? (
+                          <div className="flex flex-col gap-1">
+                            <div className="flex items-center gap-2">
+                              <span className="text-[10px] font-mono font-black text-white/40 truncate select-all" title={pkg.fileHash}>
+                                SHA-256: {pkg.fileHash?.slice(0, 16)}...
+                              </span>
+                              <button
+                                onClick={() => handleCopyHash(pkg.id, pkg.fileHash)}
+                                className="text-[8px] font-black uppercase tracking-widest text-primary/60 hover:text-primary transition-colors hover:underline"
+                              >
+                                {copyingHashId === pkg.id ? "Copied" : "Copy"}
+                              </button>
+                            </div>
+                            <span className="text-[9px] text-white/20 font-black uppercase tracking-widest">Validated & Signed</span>
+                          </div>
+                        ) : isFailed ? (
+                          <span className="text-[10px] text-rose-400/70 font-bold leading-normal bg-rose-950/10 border border-rose-900/15 p-2 rounded-xl block">
+                            Compilation Error: Internal Build process terminated. Safe build log saved.
+                          </span>
+                        ) : (
+                          <div className="flex items-center gap-2 text-white/30 text-[10px]">
+                            <Loader2 className="h-3.5 w-3.5 animate-spin text-orange-500" />
+                            <span>Kompilasi Antigravity server...</span>
+                          </div>
+                        )}
+                      </td>
+                      <td className="px-6 py-4 text-right">
+                        {isSuccess && pkg.fileUrl ? (
+                          <a
+                            href={pkg.fileUrl}
+                            download
+                            className="inline-flex items-center justify-center h-10 px-5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black uppercase tracking-widest text-[9px] gap-1.5 shadow-lg shadow-emerald-600/10 transition-transform active:scale-95"
+                          >
+                            Download APK
+                          </a>
+                        ) : (
+                          <button
+                            disabled
+                            className="inline-flex items-center justify-center h-10 px-5 rounded-xl bg-white/5 text-white/20 border border-white/5 font-black uppercase tracking-widest text-[9px] gap-1.5 cursor-not-allowed"
+                          >
+                            Download APK
+                          </button>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      {/* Build Modal Dialog Overlay */}
+      {showBuildModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-black/80 backdrop-blur-md animate-in fade-in duration-300">
+          <div className="relative w-full max-w-md p-8 glass-card border border-white/10 rounded-[3rem] bg-zinc-950/90 shadow-2xl space-y-6">
+            <button
+              onClick={() => setShowBuildModal(false)}
+              className="absolute top-6 right-6 p-2 rounded-full bg-white/5 text-white/40 hover:text-white transition-colors"
+            >
+              <X className="h-5 w-5" />
+            </button>
+
+            <div className="text-center space-y-2">
+              <div className="mx-auto h-12 w-12 rounded-[1.25rem] bg-orange-600/15 flex items-center justify-center text-orange-500">
+                <Smartphone className="h-6 w-6" />
+              </div>
+              <h3 className="text-2xl font-black uppercase italic tracking-tighter text-white">Trigger CI Compile</h3>
+              <p className="text-[9px] text-muted-foreground font-black uppercase tracking-widest">Antigravity Cloud Build Server Pipeline</p>
+            </div>
+
+            <form onSubmit={handleBuildSubmit} className="space-y-5">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <label className="text-[9px] font-black uppercase tracking-widest text-white/40">Version Name</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. 2.5.0"
+                    value={versionName}
+                    onChange={(e) => setVersionName(e.target.value)}
+                    className="w-full h-12 px-4 rounded-xl bg-white/5 border border-white/10 text-white placeholder-white/20 focus:border-orange-500 focus:ring-1 focus:ring-orange-500 outline-none text-xs font-mono"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-[9px] font-black uppercase tracking-widest text-white/40">Version Code</label>
+                  <input
+                    type="number"
+                    required
+                    placeholder="e.g. 25"
+                    value={versionCode}
+                    onChange={(e) => setVersionCode(e.target.value)}
+                    className="w-full h-12 px-4 rounded-xl bg-white/5 border border-white/10 text-white placeholder-white/20 focus:border-orange-500 focus:ring-1 focus:ring-orange-500 outline-none text-xs font-mono"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-[9px] font-black uppercase tracking-widest text-white/40">Release Type</label>
+                <div className="grid grid-cols-2 gap-4">
+                  <button
+                    type="button"
+                    onClick={() => setReleaseStatus("draft")}
+                    className={`h-12 rounded-xl font-black uppercase tracking-widest text-[10px] border transition-all ${
+                      releaseStatus === "draft"
+                        ? "bg-orange-600 text-white border-orange-500 shadow-lg"
+                        : "bg-white/5 text-white/50 border-white/5 hover:bg-white/10"
+                    }`}
+                  >
+                    Draft Only
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setReleaseStatus("latest")}
+                    className={`h-12 rounded-xl font-black uppercase tracking-widest text-[10px] border transition-all ${
+                      releaseStatus === "latest"
+                        ? "bg-orange-600 text-white border-orange-500 shadow-lg"
+                        : "bg-white/5 text-white/50 border-white/5 hover:bg-white/10"
+                    }`}
+                  >
+                    Latest Update
+                  </button>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-[9px] font-black uppercase tracking-widest text-white/40">Changelog</label>
+                <textarea
+                  required
+                  placeholder="Deskripsikan pembaruan, optimasi kode, dan perbaikan bug..."
+                  value={changelog}
+                  onChange={(e) => setChangelog(e.target.value)}
+                  rows={4}
+                  className="w-full p-4 rounded-xl bg-white/5 border border-white/10 text-white placeholder-white/20 focus:border-orange-500 focus:ring-1 focus:ring-orange-500 outline-none text-xs font-bold leading-normal resize-none"
+                />
+              </div>
+
+              <div className="bg-orange-950/10 border border-orange-900/20 p-4 rounded-2xl flex gap-3">
+                <AlertTriangle className="h-5 w-5 text-orange-500 flex-shrink-0" />
+                <p className="text-[10px] font-bold text-orange-400/80 leading-normal">
+                  Proses kompilasi akan berjalan di server khusus. Pastikan kode versi dan nama unik untuk menghindari bentrokan paket. Nama versi mengandung kata <span className="underline italic">"fail"</span> akan memicu uji coba build gagal.
+                </p>
+              </div>
+
+              <div className="flex gap-4 pt-2">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  onClick={() => setShowBuildModal(false)}
+                  className="flex-1 h-12 rounded-xl bg-white/5 border border-white/5 text-white/40 hover:text-white font-black uppercase tracking-widest text-[10px]"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  className="flex-1 h-12 rounded-xl bg-orange-600 hover:bg-orange-700 text-white font-black uppercase tracking-widest text-[10px] shadow-lg shadow-orange-600/20"
+                >
+                  Start Pipeline
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
 
 /**
  * DatabaseMigrationWizard
  * Komponen untuk simulasi migrasi data dari localStorage ke MySQL.
  */
-export function DatabaseMigrationWizard() {
+export function DatabaseMigrationWizard({ hideDbIp = true, setHideDbIp }: { hideDbIp?: boolean; setHideDbIp?: (val: boolean) => void } = {}) {
   const { allUsers, migrateToVPS } = useAuth();
   const { allStoreProducts } = useProducts();
   const [isMigrating, setIsMigrating] = useState(false);
@@ -1074,9 +1965,26 @@ npm run start`}
           <h3 className="font-bold">MySQL Connection Config</h3>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="space-y-1.5">
+          <div className="space-y-1.5 relative">
             <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">DB Host</label>
-            <input type="text" readOnly value="185.128.227.237" className="w-full px-4 py-2.5 bg-muted/50 border rounded-xl text-sm font-mono" />
+            <div className="relative flex items-center">
+              <input 
+                type="text" 
+                readOnly 
+                value={hideDbIp ? "•••.•••.•••.•••" : "185.128.227.237"} 
+                className="w-full pl-4 pr-10 py-2.5 bg-muted/50 border rounded-xl text-sm font-mono" 
+              />
+              {setHideDbIp && (
+                <button 
+                  type="button" 
+                  onClick={() => setHideDbIp(!hideDbIp)}
+                  className="absolute right-3 text-white/40 hover:text-white transition-colors"
+                  title={hideDbIp ? "Tampilkan IP" : "Sembunyikan IP"}
+                >
+                  {hideDbIp ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
+                </button>
+              )}
+            </div>
           </div>
           <div className="space-y-1.5">
             <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">DB Port</label>
@@ -1099,7 +2007,7 @@ npm run start`}
 }
 
 export function AdminPanel() {
-  const { user, allUsers, updateUserRole, addCoins, toggleBan, updateBalance, toggleVerifiedSeller, toggleVerifiedReseller, updateUserPassword } = useAuth();
+  const { user, allUsers, updateUserRole, addCoins, toggleBan, updateBalance, updateCryptoBalance, toggleVerifiedSeller, toggleVerifiedReseller, updateUserPassword } = useAuth();
   const { cosmetics, addCosmetic, deleteCosmetic } = useCosmetics();
   const { sellerProducts, adminProducts: adminInventory, allStoreProducts, autoApprove, setAutoApprove, approveProduct, rejectProduct, deleteProduct, deleteAdminProduct } = useProducts();
   const ai  = useAISettings();
@@ -1118,6 +2026,7 @@ export function AdminPanel() {
   const [filter, setFilter]   = useState<SellerProduct["status"] | "all">("all");
   const [userSearch, setUserSearch] = useState("");
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [hideUserIps, setHideUserIps] = useState(true);
 
   const [draftOpenrouter,      setDraftOpenrouter]      = useState(ai.openrouterKey);
   const [draftOpenrouterModel, setDraftOpenrouterModel] = useState(ai.openrouterModel);
@@ -1183,6 +2092,14 @@ export function AdminPanel() {
     updateBalance(uid, amount);
     toast({ title: "Saldo pengguna diperbarui." });
   };
+  const handleUpdateCrypto = (uid: string, cryptoType: "BTC" | "ETH", action: "add" | "reset", amount?: number) => {
+    updateCryptoBalance(uid, cryptoType, action, amount);
+    if (action === "reset") {
+      toast({ title: `✅ Saldo ${cryptoType} pengguna berhasil di-reset.` });
+    } else {
+      toast({ title: `✅ Saldo ${cryptoType} pengguna berhasil ditambahkan.` });
+    }
+  };
   const handleSaveKeys = () => {
     ai.setOpenrouterKey(draftOpenrouter.trim());
     ai.setOpenrouterModel(draftOpenrouterModel.trim());
@@ -1234,16 +2151,25 @@ export function AdminPanel() {
 
   const handleGiveBulkCoins = () => {
     const amount = parseInt(bulkCoinAmount);
-    if (!amount || amount <= 0) return toast({ title: "Jumlah tidak valid", variant: "destructive" });
+    if (!amount || amount <= 0) {
+      toast({ title: "Jumlah tidak valid", variant: "destructive" });
+      return;
+    }
     addCoins("all", amount);
     setBulkCoinAmount("");
     toast({ title: "Berhasil", description: `Memberikan ${amount} koin ke semua pengguna.` });
   };
 
   const handleGiveSingleCoin = () => {
-    if (!targetUserId) return toast({ title: "Pilih pengguna", variant: "destructive" });
+    if (!targetUserId) {
+      toast({ title: "Pilih pengguna", variant: "destructive" });
+      return;
+    }
     const amount = parseInt(singleCoinAmount);
-    if (!amount || amount <= 0) return toast({ title: "Jumlah tidak valid", variant: "destructive" });
+    if (!amount || amount <= 0) {
+      toast({ title: "Jumlah tidak valid", variant: "destructive" });
+      return;
+    }
     addCoins(targetUserId, amount);
     setTargetUserId("");
     setSingleCoinAmount("");
@@ -1253,7 +2179,10 @@ export function AdminPanel() {
   const handleAddExchangeOption = () => {
     const coins = parseInt(excCoins);
     const value = parseInt(excValue);
-    if (!coins || !value || !excTitle.trim()) return toast({ title: "Isi data dengan benar", variant: "destructive" });
+    if (!coins || !value || !excTitle.trim()) {
+      toast({ title: "Isi data dengan benar", variant: "destructive" });
+      return;
+    }
     addExchangeOption({ coins, value, title: excTitle.trim() });
     setExcCoins(""); setExcValue(""); setExcTitle("");
     toast({ title: "Opsi Tukar Koin Ditambahkan" });
@@ -1266,6 +2195,8 @@ export function AdminPanel() {
   const TABS: { id: Tab; icon: React.ElementType; label: string }[] = [
     { id: "products", icon: Package,     label: `Produk (${counts.all})` },
     { id: "users",    icon: Users,        label: `Pengguna (${allUsers.length})` },
+    { id: "database", icon: Globe,        label: "Sistem Database" },
+    { id: "android",  icon: Smartphone,   label: "Android Package" },
     { id: "coins",    icon: Coins,        label: "Koin" },
     { id: "ip_list",  icon: Globe,        label: "IP List" },
     { id: "tickets",  icon: ShieldCheck,  label: `Tiket Bantuan (${tickets.filter(t => t.status === "open").length})` },
@@ -1275,7 +2206,6 @@ export function AdminPanel() {
     { id: "sultan",   icon: Crown,        label: "MySultan" },
     { id: "cosmetics", icon: Palette,      label: "Cosmetics" },
     { id: "voting",   icon: Vote,         label: "Voting" },
-    { id: "database", icon: Globe,        label: "Sistem Database" },
     { id: "settings", icon: ToggleRight,  label: "Pengaturan" },
   ];
 
@@ -1388,6 +2318,7 @@ export function AdminPanel() {
                       onRoleChange={handleRoleChange} 
                       onBanToggle={handleBanToggle} 
                       onUpdateBalance={handleUpdateBalance} 
+                      onUpdateCrypto={handleUpdateCrypto}
                       onViewDetails={setSelectedUser}
                       onToggleVerifiedSeller={toggleVerifiedSeller}
                       onToggleVerifiedReseller={toggleVerifiedReseller}
@@ -1525,6 +2456,15 @@ export function AdminPanel() {
               <h3 className="font-bold">Daftar IP Pengguna</h3>
               <p className="text-xs text-muted-foreground mt-0.5">Pemantauan Alamat IP (Public & Local)</p>
             </div>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => setHideUserIps(!hideUserIps)}
+              className="gap-2 text-xs font-black uppercase tracking-wider h-9"
+            >
+              {hideUserIps ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
+              {hideUserIps ? "Tampilkan IP" : "Sembunyikan IP"}
+            </Button>
           </div>
           <div className="bg-card border rounded-2xl overflow-hidden shadow-sm">
             <div className="overflow-x-auto">
@@ -1552,8 +2492,20 @@ export function AdminPanel() {
                       <td className="px-4 py-3">
                         <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${ROLE_COLOR[u.role]}`}>{ROLE_LABEL[u.role]}</span>
                       </td>
-                      <td className="px-4 py-3 font-mono text-xs">{u.publicIp || <span className="text-muted-foreground italic">Belum tercatat</span>}</td>
-                      <td className="px-4 py-3 font-mono text-[10px]">{u.localIp || <span className="text-muted-foreground italic">Belum tercatat</span>}</td>
+                      <td className="px-4 py-3 font-mono text-xs">
+                        {u.publicIp ? (
+                          hideUserIps ? "•••.•••.•••.•••" : u.publicIp
+                        ) : (
+                          <span className="text-muted-foreground italic">Belum tercatat</span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 font-mono text-[10px]">
+                        {u.localIp ? (
+                          hideUserIps ? "•••.•••.•••.•••" : u.localIp
+                        ) : (
+                          <span className="text-muted-foreground italic">Belum tercatat</span>
+                        )}
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -1977,7 +2929,14 @@ export function AdminPanel() {
       {/* ── Tab Sistem Database ────────────────────────────────────────── */}
       {tab === "database" && (
         <div className="space-y-6">
-          <DatabaseMigrationWizard />
+          <DatabaseExplorer />
+        </div>
+      )}
+
+      {/* ── Tab Android Package ────────────────────────────────────────── */}
+      {tab === "android" && (
+        <div className="space-y-6">
+          <AndroidPackagePanel />
         </div>
       )}
 

@@ -1,0 +1,73 @@
+Created At: 2026-05-23T03:57:28Z
+Completed At: 2026-05-23T03:57:28Z
+
+				The command completed successfully.
+				Output:
+				On branch main
+Changes not staged for commit:
+  (use "git add <file>..." to update what will be committed)
+  (use "git restore <file>..." to discard changes in working directory)
+	modified:   artifacts/api-server/src/app.ts
+	modified:   artifacts/api-server/src/routes/ai.ts
+	modified:   artifacts/api-server/src/routes/db.ts
+	modified:   artifacts/api-server/src/routes/index.ts
+	modified:   artifacts/api-server/src/routes/products.ts
+	modified:   artifacts/api-server/src/routes/users.ts
+	modified:   artifacts/api-server/tsconfig.json
+	modified:   artifacts/ecommerce/src/App.tsx
+	modified:   artifacts/ecommerce/src/components/BackroomsGame.tsx
+	modified:   artifacts/ecommerce/src/components/Navbar.tsx
+	modified:   artifacts/ecommerce/src/components/ProductCard.tsx
+	modified:   artifacts/ecommerce/src/components/SellerInfoModal.tsx
+	modified:   artifacts/ecommerce/src/components/StoryPinoGame.tsx
+	modified:   artifacts/ecommerce/src/contexts/AuthContext.tsx
+	modified:   artifacts/ecommerce/src/contexts/OrderHistoryContext.tsx
+	modified:   artifacts/ecommerce/src/contexts/ProductsContext.tsx
+	modified:   artifacts/ecommerce/src/contexts/WishlistContext.tsx
+	modified:   artifacts/ecommerce/src/index.css
+	modified:   artifacts/ecommerce/src/lib/sync.ts
+	modified:   artifacts/ecommerce/src/pages/AIChatPage.tsx
+	modified:   artifacts/ecommerce/src/pages/AboutUsPage.tsx
+	modified:   artifacts/ecommerce/src/pages/AdminPage.tsx
+	modified:   artifacts/ecommerce/src/pages/AffiliatePage.tsx
+	modified:   artifacts/ecommerce/src/pages/AuctionPage.tsx
+	modified:   artifacts/ecommerce/src/pages/BanLeaderboardPage.tsx
+	modified:   artifacts/ecommerce/src/pages/CosmeticPage.tsx
+	modified:   artifacts/ecommerce/src/pages/CourierPage.tsx
+	modified:   artifacts/ecommerce/src/pages/FlashSalePage.tsx
+	modified:   artifacts/ecommerce/src/pages/FriendsPage.tsx
+	modified:   artifacts/ecommerce/src/pages/GameTopUpPage.tsx
+	modified:   artifacts/ecommerce/src/pages/LeaderboardPage.tsx
+	modified:   artifacts/ecommerce/src/pages/LoginPage.tsx
+	modified:   artifacts/ecommerce/src/pages/MiniGamesPage.tsx
+	modified:   artifacts/ecommerce/src/pages/MyCryptoPage.tsx
+	modified:   artifacts/ecommerce/src/pages/NotificationsPage.tsx
+	modified:   artifacts/ecommerce/src/pages/ProfilePage.tsx
+	modified:   artifacts/ecommerce/src/pages/RegisterPage.tsx
+	modified:   artifacts/ecommerce/src/pages/TicketDashboardPage.tsx
+	modified:   artifacts/ecommerce/src/pages/VotingPage.tsx
+	modified:   artifacts/ecommerce/src/pages/not-found.tsx
+	modified:   artifacts/mockup-sandbox/vite.config.ts
+	modified:   lib/db/src/index.ts
+	modified:   lib/db/src/schema/index.ts
+
+Untracked files:
+  (use "git add <file>..." to include in what will be committed)
+	artifacts/api-server/src/assets/
+	artifacts/api-server/src/routes/androidPackage.ts
+	artifacts/api-server/src/routes/nfts.ts
+	artifacts/api-server/uploads/
+	scratch/add_wishlist_column.js
+	scratch/check_columns.js
+	scratch/check_db.js
+	scratch/check_db_status.js
+	scratch/dump_products.js
+	scratch/fetch_products.js
+	scratch/repair_products.js
+	scratch/search.js
+	scratch/search_auth.js
+	scratch/show_columns.js
+	scratch/test_product_sync.js
+
+no changes added to commit (use "git add" and/or "git commit -a")
+

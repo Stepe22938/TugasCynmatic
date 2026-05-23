@@ -39,8 +39,8 @@ export function RegisterPage() {
     e.preventDefault();
     setError("");
 
-    if (email.toLowerCase().trim() === "admin@cynmatic.com") {
-      setError("Email ini telah diabadikan untuk Sang Legenda. Demi menghormati sejarah Cynmatic, Anda tidak diperkenankan mendaftar dengan email ini.");
+    if (email.toLowerCase().trim() === "admin@cynmatic.com" || email.toLowerCase().trim() === "admin@tokoarthur.com") {
+      setError("Email ini telah diabadikan untuk Sang Legenda. Demi menghormati sejarah TokoArthur, Anda tidak diperkenankan mendaftar dengan email ini.");
       const card = document.getElementById('register-card');
       if (card) {
         card.classList.add('animate-shake');
@@ -131,7 +131,7 @@ export function RegisterPage() {
             <UserPlus className="h-8 w-8 text-white dark:text-black" />
           </div>
           <h1 className="text-3xl font-black uppercase tracking-widest text-gray-900 dark:text-white mb-2 transition-colors">
-            Cynmatic
+            TokoArthur
           </h1>
           <p className="text-[10px] text-[#D4AF37] dark:text-[#D4AF37]/80 font-bold uppercase tracking-[0.4em]">
             Daftar Identitas Sultan
@@ -246,7 +246,7 @@ export function RegisterPage() {
               <div className="relative">
                 <Gift className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 dark:text-white/30" />
                 <Input
-                  placeholder="CYN-XXXXX"
+                  placeholder="ART-XXXXX"
                   value={referralCode}
                   onChange={(e) => setReferralCode(e.target.value.toUpperCase())}
                   className="h-12 bg-gray-50 dark:bg-white/[0.03] border-gray-200 dark:border-white/10 rounded-xl pl-12 pr-4 font-medium text-xs focus:border-[#D4AF37] dark:focus:border-[#D4AF37]/50 focus:bg-white dark:focus:bg-white/[0.05] transition-all text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-white/20 uppercase"

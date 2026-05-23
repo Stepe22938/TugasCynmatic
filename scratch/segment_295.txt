@@ -1,0 +1,77 @@
+Created At: 2026-05-23T04:17:30Z
+Completed At: 2026-05-23T04:17:30Z
+File Path: `file:///c:/Users/Zaidan/Desktop/TESTCLAUDE/TugasCynmatic/scratch/b5d2187_profile.tsx`
+Total Lines: 622
+Total Bytes: 32084
+Showing lines 1 to 622
+The following code has been modified to include a line number before every line, in the format: <line_number>: <original_line>. Please note that any changes targeting the original code should remove the line number, colon, and leading space.
+1: /**
+2:  * ProfilePage.tsx
+3:  * Profil pengguna: statistik, koin, edit nama, quick links ke halaman role.
+4:  * Koin: 1.000 rupiah = 1 koin (dibulatkan ke bawah dari total belanja).
+5:  */
+6: import React, { useState, useEffect } from "react";
+7: import { useLocation, Link } from "wouter";
+8: import { 
+9:   User, Mail, Calendar, ShoppingBag, Edit2, Check, X, LogOut,
+10:   ShieldCheck, Package, Store, Coins, Truck, Send, Globe, Wifi, 
+11:   Ticket, Users, Palette, Sparkles, Gamepad2, Gavel, Wallet,
+12:   Layout, LayoutGrid, Heart, Bell, Trophy, Crown, ShieldAlert, Plus,
+13:   Vote as VoteIcon, Bot, Music, Star, Gift, Smartphone, TrendingUp
+14: } from "lucide-react";
+15: import { useAuth } from "../contexts/AuthContext";
+16: import { useSultan } from "../contexts/MySultanContext";
+17: import { useMyCrypto } from "../contexts/MyCryptoContext";
+18: import { CryptoBadge } from "../components/CryptoBadge";
+19: import { useOrderHistory } from "../contexts/OrderHistoryContext";
+20: import { useTickets } from "../contexts/TicketContext";
+21: import { useNotifications } from "../contexts/NotificationContext";
+22: import { formatPrice } from "../utils/formatPrice";
+23: import { useToast } from "../hooks/use-toast";
+24: import { Button } from "../components/ui/button";
+25: import { Input } from "../components/ui/input";
+26: 
+27: function formatDate(iso: string) {
+28:   return new Date(iso).toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" });
+29: }
+30: 
+31: function avatarUrl(name: string) {
+32:   return `https://api.dicebear.com/7.x/ini
+<truncated 31540 bytes>
+atPrice(displaySpend).replace('Rp', '')}</p>
+588:           </div>
+589:           <div className="text-center">
+590:             <p className="text-[9px] font-black uppercase tracking-widest text-white/50 mb-1">Pengikut</p>
+591:             <p className="text-xl font-black">{displayFollowers}</p>
+592:           </div>
+593:         </div>
+594:       </div>
+595:     </div>
+596:   );
+597: }
+598: 
+599: function PremiumCard({ href, title, subtitle, icon: Icon, color, bgColor, borderColor, count }: any) {
+600:   return (
+601:     <Link href={href}>
+602:       <div className={`flex items-center gap-4 p-5 bg-card border-2 ${borderColor} rounded-[2rem] hover:scale-[1.02] active:scale-95 transition-all duration-300 cursor-pointer shadow-sm group h-full relative overflow-hidden`}>
+603:         {/* Glow effect on hover */}
+604:         <div className={`absolute inset-0 ${bgColor} opacity-0 group-hover:opacity-100 transition-opacity duration-500 blur-2xl -z-10`} />
+605:         
+606:         <div className={`w-14 h-14 ${bgColor} rounded-2xl flex items-center justify-center flex-shrink-0 transition-transform group-hover:rotate-6 relative`}>
+607:           <Icon className={`h-7 w-7 ${color}`} />
+608:           {count !== undefined && count > 0 && (
+609:             <div className="absolute -top-1 -right-1 bg-red-500 text-white text-[9px] font-black w-5 h-5 rounded-full flex items-center justify-center border-2 border-white animate-bounce shadow-lg">
+610:               {count}
+611:             </div>
+612:           )}
+613:         </div>
+614:         <div className="flex-1 min-w-0">
+615:           <p className="font-black text-sm tracking-tight truncate group-hover:text-primary transition-colors">{title}</p>
+616:           <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest mt-0.5 truncate opacity-70 group-hover:opacity-100">{subtitle}</p>
+617:         </div>
+618:       </div>
+619:     </Link>
+620:   );
+621: }
+622: 
+The above content shows the entire, complete file contents of the requested file.

@@ -1,0 +1,87 @@
+Created At: 2026-05-23T04:12:52Z
+Completed At: 2026-05-23T04:12:52Z
+File Path: `file:///c:/Users/Zaidan/Desktop/TESTCLAUDE/TugasCynmatic/artifacts/ecommerce/src/pages/ProfilePage.tsx`
+Total Lines: 1433
+Total Bytes: 91286
+Showing lines 270 to 365
+The following code has been modified to include a line number before every line, in the format: <line_number>: <original_line>. Please note that any changes targeting the original code should remove the line number, colon, and leading space.
+270:         body: JSON.stringify({ userId: user?.id, amount: cashoutAmount })
+271:       });
+272:       const data = await res.json();
+273:       if (!res.ok) {
+274:         toast({ title: "Pencairan Gagal", description: data.error || "Gagal mencairkan MyCoinNFT", variant: "destructive" });
+275:       } else {
+276:         toast({ title: "Pencairan Sukses!", description: data.message });
+277:         setCashoutAmount("");
+278:         await fetchFreshUser();
+279:       }
+280:     } catch (err) {
+281:       toast({ title: "Error", description: "Terjadi kesalahan jaringan", variant: "destructive" });
+282:     } finally {
+283:       setSubmittingNft(null);
+284:     }
+285:   };
+286: 
+287:   const handleGachaDraw = async () => {
+288:     // 1. Verify balances before attempting
+289:     const MCNFT_COST = 30;
+290:     const COINS_COST = 30000;
+291:     const WALLET_COST = 30000000;
+292: 
+293:     const userMcnft = Number(user?.myCoinNft || 0);
+294:     const userCoins = Number(user?.coins || 0);
+295:     const userBalance = Number(user?.balance || 0);
+296: 
+297:     if (drawPaymentMethod === "mcnft" && userMcnft < MCNFT_COST) {
+298:       toast({ title: "Saldo Kurang", description: `Saldo MyCoinNFT tidak cukup. Butuh ${MCNFT_COST} MCNFT, saldo Anda ${userMcnft} MCNFT`, variant: "destructive" });
+299:       return;
+300:     }
+301:     if (drawPaymentMethod === "coins" && userCoins < COINS_COST) {
+302:       toast({ title: "Saldo Kurang", description: `Saldo Elite Coins tidak cukup. Butuh ${COINS_COST.toLocaleString('id-ID')} Coins, saldo An
+<truncated 1252 bytes>
+to=format&fit=crop",
+322:       "https://images.unsplash.com/photo-1563013544-824ae1d704d3?w=500&auto=format&fit=crop",
+323:       "https://images.unsplash.com/photo-1534224039826-c7a0eda0e6b3?w=500&auto=format&fit=crop",
+324:       "https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?w=500&auto=format&fit=crop"
+325:     ];
+326: 
+327:     let imgIdx = 0;
+328:     const interval = setInterval(() => {
+329:       setSimulationImg(rollImages[imgIdx % rollImages.length]);
+330:       imgIdx++;
+331:       setGachaRollStep(prev => (prev < 100 ? prev + 4 : prev));
+332:     }, 100);
+333: 
+334:     try {
+335:       const res = await fetch("/api/nfts/gacha", {
+336:         method: "POST",
+337:         headers: { "Content-Type": "application/json" },
+338:         body: JSON.stringify({ userId: user?.id, paymentMethod: drawPaymentMethod })
+339:       });
+340:       const data = await res.json();
+341: 
+342:       await new Promise(resolve => setTimeout(resolve, 2500));
+343:       clearInterval(interval);
+344: 
+345:       if (!res.ok) {
+346:         toast({ title: "Gacha Gagal", description: data.error || "Gagal melakukan gacha draw", variant: "destructive" });
+347:         setRollingGacha(false);
+348:       } else {
+349:         setRolledNftResult(data.nft);
+350:         setShowGachaReveal(true);
+351:         setRollingGacha(false);
+352:         toast({ title: "MINTING BERHASIL!", description: `Mendapatkan ${data.nft.name}` });
+353:         await fetchFreshUser();
+354:         await fetchNfts();
+355:       }
+356:     } catch (err) {
+357:       clearInterval(interval);
+358:       toast({ title: "Error", description: "Terjadi kesalahan jaringan", variant: "destructive" });
+359:       setRollingGacha(false);
+360:     }
+361:   };
+362: 
+363:   return (
+364:     <div className="min-h-screen bg-background pb-20 overflow-x-hidden">
+365:       
+The above content does NOT show the entire file contents. If you need to view any lines of the file which were not shown to complete your task, call this tool again to view those lines.

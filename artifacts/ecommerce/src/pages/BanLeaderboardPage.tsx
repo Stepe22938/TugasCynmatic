@@ -107,7 +107,7 @@ export function BanLeaderboardPage() {
                     <div className="flex flex-wrap gap-4 text-[10px] font-black uppercase tracking-wider text-white/40">
                       <div className="flex items-center gap-2">
                         <Clock className="h-4 w-4 text-white/20" />
-                        <span>Registered: {new Date(u.createdAt).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })}</span>
+                        <span>Registered: {new Date(u.createdAt || Date.now()).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })}</span>
                       </div>
                       <div className="flex items-center gap-2 bg-red-500/10 px-3 py-1 rounded-full border border-red-500/10">
                         <AlertTriangle className="h-4 w-4 text-red-500" />
@@ -117,7 +117,7 @@ export function BanLeaderboardPage() {
                     
                     <div className="pt-1 border-t border-white/5">
                        <p className="text-xs text-white/30 leading-relaxed italic">
-                         "Tindakan preventif & penegakan hukum demi menjaga keadilan di ekosistem Cynmatic."
+                         "Tindakan preventif & penegakan hukum demi menjaga keadilan di ekosistem TokoArthur."
                        </p>
                     </div>
                   </div>

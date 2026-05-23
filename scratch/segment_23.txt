@@ -1,0 +1,55 @@
+Created At: 2026-05-23T03:44:33Z
+Completed At: 2026-05-23T03:44:37Z
+
+				The command completed successfully.
+				Output:
+				warning: in the working copy of 'artifacts/api-server/src/app.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'artifacts/api-server/src/routes/ai.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'artifacts/api-server/src/routes/db.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'artifacts/api-server/src/routes/index.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'artifacts/api-server/src/routes/products.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'artifacts/api-server/src/routes/users.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'artifacts/api-server/tsconfig.json', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'artifacts/ecommerce/src/App.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'artifacts/ecommerce/src/components/BackroomsGame.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'artifacts/ecommerce/src/components/Navbar.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'artifacts/ecommerce/src/components/ProductCard.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'artifacts/ecommerce/src/components/SellerInfoModal.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'artifacts/ecommerce/src/components/StoryPinoGame.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'artifacts/ecommerce/src/contexts/AuthContext.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working cop
+<truncated 4100 bytes>
+mponents/SellerInfoModal.tsx   |    2 +-
+ .../ecommerce/src/components/StoryPinoGame.tsx     |    8 +-
+ artifacts/ecommerce/src/contexts/AuthContext.tsx   |   77 +-
+ .../ecommerce/src/contexts/OrderHistoryContext.tsx |    2 +-
+ .../ecommerce/src/contexts/ProductsContext.tsx     |   44 +-
+ .../ecommerce/src/contexts/WishlistContext.tsx     |   27 +-
+ artifacts/ecommerce/src/index.css                  |    5 +-
+ artifacts/ecommerce/src/lib/sync.ts                |   10 +
+ artifacts/ecommerce/src/pages/AIChatPage.tsx       |   18 +-
+ artifacts/ecommerce/src/pages/AboutUsPage.tsx      |    6 +-
+ artifacts/ecommerce/src/pages/AdminPage.tsx        | 1003 ++++++++++++++-
+ artifacts/ecommerce/src/pages/AffiliatePage.tsx    |   14 +-
+ artifacts/ecommerce/src/pages/AuctionPage.tsx      |    2 +-
+ .../ecommerce/src/pages/BanLeaderboardPage.tsx     |    4 +-
+ artifacts/ecommerce/src/pages/CosmeticPage.tsx     |   16 +-
+ artifacts/ecommerce/src/pages/CourierPage.tsx      |    1 +
+ artifacts/ecommerce/src/pages/FlashSalePage.tsx    |    3 +-
+ artifacts/ecommerce/src/pages/FriendsPage.tsx      |    4 +-
+ artifacts/ecommerce/src/pages/GameTopUpPage.tsx    |   10 +-
+ artifacts/ecommerce/src/pages/LeaderboardPage.tsx  |    2 +-
+ artifacts/ecommerce/src/pages/LoginPage.tsx        |    2 +-
+ artifacts/ecommerce/src/pages/MiniGamesPage.tsx    |    6 +-
+ artifacts/ecommerce/src/pages/MyCryptoPage.tsx     |    4 +-
+ .../ecommerce/src/pages/NotificationsPage.tsx      |   72 +-
+ artifacts/ecommerce/src/pages/ProfilePage.tsx      | 1325 ++++++++++++++++++--
+ artifacts/ecommerce/src/pages/RegisterPage.tsx     |    8 +-
+ .../ecommerce/src/pages/TicketDashboardPage.tsx    |    2 +-
+ artifacts/ecommerce/src/pages/VotingPage.tsx       |    2 +-
+ artifacts/ecommerce/src/pages/not-found.tsx        |    2 +-
+ artifacts/mockup-sandbox/vite.config.ts            |   17 +-
+ lib/db/src/index.ts                                |  104 +-
+ lib/db/src/schema/index.ts                         |   37 +
+ 43 files changed, 2779 insertions(+), 267 deletions(-)
+

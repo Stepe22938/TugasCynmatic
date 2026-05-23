@@ -53,7 +53,7 @@ export function ProductCard({ product }: ProductCardProps) {
 
   const inWishlist = isInWishlist(product.id);
 
-  const isPreOrder = product.isPreOrder && product.releaseDate;
+  const isPreOrder = !!(product.isPreOrder && product.releaseDate);
   const releaseDate = isPreOrder ? new Date(product.releaseDate!) : null;
   const now = new Date();
   
@@ -127,16 +127,19 @@ export function ProductCard({ product }: ProductCardProps) {
         {/* Gambar produk */}
         <div className="relative aspect-[4/3] overflow-hidden bg-muted">
           <motion.img
-            src={product.image}
+            src={product.image || "https://images.unsplash.com/photo-1531403009284-440f080d1e12?w=600&h=500&fit=crop"}
             alt={product.name}
             whileHover={{ scale: 1.1 }}
             transition={{ duration: 0.6, ease: [0.33, 1, 0.68, 1] }}
             className="object-cover w-full h-full"
+            onError={(e) => {
+              (e.target as HTMLImageElement).src = "https://images.unsplash.com/photo-1531403009284-440f080d1e12?w=600&h=500&fit=crop";
+            }}
           />
           
           {/* Badge kategori */}
           <div className="absolute top-4 left-4 z-10 flex flex-col gap-2">
-            <span className="px-3 py-1 text-[10px] font-black uppercase tracking-widest bg-white/80 dark:bg-black/80 text-foreground backdrop-blur-md rounded-full shadow-lg border border-white/20">
+            <span className="px-3 py-1 text-[10px] font-black uppercase tracking-widest bg-black/75 text-white backdrop-blur-md rounded-full shadow-lg border border-white/10">
               {product.category}
             </span>
             {product.isFlashSale && (

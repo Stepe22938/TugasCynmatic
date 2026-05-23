@@ -1,0 +1,22 @@
+Created At: 2026-05-23T04:04:40Z
+Completed At: 2026-05-23T04:04:40Z
+{"File":"c:\\Users\\Zaidan\\Desktop\\TESTCLAUDE\\TugasCynmatic\\scratch\\search_auth.js","LineNumber":8,"LineContent":"  if (line.includes('updateUser') || line.includes('syncUserToVPS') || line.includes('myCoinNft') || line.includes('myCoin')) {"}
+{"File":"c:\\Users\\Zaidan\\Desktop\\TESTCLAUDE\\TugasCynmatic\\lib\\db\\src\\schema\\index.ts","LineNumber":53,"LineContent":"  myCoinNft: varchar(\"myCoinNft\", { length: 255 }).default(\"0\"),"}
+{"File":"c:\\Users\\Zaidan\\Desktop\\TESTCLAUDE\\TugasCynmatic\\lib\\db\\src\\index.ts","LineNumber":105,"LineContent":"        { name: \"myCoinNft\", type: \"VARCHAR(255) DEFAULT '0'\" },"}
+{"File":"c:\\Users\\Zaidan\\Desktop\\TESTCLAUDE\\TugasCynmatic\\artifacts\\ecommerce\\src\\pages\\ProfilePage.tsx","LineNumber":154,"LineContent":"  const mcnftBalance = user?.myCoinNft || \"0\";"}
+{"File":"c:\\Users\\Zaidan\\Desktop\\TESTCLAUDE\\TugasCynmatic\\artifacts\\ecommerce\\src\\pages\\ProfilePage.tsx","LineNumber":262,"LineContent":"      toast({ title: \"Nominal tidak valid\", description: \"Masukkan jumlah MyCoinNFT yang ingin dicairkan\", variant: \"destructive\" });"}
+{"File":"c:\\Users\\Zaidan\\Desktop\\TESTCLAUDE\\TugasCynmatic\\artifacts\\ecommerce\\src\\pages\\ProfilePage.tsx","LineNumber":274,"LineContent":"        toast({ title: \"Pencairan Gagal\", description: data.error || \"Gagal mencairkan MyCoinNFT\", variant: \"destructive\" });"}
+{"File":"c:\\Users\\Zaidan\\Desktop\\TESTCLAUDE\\TugasCynmatic\\artifacts\\ecommerce\\src\\pages\\ProfilePage.tsx","LineNumber":293,"LineContent":"    const userMcnft = Number(user?.myCoinNft || 0);"}
+{"File":"c:\\Users\\Zaidan\\Desktop\\TESTCLAUDE\\TugasCynmatic\\artifacts\\ecommerce\\src\\pages\\ProfilePage.tsx","LineNumber":298,"LineContent":"      toast({ title: \"Saldo Kurang\", description: `Saldo MyCoinNFT tidak cukup. Butuh ${MCNFT_COST} MCNFT, saldo Anda ${userMcnft} MCNFT`, variant: \"destructive\" });"}
+{"File":"c:\\Users\\Zaidan\\Desktop\\TESTCLAUDE\\Tugas
+<truncated 6792 bytes>
+tMcnft} MCNFT`"}
+{"File":"c:\\Users\\Zaidan\\Desktop\\TESTCLAUDE\\TugasCynmatic\\artifacts\\api-server\\src\\routes\\nfts.ts","LineNumber":403,"LineContent":"        myCoinNft: String(newMcnft),"}
+{"File":"c:\\Users\\Zaidan\\Desktop\\TESTCLAUDE\\TugasCynmatic\\artifacts\\api-server\\src\\routes\\nfts.ts","LineNumber":412,"LineContent":"      description: `Refill MyDompet dari Swap ${swapAmount} MyCoinNFT`"}
+{"File":"c:\\Users\\Zaidan\\Desktop\\TESTCLAUDE\\TugasCynmatic\\artifacts\\api-server\\src\\routes\\nfts.ts","LineNumber":415,"LineContent":"    await logUserActivity(userId, `Cash Out MCNFT: Menukar ${swapAmount} MyCoinNFT menjadi Saldo MyDompet sebesar Rp ${rupiahGained.toLocaleString('id-ID')}`);"}
+{"File":"c:\\Users\\Zaidan\\Desktop\\TESTCLAUDE\\TugasCynmatic\\artifacts\\api-server\\src\\routes\\nfts.ts","LineNumber":422,"LineContent":"      message: `Berhasil mencairkan ${swapAmount} MyCoinNFT menjadi Rp ${rupiahGained.toLocaleString('id-ID')} ke dompet saldo Anda!`,"}
+{"File":"c:\\Users\\Zaidan\\Desktop\\TESTCLAUDE\\TugasCynmatic\\artifacts\\api-server\\src\\routes\\nfts.ts","LineNumber":455,"LineContent":"    let updatedMyCoinNft = Number(user.myCoinNft || 0);"}
+{"File":"c:\\Users\\Zaidan\\Desktop\\TESTCLAUDE\\TugasCynmatic\\artifacts\\api-server\\src\\routes\\nfts.ts","LineNumber":461,"LineContent":"      if (updatedMyCoinNft \u003c MCNFT_COST) {"}
+{"File":"c:\\Users\\Zaidan\\Desktop\\TESTCLAUDE\\TugasCynmatic\\artifacts\\api-server\\src\\routes\\nfts.ts","LineNumber":462,"LineContent":"        return res.status(400).json({ error: `Saldo MyCoinNFT tidak mencukupi. Butuh ${MCNFT_COST} MCNFT, saldo Anda ${updatedMyCoinNft} MCNFT` });"}
+{"File":"c:\\Users\\Zaidan\\Desktop\\TESTCLAUDE\\TugasCynmatic\\artifacts\\api-server\\src\\routes\\nfts.ts","LineNumber":464,"LineContent":"      updatedMyCoinNft -= MCNFT_COST;"}
+{"File":"c:\\Users\\Zaidan\\Desktop\\TESTCLAUDE\\TugasCynmatic\\artifacts\\api-server\\src\\routes\\nfts.ts","LineNumber":588,"LineContent":"      updates.myCoinNft = String(updatedMyCoinNft);"}

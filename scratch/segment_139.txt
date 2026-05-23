@@ -1,0 +1,92 @@
+Created At: 2026-05-23T04:04:50Z
+Completed At: 2026-05-23T04:04:50Z
+File Path: `file:///c:/Users/Zaidan/Desktop/TESTCLAUDE/TugasCynmatic/artifacts/ecommerce/src/pages/ProfilePage.tsx`
+Total Lines: 1433
+Total Bytes: 91286
+Showing lines 1 to 140
+The following code has been modified to include a line number before every line, in the format: <line_number>: <original_line>. Please note that any changes targeting the original code should remove the line number, colon, and leading space.
+1: /**
+2:  * ProfilePage.tsx
+3:  * Premium Profile Experience - VIP Lounge Aesthetics.
+4:  */
+5: import React, { useState, useEffect } from "react";
+6: import { useLocation, Link } from "wouter";
+7: import { 
+8:   User, Mail, Calendar, ShoppingBag, Edit2, Check, X, LogOut,
+9:   ShieldCheck, Package, Store, Coins, Truck, Send, Globe, Wifi, 
+10:   Ticket, Users, Palette, Sparkles, Gamepad2, Gavel, Wallet,
+11:   Layout, LayoutGrid, Heart, Bell, Trophy, Crown, ShieldAlert, Plus, ClipboardList,
+12:   Vote as VoteIcon, Bot, Music, Star, Gift, Smartphone, TrendingUp, ArrowRight, Zap,
+13:   Radio, HelpCircle, Gem, Layers, Cpu, History, AlertTriangle, RefreshCw
+14: } from "lucide-react";
+15: import { useAuth } from "../contexts/AuthContext";
+16: import { useSultan } from "../contexts/MySultanContext";
+17: import { useMyCrypto } from "../contexts/MyCryptoContext";
+18: import { CryptoBadge } from "../components/CryptoBadge";
+19: import { useOrderHistory } from "../contexts/OrderHistoryContext";
+20: import { useTickets } from "../contexts/TicketContext";
+21: import { useNotifications } from "../contexts/NotificationContext";
+22: import { formatPrice } from "../utils/formatPrice";
+23: import { useToast } from "../hooks/use-toast";
+24: import { Button } from "../components/ui/button";
+25: import { motion, AnimatePresence } from "framer-motion";
+26: 
+27: function formatDate(iso?: string) {
+28:   return new Date(iso || Date.now()).toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" });
+29: }
+30: 
+31: function formatTxDate(iso?:
+<truncated 2904 bytes>
+ [swapCryptoAmount, setSwapCryptoAmount] = useState<string>("");
+90:   const [cashoutAmount, setCashoutAmount] = useState<string>("");
+91:   const [swapTerminalMode, setSwapTerminalMode] = useState<"deposit" | "withdraw">("deposit");
+92: 
+93:   // Live Simulated Network Stats
+94:   const [blockHeight, setBlockHeight] = useState(8219301);
+95:   const [gasFee, setGasFee] = useState(15);
+96: 
+97:   useEffect(() => {
+98:     const interval = setInterval(() => {
+99:       setBlockHeight(prev => prev + 1);
+100:       setGasFee(Math.floor(Math.random() * 8) + 12); // Fluctuates between 12 and 19 Gwei
+101:     }, 8000);
+102:     return () => clearInterval(interval);
+103:   }, []);
+104: 
+105:   const fetchNfts = async () => {
+106:     setLoadingNfts(true);
+107:     try {
+108:       const res = await fetch("/api/nfts");
+109:       if (res.ok) {
+110:         const data = await res.json();
+111:         setNfts(data);
+112:       }
+113:     } catch (err) {
+114:       console.error("Gagal mengambil data NFT:", err);
+115:     } finally {
+116:       setLoadingNfts(false);
+117:     }
+118:   };
+119: 
+120:   useEffect(() => {
+121:     fetchNfts();
+122:   }, []);
+123: 
+124:   // Hash/Query Synchronizer Effect
+125:   useEffect(() => {
+126:     const handleHashAndSearch = () => {
+127:       if (window.location.hash === "#nft" || window.location.search.includes("tab=nft")) {
+128:         setActiveProfileTab("nft");
+129:         setTimeout(() => {
+130:           const element = document.getElementById("profile-tabs");
+131:           if (element) {
+132:             element.scrollIntoView({ behavior: "smooth", block: "start" });
+133:           }
+134:         }, 150);
+135:       } else {
+136:         setActiveProfileTab("dashboard");
+137:       }
+138:     };
+139:     handleHashAndSearch();
+140:     window.addEventListener("hashchange", handleHashAndSearch);
+The above content does NOT show the entire file contents. If you need to view any lines of the file which were not shown to complete your task, call this tool again to view those lines.

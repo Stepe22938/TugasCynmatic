@@ -87,7 +87,7 @@ const PAYMENT_METHODS = [
     { id: "indomaret", name: "Indomaret", icon: CardIcon, fee: 3000, logo: "https://upload.wikimedia.org/wikipedia/commons/9/9d/Logo_Indomaret.png" },
   ]},
   { group: "Saldo", methods: [
-    { id: "mydompet", name: "MyDompet (Saldo Akun)", icon: Wallet, fee: 0 },
+    { id: "mydompet", name: "MyDompet (Saldo Akun)", icon: Wallet, fee: 0, logo: "" },
   ]}
 ];
 
@@ -147,7 +147,7 @@ export function GameTopUpPage() {
               <ChevronLeft className="h-6 w-6" />
             </Link>
             <h1 className="text-2xl font-black italic tracking-tighter flex items-center gap-1 group">
-              CYNMATIC <span style={{ color: COLORS.accent }} className="group-hover:animate-pulse">TOPUP</span>
+              TOKOARTHUR <span style={{ color: COLORS.accent }} className="group-hover:animate-pulse">TOPUP</span>
             </h1>
           </div>
           
@@ -246,7 +246,7 @@ export function GameTopUpPage() {
                   </div>
 
                   <div className="flex gap-4 overflow-x-auto pb-8 mb-10 no-scrollbar relative z-10">
-                    {selectedGame.categories.map(cat => (
+                    {selectedGame.categories.map((cat: string) => (
                       <button 
                         key={cat}
                         onClick={() => setActiveCategory(cat)}
@@ -516,7 +516,7 @@ export function GameTopUpPage() {
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-px h-24 bg-gradient-to-b from-[#CCFF00]/30 to-transparent" />
         <div className="grid grid-cols-1 md:grid-cols-4 gap-20">
           <div className="col-span-1 md:col-span-2 space-y-10">
-             <h4 className="font-black italic tracking-tighter text-4xl">CYNMATIC <span style={{ color: COLORS.accent }}>TOPUP</span></h4>
+             <h4 className="font-black italic tracking-tighter text-4xl">TOKOARTHUR <span style={{ color: COLORS.accent }}>TOPUP</span></h4>
              <p className="text-sm text-white/20 leading-relaxed font-black uppercase tracking-widest max-w-lg">
                Platform penyedia layanan top up game dan voucher digital terpercaya di Indonesia. Diproses secara otomatis 24 jam nonstop untuk kenyamanan maksimal pengalaman gaming Anda.
              </p>
@@ -547,7 +547,7 @@ export function GameTopUpPage() {
           </div>
         </div>
         <div className="mt-32 pt-10 border-t border-white/5 text-center">
-           <p className="text-[10px] font-black uppercase tracking-[1em] text-white/5">© 2026 CYNMATIC TOPUP • ALL RIGHTS RESERVED</p>
+           <p className="text-[10px] font-black uppercase tracking-[1em] text-white/5">© 2026 TOKOARTHUR TOPUP • ALL RIGHTS RESERVED</p>
         </div>
       </footer>
 

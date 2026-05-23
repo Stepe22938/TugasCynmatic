@@ -1,0 +1,49 @@
+Created At: 2026-05-23T04:06:35Z
+Completed At: 2026-05-23T04:06:36Z
+File Path: `file:///c:/Users/Zaidan/Desktop/TESTCLAUDE/TugasCynmatic/artifacts/ecommerce/src/pages/ProfilePage.tsx`
+Total Lines: 1433
+Total Bytes: 91286
+Showing lines 950 to 1090
+The following code has been modified to include a line number before every line, in the format: <line_number>: <original_line>. Please note that any changes targeting the original code should remove the line number, colon, and leading space.
+950:                                   <div className="absolute top-0 right-0 w-24 h-24 bg-cyan-500/5 blur-xl rounded-full pointer-events-none" />
+951:                                   
+952:                                   <div className="flex items-center gap-3">
+953:                                     <div className="w-9 h-9 bg-cyan-500/10 rounded-xl flex items-center justify-center text-cyan-400 shadow-inner">
+954:                                       <RefreshCw className="h-4.5 w-4.5" />
+955:                                     </div>
+956:                                     <div>
+957:                                       <h4 className="text-xs font-black uppercase italic text-white tracking-wider">Deposit Hub</h4>
+958:                                       <p className="text-[8px] font-black text-white/30 uppercase tracking-widest">Wallet ➔ Crypto ➔ MyCoinNFT</p>
+959:                                     </div>
+960:                                   </div>
+961: 
+962:                                   {/* Rates panel */}
+963:                                   <div className="bg-white/[0.02] rounded-xl p-3 border border-white/5 text-[9px] text-white/50 space-y-1 font-mono">
+964:                                     <div className="flex justify-between border-b border-white/5 pb-1 mb-1 font-bold text-white/70">
+965:                                       <span>ASSET SWAP</span> <span>CONVERSION INDEX</span>
+966:                                     </div>
+967:                                     <div className="flex justify-b
+<truncated 8753 bytes>
+enter justify-center text-emerald-400 shadow-inner">
+1070:                                       <Wallet className="h-4.5 w-4.5" />
+1071:                                     </div>
+1072:                                     <div>
+1073:                                       <h4 className="text-xs font-black uppercase italic text-white tracking-wider">Arbitrage Withdrawal</h4>
+1074:                                       <p className="text-[8px] font-black text-white/30 uppercase tracking-widest">MyCoinNFT ➔ Saldo Rupiah</p>
+1075:                                     </div>
+1076:                                   </div>
+1077: 
+1078:                                   <div className="w-full bg-white/5 rounded-2xl p-4 border border-white/5 flex flex-col items-center justify-center text-center space-y-2 relative overflow-hidden">
+1079:                                     <div className="text-[8px] font-black text-white/30 uppercase tracking-widest">Exchange Index:</div>
+1080:                                     <div className="text-xl font-black font-mono text-emerald-400">
+1081:                                       1 MCNFT = Rp 1.000.000
+1082:                                     </div>
+1083:                                     <div className="text-[9px] font-bold text-white/40 uppercase tracking-wider max-w-sm">
+1084:                                       Instantly convert your MCNFT holdings back into e-wallet balance!
+1085:                                     </div>
+1086:                                   </div>
+1087: 
+1088:                                   <div className="space-y-4 max-w-md mx-auto">
+1089:                                     <div className="space-y-1">
+1090:                                       <label className="text-[8px] font-black uppercase text-white/40 tracking-wider px-1">MCNFT Quantity to Liquidate</label>
+The above content does NOT show the entire file contents. If you need to view any lines of the file which were not shown to complete your task, call this tool again to view those lines.

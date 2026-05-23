@@ -36,7 +36,23 @@ export interface User {
   sultanCustomTag?: string;
   isMyCryptoMember?: boolean;
   myCryptoExpiry?: string;
+  isSultan?: boolean;
+  sultanExpiry?: string;
+  bio?: string;
+  theme?: string;
+  youtubeId?: string;
+  useAnimation?: boolean;
+  createdAt?: string;
+  publicIp?: string;
   profileLayout?: "premium" | "simple";
+  referralCode?: string;
+  referredBy?: string;
+  localIp?: string;
+  myCoinNft?: string;
+  balanceBtc?: string;
+  balanceEth?: string;
+  balanceUsdt?: string;
+  wishlist?: any[];
 }
 
 export interface StoredUser extends User {
@@ -61,6 +77,7 @@ interface AuthContextType {
   removeFriend: (fid: string) => void;
   addCoins: (uid: string | "all", amount: number) => void;
   updateBalance: (uid: string, amount: number) => void;
+  updateCryptoBalance: (uid: string, cryptoType: "BTC" | "ETH", action: "add" | "reset", amount?: number) => void;
   updateUserRole: (uid: string, role: UserRole) => void;
   updateUserPassword: (uid: string, newPassword: string) => void;
   toggleVerifiedSeller: (uid: string) => void;
@@ -107,8 +124,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       balance: Number(rest.balance || 0),
       coins: Number(rest.coins || 0),
       points: Number(rest.points || 0),
-      isSultan: rest.isSultan === true || rest.isSultan === 1 || String(rest.isSultan) === "1" || String(rest.isSultan) === "true",
-      isMyCryptoMember: rest.isMyCryptoMember === true || rest.isMyCryptoMember === 1 || String(rest.isMyCryptoMember) === "1" || String(rest.isMyCryptoMember) === "true",
+      isSultan: rest.isSultan === true || (rest as any).isSultan === 1 || String(rest.isSultan) === "1" || String(rest.isSultan) === "true",
+      isMyCryptoMember: rest.isMyCryptoMember === true || (rest as any).isMyCryptoMember === 1 || String(rest.isMyCryptoMember) === "1" || String(rest.isMyCryptoMember) === "true",
       friends: ensureArray(rest.friends),
       friendRequests: ensureArray(rest.friendRequests),
       sentRequests: ensureArray(rest.sentRequests),
@@ -116,7 +133,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       ownedCosmetics: ensureArray(rest.ownedCosmetics),
       activityLog: ensureArray(rest.activityLog),
       purchaseHistory: ensureArray(rest.purchaseHistory),
-      walletTransactions: ensureArray(rest.walletTransactions)
+      walletTransactions: ensureArray(rest.walletTransactions),
+      myCoinNft: String(rest.myCoinNft ?? "0"),
+      balanceBtc: String(rest.balanceBtc ?? "1.42"),
+      balanceEth: String(rest.balanceEth ?? "8.50"),
+      balanceUsdt: String(rest.balanceUsdt ?? "500.00"),
+      wishlist: ensureArray(rest.wishlist),
     };
   };
 
@@ -208,7 +230,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             ownedCosmetics: source.ownedCosmetics !== undefined ? deepParseArray(source.ownedCosmetics) : deepParseArray(existing?.ownedCosmetics),
             equippedCosmetics: source.equippedCosmetics !== undefined ? deepParseArray(source.equippedCosmetics) : deepParseArray(existing?.equippedCosmetics),
             walletTransactions: source.walletTransactions !== undefined ? deepParseArray(source.walletTransactions) : deepParseArray(existing?.walletTransactions),
-            referralCode: source.referralCode || existing?.referralCode || `CYN-${Math.random().toString(36).substring(2, 7).toUpperCase()}`,
+            wishlist: source.wishlist !== undefined ? deepParseArray(source.wishlist) : deepParseArray(existing?.wishlist),
+            referralCode: source.referralCode || existing?.referralCode || `ART-${Math.random().toString(36).substring(2, 7).toUpperCase()}`,
+            myCoinNft: String(source.myCoinNft ?? u.myCoinNft ?? "0"),
+            balanceBtc: String(source.balanceBtc ?? u.balanceBtc ?? "1.42"),
+            balanceEth: String(source.balanceEth ?? u.balanceEth ?? "8.50"),
+            balanceUsdt: String(source.balanceUsdt ?? u.balanceUsdt ?? "500.00"),
           };
         });
 
@@ -257,6 +284,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               ...freshUser,
               coins: Number(freshUser.coins || 0),
               balance: Number(freshUser.balance || 0),
+              myCoinNft: String(freshUser.myCoinNft ?? "0"),
+              balanceBtc: String(freshUser.balanceBtc ?? "1.42"),
+              balanceEth: String(freshUser.balanceEth ?? "8.50"),
+              balanceUsdt: String(freshUser.balanceUsdt ?? "500.00"),
               walletTransactions: deepParseArray(freshUser.walletTransactions),
               purchaseHistory: deepParseArray(freshUser.purchaseHistory),
               activityLog: deepParseArray(freshUser.activityLog),
@@ -265,6 +296,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               friends: deepParseArray(freshUser.friends),
               friendRequests: deepParseArray(freshUser.friendRequests),
               sentRequests: deepParseArray(freshUser.sentRequests),
+              wishlist: deepParseArray(freshUser.wishlist),
             };
             setAllUsers(prev => prev.map(u => u.id === sid ? { ...u, ...processed } as any : u));
             setUser(toPublic(processed as StoredUser));
@@ -301,8 +333,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const register = async (name: string, email: string, password: string, referralCodeInput?: string) => {
     const trimEmail = email.trim().toLowerCase();
 
-    if (trimEmail === "admin@cynmatic.com") {
-      return { ok: false, error: "Email ini telah diabadikan untuk Sang Legenda. Demi menghormati sejarah Cynmatic, Anda tidak diperkenankan mendaftar dengan email ini." };
+    if (trimEmail === "admin@cynmatic.com" || trimEmail === "admin@tokoarthur.com") {
+      return { ok: false, error: "Email ini telah diabadikan untuk Sang Legenda. Demi menghormati sejarah TokoArthur, Anda tidak diperkenankan mendaftar dengan email ini." };
     }
 
     // Quick local check to avoid unnecessary API call
@@ -327,7 +359,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       friends: [],
       friendRequests: [],
       sentRequests: [],
-      referralCode: `CYN-${Math.random().toString(36).substring(2, 7).toUpperCase()}`,
+      referralCode: `ART-${Math.random().toString(36).substring(2, 7).toUpperCase()}`,
       referredBy: referrerId,
       createdAt: new Date().toISOString()
     };
@@ -396,7 +428,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const defaults: StoredUser[] = [
       {
         id: "admin-001",
-        name: "Cynmatic Admin",
+        name: "TokoArthur Admin",
         email: "admin@cynmatic.com",
         password: "admin",
         role: "admin",
@@ -505,6 +537,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const updateBalance = (uid: string, amount: number) => {
     mutateUsers(prev => prev.map(u => u.id === uid ? { ...u, balance: amount } : u));
+  };
+
+  const updateCryptoBalance = (uid: string, cryptoType: "BTC" | "ETH", action: "add" | "reset", amount?: number) => {
+    mutateUsers(prev => prev.map(u => {
+      if (u.id !== uid) return u;
+      if (action === "reset") {
+        return {
+          ...u,
+          balanceBtc: cryptoType === "BTC" ? "0.000000" : u.balanceBtc,
+          balanceEth: cryptoType === "ETH" ? "0.000000" : u.balanceEth,
+        };
+      } else if (action === "add" && amount !== undefined) {
+        const currentBtc = Number(u.balanceBtc || "0");
+        const currentEth = Number(u.balanceEth || "0");
+        return {
+          ...u,
+          balanceBtc: cryptoType === "BTC" ? (currentBtc + amount).toFixed(6) : u.balanceBtc,
+          balanceEth: cryptoType === "ETH" ? (currentEth + amount).toFixed(6) : u.balanceEth,
+        };
+      }
+      return u;
+    }));
   };
 
   const addWalletTransaction = (uid: string, amount: number, description: string, type: "topup" | "payment" | "refund" | "auction_bid" | "auction_win" = "topup", senderId?: string, senderName?: string) => {
@@ -679,6 +733,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           ...freshUser,
           coins: Number(freshUser.coins || 0),
           balance: Number(freshUser.balance || 0),
+          myCoinNft: String(freshUser.myCoinNft ?? "0"),
+          balanceBtc: String(freshUser.balanceBtc ?? "1.42"),
+          balanceEth: String(freshUser.balanceEth ?? "8.50"),
+          balanceUsdt: String(freshUser.balanceUsdt ?? "500.00"),
           walletTransactions: deepParse(freshUser.walletTransactions),
           purchaseHistory: deepParse(freshUser.purchaseHistory),
           activityLog: deepParse(freshUser.activityLog),
@@ -687,6 +745,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           friends: deepParse(freshUser.friends),
           friendRequests: deepParse(freshUser.friendRequests),
           sentRequests: deepParse(freshUser.sentRequests),
+          wishlist: deepParse(freshUser.wishlist),
         };
         setAllUsers(prev => prev.map(u => u.id === sid ? { ...u, ...processed } as any : u));
         setUser(toPublic(processed as StoredUser));
@@ -702,7 +761,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     <AuthContext.Provider value={{ 
       user, allUsers: publicUsers, loading, login, register, logout, updateUser, updateCustomization, updateName, updateAvatar, 
       toggleBan, sendFriendRequest, acceptFriendRequest, rejectFriendRequest, removeFriend,
-      addCoins, updateBalance, addWalletTransaction, updateUserRole, updateUserPassword, toggleVerifiedSeller, toggleVerifiedReseller, toggleLayout, fetchFreshUser,
+      addCoins, updateBalance, updateCryptoBalance, addWalletTransaction, updateUserRole, updateUserPassword, toggleVerifiedSeller, toggleVerifiedReseller, toggleLayout, fetchFreshUser,
       migrateToVPS
     }}>
       {children}

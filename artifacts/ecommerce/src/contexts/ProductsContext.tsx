@@ -4,7 +4,7 @@
  */
 import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { products as staticProducts, Product } from "../data/products";
-import { fetchAllProductsFromVPS, syncProductToVPS } from "../lib/sync";
+import { fetchAllProductsFromVPS, syncProductToVPS, deleteProductFromVPS } from "../lib/sync";
 
 export type ProductStatus = "pending" | "approved" | "rejected";
 
@@ -70,13 +70,26 @@ interface ProductsContextType {
   updateAdminProduct: (id: number, data: Partial<Omit<AdminProduct, "id" | "sellerId" | "createdAt">>) => void;
 }
 
+const ensureArray = (val: any): any[] => {
+  if (Array.isArray(val)) return val;
+  if (typeof val === "string") {
+    try {
+      const parsed = JSON.parse(val);
+      if (typeof parsed === "string") return ensureArray(parsed);
+      if (Array.isArray(parsed)) return parsed;
+    } catch (e) {}
+  }
+  return [];
+};
+
 function adminToProduct(ap: AdminProduct): Product {
+  const imgs = ensureArray(ap.images);
   return {
     id: ap.id, name: ap.name,
     description: ap.description, longDescription: ap.longDescription,
     price: Number(ap.price), image: ap.image,
-    images: (ap.images && Array.isArray(ap.images) && ap.images.length > 0) ? ap.images : [ap.image],
-    category: ap.category, specs: ap.specs || [],
+    images: imgs.length > 0 ? imgs : [ap.image],
+    category: ap.category, specs: ensureArray(ap.specs),
     sellerId: ap.sellerId, sellerName: ap.sellerName,
     isFlashSale: ap.isFlashSale, discountPercent: ap.discountPercent,
     stock: Number(ap.stock),
@@ -85,12 +98,13 @@ function adminToProduct(ap: AdminProduct): Product {
 }
 
 function sellerToProduct(sp: SellerProduct): Product {
+  const imgs = ensureArray(sp.images);
   return {
     id: sp.id, name: sp.name,
     description: sp.description, longDescription: sp.longDescription,
     price: Number(sp.price), image: sp.image,
-    images: (sp.images && Array.isArray(sp.images) && sp.images.length > 0) ? sp.images : [sp.image],
-    category: sp.category, specs: sp.specs || [],
+    images: imgs.length > 0 ? imgs : [sp.image],
+    category: sp.category, specs: ensureArray(sp.specs),
     sellerId: sp.sellerId, sellerName: sp.sellerName,
     isFlashSale: sp.isFlashSale, discountPercent: sp.discountPercent,
     stock: Number(sp.stock),
@@ -105,7 +119,7 @@ export function ProductsProvider({ children }: { children: ReactNode }) {
   const [adminProducts,  setAdminProducts]  = useState<AdminProduct[]>([]);
   const [autoApprove, setAutoApproveState]  = useState<boolean>(true);
 
-  // Initial Fetch from VPS
+  // Initial Fetch & Real-time Polling from VPS
   useEffect(() => {
     const init = async () => {
       const vpsProducts = await fetchAllProductsFromVPS();
@@ -133,7 +147,15 @@ export function ProductsProvider({ children }: { children: ReactNode }) {
         seeded.forEach(p => syncProductToVPS(p));
       }
     };
+    
     init();
+
+    // 5-second polling interval for real-time MariaDB updates
+    const interval = setInterval(() => {
+      refreshProducts();
+    }, 5000);
+
+    return () => clearInterval(interval);
   }, []);
 
   const refreshProducts = async () => {
@@ -193,8 +215,14 @@ export function ProductsProvider({ children }: { children: ReactNode }) {
     }));
   };
 
-  const deleteProduct = (id: number) => setSellerProducts((prev) => prev.filter((p) => p.id !== id));
-  const deleteAdminProduct = (id: number) => setAdminProducts((prev) => prev.filter((p) => p.id !== id));
+  const deleteProduct = (id: number) => {
+    setSellerProducts((prev) => prev.filter((p) => p.id !== id));
+    deleteProductFromVPS(id);
+  };
+  const deleteAdminProduct = (id: number) => {
+    setAdminProducts((prev) => prev.filter((p) => p.id !== id));
+    deleteProductFromVPS(id);
+  };
 
   const addAdminProduct = (data: Omit<AdminProduct, "id" | "sellerId" | "sellerName" | "createdAt">) => {
     const allIds = [...adminProducts.map((p) => p.id), ...sellerProducts.map((p) => p.id), 9999];

@@ -48,7 +48,7 @@ export function AboutUsPage() {
     user: {
       title: "Arsip Kronik Sang Owner & Pencipta",
       role: "Owner Legend / Co-Founder",
-      story: "Sebagai Owner & Admin Utama Cynmatic, alrizalarkan@gmail.com mendeteksi adanya collision kritis pada database login server saat mencoba masuk. Kolaborasinya yang responsif bersama admin@cynmatic.com berhasil mengamankan validasi schema, mempertahankan status Sultan para anggota, dan menstabilkan performa platform secara menyeluruh.",
+      story: "Sebagai Owner & Admin Utama TokoArthur, alrizalarkan@gmail.com mendeteksi adanya collision kritis pada database login server saat mencoba masuk. Kolaborasinya yang responsif bersama admin@cynmatic.com berhasil mengamankan validasi schema, mempertahankan status Sultan para anggota, dan menstabilkan performa platform secara menyeluruh.",
       note: undefined,
       color: "border-amber-500/30 shadow-[0_0_40px_rgba(245,158,11,0.15)] bg-[#0c0905]/95",
       accent: "text-amber-400 text-amber-500"
@@ -145,7 +145,7 @@ export function AboutUsPage() {
             <h1 className="text-4xl sm:text-6xl font-black tracking-tighter uppercase italic bg-clip-text text-transparent bg-gradient-to-r from-white via-white to-white/40">
               Core Operations
             </h1>
-            <p className="text-white/40 font-bold uppercase tracking-wider text-[11px] mt-1">Status dan Statistik Penggunaan AI dalam Pembangunan Cynmatic</p>
+            <p className="text-white/40 font-bold uppercase tracking-wider text-[11px] mt-1">Status dan Statistik Penggunaan AI dalam Pembangunan TokoArthur</p>
           </div>
 
           <div className="flex items-center gap-3 bg-emerald-500/10 border border-emerald-500/20 px-5 py-3 rounded-2xl">
@@ -222,7 +222,7 @@ export function AboutUsPage() {
             </div>
             
             <p className="text-[10px] text-white/20 font-medium italic">
-              * Konsol di atas mensimulasikan log aktivitas realtime agen AI yang sedang bekerja di latar belakang ekosistem Cynmatic.
+              * Konsol di atas mensimulasikan log aktivitas realtime agen AI yang sedang bekerja di latar belakang ekosistem TokoArthur.
             </p>
           </div>
 
@@ -336,12 +336,18 @@ export function AboutUsPage() {
           </div>
         </div>
 
-        {/* Back Button */}
-        <div className="flex justify-center pt-6">
+        {/* Navigation Actions */}
+        <div className="flex flex-col sm:flex-row justify-center items-center gap-4 pt-6">
           <Link href="/profile">
             <button className="h-14 px-10 rounded-full bg-white text-slate-950 hover:bg-white/90 hover:scale-105 active:scale-95 transition-all font-black uppercase tracking-widest text-xs flex items-center gap-3 shadow-[0_0_30px_rgba(255,255,255,0.1)]">
               Back to Profile
               <Rocket className="h-5 w-5 text-slate-950" />
+            </button>
+          </Link>
+          <Link href="/tickets">
+            <button className="h-14 px-10 rounded-full bg-white/5 border border-white/10 text-white hover:bg-white/10 hover:scale-105 active:scale-95 transition-all font-black uppercase tracking-widest text-xs flex items-center gap-3 shadow-[0_0_30px_rgba(255,255,255,0.05)]">
+              Support Ticket Hub
+              <Activity className="h-5 w-5 text-white" />
             </button>
           </Link>
         </div>

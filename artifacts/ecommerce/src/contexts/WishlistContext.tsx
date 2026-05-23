@@ -23,12 +23,13 @@ interface WishlistContextType {
 const WishlistContext = createContext<WishlistContextType | undefined>(undefined);
 
 export function WishlistProvider({ children }: { children: ReactNode }) {
-  const { user } = useAuth();
+  const { user, updateUser } = useAuth();
   const { addNotification } = useNotifications();
   const { allStoreProducts } = useProducts();
   const storageKey = user ? `wishlist_${user.id}` : "wishlist_guest";
   
   const [wishlist, setWishlist] = useState<WishlistItem[]>(() => {
+    if (user && user.wishlist) return user.wishlist;
     try {
       return JSON.parse(localStorage.getItem(storageKey) ?? "[]");
     } catch {
@@ -46,15 +47,19 @@ export function WishlistProvider({ children }: { children: ReactNode }) {
     }
   });
 
-  // Load wishlist whenever storageKey changes (user logs in/out)
+  // Load wishlist whenever storageKey changes (user logs in/out) or when user db wishlist changes
   useEffect(() => {
-    try {
-      const saved = localStorage.getItem(storageKey);
-      setWishlist(saved ? JSON.parse(saved) : []);
-    } catch {
-      setWishlist([]);
+    if (user) {
+      setWishlist(user.wishlist || []);
+    } else {
+      try {
+        const saved = localStorage.getItem(storageKey);
+        setWishlist(saved ? JSON.parse(saved) : []);
+      } catch {
+        setWishlist([]);
+      }
     }
-  }, [storageKey]);
+  }, [storageKey, user?.wishlist]);
 
   useEffect(() => {
     // Only save if storageKey is valid (avoiding clearing data during rapid switching)
@@ -92,6 +97,12 @@ export function WishlistProvider({ children }: { children: ReactNode }) {
           message: `${product.name} telah disimpan ke wishlist kamu.`,
         });
       }
+      
+      // Sync database if logged in
+      if (user) {
+        updateUser({ wishlist: newWishlist });
+      }
+      
       return newWishlist;
     });
   };

@@ -12,6 +12,7 @@ import { useAuth } from "../contexts/AuthContext";
 import { useNotifications } from "../contexts/NotificationContext";
 import { useLive } from "../contexts/LiveContext";
 import { useTheme } from "../contexts/ThemeContext";
+import { useCosmetics } from "../contexts/CosmeticContext";
 import { Button } from "./ui/button";
 
 function avatarUrl(name: string) {
@@ -21,11 +22,26 @@ function avatarUrl(name: string) {
 export function Navbar() {
   const { totalItems } = useCart();
   const { user } = useAuth();
-  const { unreadCount, markAllRead } = useNotifications();
+  const { cosmetics } = useCosmetics();
+  const { notifications, unreadCount, markAllRead, markRead } = useNotifications();
   const { activeSessions } = useLive();
   const isLive = activeSessions.length > 0;
   const { theme, toggleTheme } = useTheme();
   const [location] = useLocation();
+
+  const equippedCosmetics = user?.equippedCosmetics;
+  const equippedTags = equippedCosmetics
+    ? (Array.isArray(equippedCosmetics) ? equippedCosmetics : [])
+        .map(id => cosmetics.find(c => c.id === id))
+        .filter((c): c is NonNullable<typeof c> => !!c && c.type === "tag")
+    : [];
+
+  const equippedVisual = equippedCosmetics
+    ? cosmetics.find(c => c.type === "visual" && equippedCosmetics.includes(c.id))
+    : undefined;
+
+  const userAvatar = equippedVisual?.value || user?.avatar || avatarUrl(user?.name || "");
+
   const [scrolled, setScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isNotifOpen, setIsNotifOpen] = useState(false);
@@ -47,7 +63,7 @@ export function Navbar() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  const isActive = (path: string) => location === path;
+  const isActive = (path: string) => location === path.split("#")[0];
 
   const navItems = [
     { path: "/", label: "Home", icon: Package },
@@ -69,7 +85,7 @@ export function Navbar() {
             <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-[#D4AF37] to-[#8B732A] flex items-center justify-center shadow-lg shadow-[#D4AF37]/30 group-hover:rotate-12 transition-transform">
               <ShieldCheck className="h-6 w-6 text-black" />
             </div>
-            <span className="text-2xl font-black tracking-tighter uppercase italic text-gradient">Cynmatic</span>
+            <span className="text-2xl font-black tracking-tighter uppercase italic text-gradient">TokoArthur</span>
           </Link>
 
           {/* Premium Desktop Nav */}
@@ -185,12 +201,40 @@ export function Navbar() {
                         </div>
                       ) : (
                         <div className="divide-y divide-white/5">
-                          {/* We only show a few for the dropdown */}
-                          <p className="p-4 text-[9px] text-white/40 italic">You have {unreadCount} unread messages.</p>
+                          {notifications.slice(0, 3).map((n) => (
+                            <div 
+                              key={n.id} 
+                              onClick={() => markRead(n.id)}
+                              className={`p-4 hover:bg-white/5 transition-colors cursor-pointer flex items-start gap-3 relative ${
+                                !n.read ? "bg-[#D4AF37]/5" : ""
+                              }`}
+                            >
+                              {!n.read && (
+                                <div className="absolute left-0 top-0 bottom-0 w-1 bg-[#D4AF37]" />
+                              )}
+                              <div className="flex-grow min-w-0">
+                                <div className="flex items-center justify-between gap-2">
+                                  <p className={`text-[10px] font-black uppercase tracking-wider truncate ${
+                                    !n.read ? "text-[#D4AF37]" : "text-white/40"
+                                  }`}>
+                                    {n.title}
+                                  </p>
+                                  {!n.read && (
+                                    <span className="bg-red-500 text-white text-[7px] font-black px-1.5 py-0.5 rounded-full uppercase tracking-tighter flex-shrink-0 animate-pulse">
+                                      New
+                                    </span>
+                                  )}
+                                </div>
+                                <p className="text-[11px] text-white/70 line-clamp-1 mt-1 font-medium">
+                                  {n.message}
+                                </p>
+                              </div>
+                            </div>
+                          ))}
                         </div>
                       )}
                     </div>
-                    <Link href="/profile" onClick={() => setIsNotifOpen(false)}>
+                    <Link href="/notifications" onClick={() => setIsNotifOpen(false)}>
                       <div className="p-3 text-center bg-white/5 border-t border-white/5 hover:bg-white/10 transition-colors">
                         <span className="text-[9px] font-black uppercase tracking-widest text-[#D4AF37]">View Full Matrix</span>
                       </div>
@@ -217,15 +261,33 @@ export function Navbar() {
             <Link href="/profile">
               <button className="flex items-center gap-3 pl-3 border-l border-white/10 group">
                 <div className="hidden md:flex flex-col items-end leading-none">
-                  <span className="text-xs font-black text-foreground group-hover:text-[#D4AF37] transition-colors uppercase tracking-tighter">
-                    {user.name.split(" ")[0]}
-                  </span>
+                  <div className="flex items-center gap-1.5 justify-end">
+                    {equippedTags.map(tag => (
+                      <span
+                        key={tag.id}
+                        className={`px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-widest border transition-all ${
+                          tag.rarity === "legendary"
+                            ? "bg-amber-500/10 text-amber-400 border-amber-500/30 shadow-[0_0_12px_rgba(245,158,11,0.2)] animate-pulse"
+                            : tag.rarity === "epic"
+                            ? "bg-purple-500/10 text-purple-400 border-purple-500/30 shadow-[0_0_12px_rgba(168,85,247,0.2)]"
+                            : tag.rarity === "rare"
+                            ? "bg-blue-500/10 text-blue-400 border-blue-500/30 shadow-[0_0_12px_rgba(59,130,246,0.2)]"
+                            : "bg-slate-500/10 text-slate-400 border-slate-500/30"
+                        }`}
+                      >
+                        {tag.value}
+                      </span>
+                    ))}
+                    <span className="text-xs font-black text-foreground group-hover:text-[#D4AF37] transition-colors uppercase tracking-tighter">
+                      {user.name.split(" ")[0]}
+                    </span>
+                  </div>
                   <span className="text-[8px] text-muted-foreground font-bold uppercase tracking-[0.2em] mt-1 opacity-50">
                     {user.role}
                   </span>
                 </div>
                 <div className="w-9 h-9 rounded-xl overflow-hidden ring-2 ring-white/10 group-hover:ring-[#D4AF37]/50 transition-all">
-                  <img src={avatarUrl(user.name)} alt={user.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                  <img src={userAvatar} alt={user.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
                 </div>
               </button>
             </Link>
@@ -259,9 +321,27 @@ export function Navbar() {
               {user ? (
                 <Link href="/profile" onClick={() => setIsMobileMenuOpen(false)}>
                   <div className="flex items-center gap-3">
-                    <img src={avatarUrl(user.name)} className="w-10 h-10 rounded-xl" />
+                    <img src={userAvatar} className="w-10 h-10 rounded-xl" />
                     <div>
-                      <p className="text-xs font-black text-white uppercase">{user.name}</p>
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <p className="text-xs font-black text-white uppercase">{user.name}</p>
+                        {equippedTags.map(tag => (
+                          <span
+                            key={tag.id}
+                            className={`px-1 py-0.5 rounded text-[7px] font-black uppercase tracking-widest border transition-all ${
+                              tag.rarity === "legendary"
+                                ? "bg-amber-500/10 text-amber-400 border-amber-500/30 shadow-[0_0_12px_rgba(245,158,11,0.2)] animate-pulse"
+                                : tag.rarity === "epic"
+                                ? "bg-purple-500/10 text-purple-400 border-purple-500/30 shadow-[0_0_12px_rgba(168,85,247,0.2)]"
+                                : tag.rarity === "rare"
+                                ? "bg-blue-500/10 text-blue-400 border-blue-500/30 shadow-[0_0_12px_rgba(59,130,246,0.2)]"
+                                : "bg-slate-500/10 text-slate-400 border-slate-500/30"
+                            }`}
+                          >
+                            {tag.value}
+                          </span>
+                        ))}
+                      </div>
                       <p className="text-[10px] text-white/40 uppercase tracking-widest">{user.role}</p>
                     </div>
                   </div>
