@@ -13,6 +13,7 @@ import { useNotifications } from "../contexts/NotificationContext";
 import { useLive } from "../contexts/LiveContext";
 import { useTheme } from "../contexts/ThemeContext";
 import { useCosmetics } from "../contexts/CosmeticContext";
+import { useLanguage } from "../contexts/LanguageContext";
 import { Button } from "./ui/button";
 
 function avatarUrl(name: string) {
@@ -27,6 +28,7 @@ export function Navbar() {
   const { activeSessions } = useLive();
   const isLive = activeSessions.length > 0;
   const { theme, toggleTheme } = useTheme();
+  const { t } = useLanguage();
   const [location] = useLocation();
 
   const equippedCosmetics = user?.equippedCosmetics;
@@ -68,7 +70,7 @@ export function Navbar() {
   const navItems = [
     { path: "/", label: "Home", icon: Package },
     { path: "/flashsale", label: "Flash Sale", icon: Zap, pulse: true },
-    { path: "/orders", label: "Pesanan", icon: ClipboardList },
+    { path: "/orders", label: t("Pesanan", "Orders"), icon: ClipboardList },
   ];
 
   return (
@@ -283,7 +285,7 @@ export function Navbar() {
                     </span>
                   </div>
                   <span className="text-[8px] text-muted-foreground font-bold uppercase tracking-[0.2em] mt-1 opacity-50">
-                    {user.role}
+                    {user.role === "kurir" ? t("kurir", "courier") : user.role === "admin" ? "admin" : user.role === "seller" ? t("penjual", "seller") : user.role}
                   </span>
                 </div>
                 <div className="w-9 h-9 rounded-xl overflow-hidden ring-2 ring-white/10 group-hover:ring-[#D4AF37]/50 transition-all">
@@ -342,7 +344,7 @@ export function Navbar() {
                           </span>
                         ))}
                       </div>
-                      <p className="text-[10px] text-white/40 uppercase tracking-widest">{user.role}</p>
+                      <p className="text-[10px] text-white/40 uppercase tracking-widest">{user.role === "kurir" ? t("kurir", "courier") : user.role === "admin" ? "admin" : user.role === "seller" ? t("penjual", "seller") : user.role}</p>
                     </div>
                   </div>
                 </Link>

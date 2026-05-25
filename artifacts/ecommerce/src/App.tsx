@@ -29,6 +29,8 @@ import { MyCryptoProvider } from "./contexts/MyCryptoContext";
 import { WishlistProvider } from "./contexts/WishlistContext";
 import { VoteProvider } from "./contexts/VoteContext";
 import { CurrencyProvider } from "./contexts/CurrencyContext";
+import { LanguageProvider } from "./contexts/LanguageContext";
+
 
 import { Navbar } from "./components/Navbar";
 import { GlobalMusicPlayer } from "./components/GlobalMusicPlayer";
@@ -315,59 +317,61 @@ function Router() {
 export default function App() {
   return (
     <AuthProvider>
-      <ThemeProvider>
-        <CurrencyProvider>
-        <QueryClientProvider client={queryClient}>
-          <TooltipProvider>
-            <PaymentSettingsProvider>
-              <AISettingsProvider>
-                <VoucherProvider>
-                  <ExchangeSettingsProvider>
-                    <WalletProvider>
-                      <LiveProvider>
-                        <SultanProvider>
-                          <MyCryptoProvider>
-                            <NotificationProvider>
-                            <ProductsProvider>
-                              <WishlistProvider>
-                                <CartProvider>
-                                  <OrderHistoryProvider>
-                                    <AuctionProvider>
-                                      <TicketProvider>
-                                        <MessageProvider>
-                                          <RedeemProvider>
-                                            <CosmeticProvider>
-                                              <MusicProvider>
-                                                <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
-                                                  <VoteProvider>
-                                                    <Router />
-                                                  </VoteProvider>
-                                                </WouterRouter>
-                                                <Toaster />
-                                                <GlobalMusicPlayer />
-                                              </MusicProvider>
-                                            </CosmeticProvider>
-                                          </RedeemProvider>
-                                        </MessageProvider>
-                                      </TicketProvider>
-                                    </AuctionProvider>
-                                  </OrderHistoryProvider>
-                                </CartProvider>
-                              </WishlistProvider>
-                            </ProductsProvider>
-                          </NotificationProvider>
-                        </MyCryptoProvider>
-                      </SultanProvider>
-                    </LiveProvider>
-                    </WalletProvider>
-                  </ExchangeSettingsProvider>
-                </VoucherProvider>
-              </AISettingsProvider>
-            </PaymentSettingsProvider>
-          </TooltipProvider>
-        </QueryClientProvider>
-        </CurrencyProvider>
-      </ThemeProvider>
+      <LanguageProvider>
+        <ThemeProvider>
+          <CurrencyProvider>
+          <QueryClientProvider client={queryClient}>
+            <TooltipProvider>
+              <PaymentSettingsProvider>
+                <AISettingsProvider>
+                  <VoucherProvider>
+                    <ExchangeSettingsProvider>
+                      <WalletProvider>
+                        <LiveProvider>
+                          <SultanProvider>
+                            <MyCryptoProvider>
+                              <NotificationProvider>
+                              <ProductsProvider>
+                                <WishlistProvider>
+                                  <CartProvider>
+                                    <OrderHistoryProvider>
+                                      <AuctionProvider>
+                                        <TicketProvider>
+                                          <MessageProvider>
+                                            <RedeemProvider>
+                                              <CosmeticProvider>
+                                                <MusicProvider>
+                                                  <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
+                                                    <VoteProvider>
+                                                      <Router />
+                                                    </VoteProvider>
+                                                  </WouterRouter>
+                                                  <Toaster />
+                                                  <GlobalMusicPlayer />
+                                                </MusicProvider>
+                                              </CosmeticProvider>
+                                            </RedeemProvider>
+                                          </MessageProvider>
+                                        </TicketProvider>
+                                      </AuctionProvider>
+                                    </OrderHistoryProvider>
+                                  </CartProvider>
+                                </WishlistProvider>
+                              </ProductsProvider>
+                            </NotificationProvider>
+                          </MyCryptoProvider>
+                        </SultanProvider>
+                      </LiveProvider>
+                      </WalletProvider>
+                    </ExchangeSettingsProvider>
+                  </VoucherProvider>
+                </AISettingsProvider>
+              </PaymentSettingsProvider>
+            </TooltipProvider>
+          </QueryClientProvider>
+          </CurrencyProvider>
+        </ThemeProvider>
+      </LanguageProvider>
     </AuthProvider>
   );
 }

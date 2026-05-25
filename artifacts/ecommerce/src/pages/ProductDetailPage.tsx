@@ -25,6 +25,8 @@ import { useToast } from "../hooks/use-toast";
 import { Button } from "../components/ui/button";
 import { useAuth } from "../contexts/AuthContext";
 import { SellerInfoModal } from "../components/SellerInfoModal";
+import { useLanguage } from "../contexts/LanguageContext";
+
 
 // ─── Bintang Statis ───────────────────────────────────────────────────────────
 
@@ -63,6 +65,18 @@ function ReviewCard({ review }: {
     createdAt: string;
   };
 }) {
+  const { t, languageCode } = useLanguage();
+  const formattedDate = new Date(review.createdAt).toLocaleDateString(languageCode === "id" ? "id-ID" : "en-US", { day: "numeric", month: "long", year: "numeric" });
+
+  const ratingLabel = [
+    "",
+    t("Sangat Buruk", "Very Bad"),
+    t("Buruk", "Bad"),
+    t("Cukup", "Average"),
+    t("Bagus", "Good"),
+    t("Sangat Bagus", "Excellent")
+  ][review.rating];
+
   return (
     <div className="p-4 border rounded-2xl bg-card space-y-3">
       {/* Nama user */}
@@ -79,13 +93,13 @@ function ReviewCard({ review }: {
       <div className="flex flex-wrap items-center gap-3">
         <StarDisplay value={review.rating} size="sm" />
         <span className="text-xs font-semibold text-amber-600">
-          {["", "Sangat Buruk", "Buruk", "Cukup", "Bagus", "Sangat Bagus"][review.rating]}
+          {ratingLabel}
         </span>
         <span className={`inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full ${
           review.status === "sesuai" ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"
         }`}>
           {review.status === "sesuai" ? <CheckCircle2 className="h-3 w-3" /> : <AlertCircle className="h-3 w-3" />}
-          {review.status === "sesuai" ? "Barang Sesuai" : "Barang Tidak Sesuai"}
+          {review.status === "sesuai" ? t("Barang Sesuai", "Item Matches") : t("Barang Tidak Sesuai", "Item Doesn't Match")}
         </span>
       </div>
 
@@ -108,7 +122,7 @@ function ReviewCard({ review }: {
         </div>
       )}
 
-      <p className="text-[11px] text-muted-foreground">{formatDate(review.createdAt)}</p>
+      <p className="text-[11px] text-muted-foreground">{formattedDate}</p>
     </div>
   );
 }
@@ -124,6 +138,7 @@ export function ProductDetailPage() {
 
   const { dispatch, setDirectItem } = useCart();
   const { toast }    = useToast();
+  const { t, languageCode } = useLanguage();
   const { getProductReviews } = useOrderHistory();
   const allRatings = useProductRatings();
   const { toggleWishlist, isInWishlist } = useWishlist();
@@ -160,9 +175,9 @@ export function ProductDetailPage() {
     return (
       <div className="container mx-auto px-4 py-20 text-center">
         <Package className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-        <h2 className="text-2xl font-bold mb-2">Produk Tidak Ditemukan</h2>
-        <p className="text-muted-foreground mb-6">Produk dengan ID "{productId}" tidak ada di katalog.</p>
-        <Link href="/"><Button>Kembali ke Beranda</Button></Link>
+        <h2 className="text-2xl font-bold mb-2">{t("Produk Tidak Ditemukan", "Product Not Found")}</h2>
+        <p className="text-muted-foreground mb-6">{t(`Produk dengan ID "${productId}" tidak ada di katalog.`, `Product with ID "${productId}" does not exist in our catalog.`)}</p>
+        <Link href="/"><Button>{t("Kembali ke Beranda", "Back to Home")}</Button></Link>
       </div>
     );
   }
@@ -172,7 +187,7 @@ export function ProductDetailPage() {
     e.stopPropagation();
 
     if (product.stock <= 0) {
-      toast({ title: "Stok Habis", description: "Maaf, produk ini tidak tersedia saat ini.", variant: "destructive" });
+      toast({ title: t("Stok Habis", "Out of Stock"), description: t("Maaf, produk ini tidak tersedia saat ini.", "Sorry, this product is currently unavailable."), variant: "destructive" });
       return;
     }
 
@@ -191,7 +206,7 @@ export function ProductDetailPage() {
         sellerName: product.sellerName
       } 
     });
-    toast({ title: "Berhasil!", description: `${product.name} ditambahkan ke keranjang.` });
+    toast({ title: t("Berhasil!", "Success!"), description: t(`${product.name} ditambahkan ke keranjang.`, `${product.name} added to cart.`) });
   };
 
   const handleBuyNow = (e: React.MouseEvent) => {
@@ -199,7 +214,7 @@ export function ProductDetailPage() {
     e.stopPropagation();
 
     if (product.stock <= 0) {
-      toast({ title: "Stok Habis", description: "Maaf, produk ini tidak tersedia saat ini.", variant: "destructive" });
+      toast({ title: t("Stok Habis", "Out of Stock"), description: t("Maaf, produk ini tidak tersedia saat ini.", "Sorry, this product is currently unavailable."), variant: "destructive" });
       return;
     }
     const discount = product.isFlashSale ? (product.discountPercent || 0) : 0;
@@ -227,7 +242,7 @@ export function ProductDetailPage() {
       {/* Breadcrumb */}
       <div className="flex items-center gap-2 mb-6 text-sm text-muted-foreground">
         <Link href="/" className="hover:text-primary transition-colors flex items-center gap-1">
-          <ArrowLeft className="h-4 w-4" />Beranda
+          <ArrowLeft className="h-4 w-4" />{t("Beranda", "Home")}
         </Link>
         <span>/</span>
         <span className="text-foreground font-medium truncate">{product.name}</span>
@@ -282,7 +297,7 @@ export function ProductDetailPage() {
           >
             <Store className="h-4 w-4" />
             <div className="flex items-center gap-2">
-              <span>Dijual oleh <span className="font-semibold text-foreground group-hover:text-primary transition-colors">{product.sellerName}</span></span>
+              <span>{t("Dijual oleh", "Sold by")} <span className="font-semibold text-foreground group-hover:text-primary transition-colors">{product.sellerName}</span></span>
               <div className="flex gap-2">
                 {sellerUser?.isVerifiedSeller && (
                   <div className="flex items-center gap-1.5 bg-emerald-500/10 text-emerald-600 px-2.5 py-1 rounded-full border border-emerald-500/20 shadow-sm animate-in fade-in zoom-in">
@@ -305,7 +320,7 @@ export function ProductDetailPage() {
             <div className="flex items-center gap-3" data-testid="product-rating-summary">
               <StarDisplay value={rating.average} size="md" />
               <span className="font-bold text-lg">{rating.average.toFixed(1)}</span>
-              <span className="text-muted-foreground text-sm">dari {rating.count} ulasan</span>
+              <span className="text-muted-foreground text-sm">{t("dari", "from")} {rating.count} {t("ulasan", "reviews")}</span>
             </div>
           )}
 
@@ -336,7 +351,7 @@ export function ProductDetailPage() {
           <div className="flex items-center gap-2 py-1 px-3 bg-muted/40 rounded-xl w-fit">
             <Package className={`h-4 w-4 ${product.stock > 0 ? "text-emerald-500" : "text-red-500"}`} />
             <span className={`text-xs font-bold ${product.stock > 0 ? "text-emerald-600" : "text-red-600"}`}>
-              {product.stock > 0 ? `Tersedia: ${product.stock} unit` : "Stok Habis"}
+              {product.stock > 0 ? `${t("Tersedia", "Available")}: ${product.stock} ${t("unit", "units")}` : t("Stok Habis", "Out of Stock")}
             </span>
           </div>
 
@@ -352,7 +367,7 @@ export function ProductDetailPage() {
               data-testid={`button-add-to-cart-${product.id}`}
             >
               <ShoppingCart className="h-5 w-5 mr-2" />
-              {product.stock > 0 ? "Tambah ke Keranjang" : "Habis Terjual"}
+              {product.stock > 0 ? t("Tambah ke Keranjang", "Add to Cart") : t("Habis Terjual", "Sold Out")}
             </Button>
             
             <Button 
@@ -365,7 +380,7 @@ export function ProductDetailPage() {
               disabled={product.stock <= 0}
             >
               <CreditCard className="h-5 w-5 mr-2" />
-              Beli Sekarang
+              {t("Beli Sekarang", "Buy Now")}
             </Button>
 
             <motion.button 
@@ -386,7 +401,7 @@ export function ProductDetailPage() {
           {product.specs.length > 0 && (
             <div className="border rounded-2xl overflow-hidden">
               <div className="px-4 py-3 bg-muted/40 border-b">
-                <h3 className="text-sm font-bold uppercase tracking-wide text-muted-foreground">Spesifikasi</h3>
+                <h3 className="text-sm font-bold uppercase tracking-wide text-muted-foreground">{t("Spesifikasi", "Specifications")}</h3>
               </div>
               <div className="divide-y">
                 {product.specs.map(({ label, value }) => (
@@ -418,7 +433,7 @@ export function ProductDetailPage() {
         >
           <h2 className="text-3xl font-black mb-10 flex items-center gap-3 tracking-tighter">
             <Star className="h-8 w-8 text-amber-400 fill-amber-400" />
-            Ulasan Pembeli
+            {t("Ulasan Pembeli", "Buyer Reviews")}
             {reviews.length > 0 && (
               <span className="text-lg font-bold text-muted-foreground opacity-50">({reviews.length})</span>
             )}
@@ -427,8 +442,8 @@ export function ProductDetailPage() {
           {reviews.length === 0 ? (
             <div className="text-center py-20 bg-muted/20 rounded-[3rem] border-2 border-dashed border-border/50">
               <Star className="h-16 w-16 text-muted-foreground/20 mx-auto mb-4" />
-              <p className="font-black text-xl tracking-tight">Belum Ada Cerita</p>
-              <p className="text-sm text-muted-foreground mt-2 opacity-70">Jadilah pembeli pertama yang memberikan ulasan!</p>
+              <p className="font-black text-xl tracking-tight">{t("Belum Ada Cerita", "No Reviews Yet")}</p>
+              <p className="text-sm text-muted-foreground mt-2 opacity-70">{t("Jadilah pembeli pertama yang memberikan ulasan!", "Be the first buyer to leave a review!")}</p>
             </div>
           ) : (
             <div className="space-y-12">
@@ -440,7 +455,7 @@ export function ProductDetailPage() {
                     <div className="my-2 flex justify-center">
                       <StarDisplay value={rating.average} size="lg" />
                     </div>
-                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground opacity-60">{rating.count} TOTAL ULASAN</p>
+                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground opacity-60">{rating.count} {t("TOTAL ULASAN", "TOTAL REVIEWS")}</p>
                   </div>
                   <div className="flex-1 w-full space-y-3">
                     {starCounts.map(({ star, count }) => {
@@ -532,7 +547,7 @@ export function ProductDetailPage() {
                   }`}
                   onClick={handleAddToCart}
                 >
-                  {product.stock > 0 ? "Tambah Ke Keranjang" : "Stok Habis"}
+                  {product.stock > 0 ? t("Tambah Ke Keranjang", "Add to Cart") : t("Stok Habis", "Out of Stock")}
                 </Button>
               </div>
             </div>

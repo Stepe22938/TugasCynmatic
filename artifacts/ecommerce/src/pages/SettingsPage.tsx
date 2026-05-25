@@ -21,6 +21,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useSultan } from "../contexts/MySultanContext";
 import { useMyCrypto } from "../contexts/MyCryptoContext";
 import { useCurrency, CurrencyCode, CURRENCIES } from "../contexts/CurrencyContext";
+import { useLanguage } from "../contexts/LanguageContext";
+
 
 export function SettingsPage() {
   const params = useParams<{ subpage?: string }>();
@@ -74,7 +76,7 @@ export function SettingsPage() {
   const [brightnessValue, setBrightnessValue] = useState(100);
   const [textSizeValue, setTextSizeValue] = useState<"small" | "normal" | "large" | "huge">("normal");
   const [accentTheme, setAccentTheme] = useState<"default" | "cyberpunk" | "emerald" | "sultan_gold" | "crimson">("default");
-  const [languageCode, setLanguageCode] = useState<"id" | "en">("id");
+  const { languageCode, setLanguageCode, t } = useLanguage();
   const [timezoneValue, setTimezoneValue] = useState<"WIB" | "WITA" | "WIT" | "UTC">("WIB");
   const [clearingCache, setClearingCache] = useState(false);
   const [cacheSize, setCacheSize] = useState(14.8);
@@ -100,11 +102,6 @@ export function SettingsPage() {
 
   // Update progress tracker
   const [updateProgress, setUpdateProgress] = useState(0);
-
-  // Language translation helper
-  const t = (idText: string, enText: string) => {
-    return languageCode === "id" ? idText : enText;
-  };
 
   const setSettingsSubPage = (page: string) => {
     if (page === "main") {

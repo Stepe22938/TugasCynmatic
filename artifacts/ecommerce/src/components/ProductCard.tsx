@@ -19,6 +19,7 @@ import { useCurrency } from "../contexts/CurrencyContext";
 import { useCart } from "../contexts/CartContext";
 import { useToast } from "../hooks/use-toast";
 import { useProductRatings } from "../hooks/useProductRatings";
+import { useLanguage } from "../contexts/LanguageContext";
 import { Button } from "./ui/button";
 import type { Product } from "../data/products";
 
@@ -42,6 +43,7 @@ function RatingBadge({ average, count }: { average: number; count: number }) {
 export function ProductCard({ product }: ProductCardProps) {
   const { dispatch } = useCart();
   const { toast } = useToast();
+  const { t, languageCode } = useLanguage();
   const allRatings = useProductRatings();
   const { isSultan } = useSultan();
   const { toggleWishlist, isInWishlist } = useWishlist();
@@ -68,15 +70,18 @@ export function ProductCard({ product }: ProductCardProps) {
     e.stopPropagation();
     
     if (product.stock <= 0) {
-      toast({ title: "Stok Habis", description: "Maaf, produk ini sudah habis terjual.", variant: "destructive" });
+      toast({ title: t("Stok Habis", "Out of Stock"), description: t("Maaf, produk ini sudah habis terjual.", "Sorry, this product is sold out."), variant: "destructive" });
       return;
     }
 
     if (isPreOrder && !isReleased) {
       if (!isWithinEarlyAccess) {
         toast({ 
-          title: "Pre-Order Belum Dibuka", 
-          description: `Akses dibuka ${isSultan ? "30 menit sebelum" : ""} ${releaseDate?.toLocaleString("id-ID")}`,
+          title: t("Pre-Order Belum Dibuka", "Pre-Order Not Open Yet"), 
+          description: t(
+            `Akses dibuka ${isSultan ? "30 menit sebelum" : ""} ${releaseDate?.toLocaleString("id-ID")}`,
+            `Access opens ${isSultan ? "30 minutes before" : ""} ${releaseDate?.toLocaleString("en-US")}`
+          ),
           variant: "destructive" 
         });
         return;
@@ -104,12 +109,12 @@ export function ProductCard({ product }: ProductCardProps) {
     
     if (isPreOrder && !isReleased) {
       if (isSultan) {
-        toast({ title: "Early Access Sultan!", description: "Anda mendapatkan barang langsung saat rilis." });
+        toast({ title: t("Early Access Sultan!", "Sultan Early Access!"), description: t("Anda mendapatkan barang langsung saat rilis.", "You will get the item immediately upon release.") });
       } else {
-        toast({ title: "Pre-Order Berhasil", description: "Pesanan Anda akan diproses setelah waktu perilisan." });
+        toast({ title: t("Pre-Order Berhasil", "Pre-Order Successful"), description: t("Pesanan Anda akan diproses setelah waktu perilisan.", "Your order will be processed after the release time.") });
       }
     } else {
-      toast({ title: "Berhasil ditambahkan", description: `${product.name} masuk ke keranjang!` });
+      toast({ title: t("Berhasil ditambahkan", "Successfully Added"), description: t(`${product.name} masuk ke keranjang!`, `${product.name} added to cart!`) });
     }
   };
 
@@ -150,7 +155,7 @@ export function ProductCard({ product }: ProductCardProps) {
             )}
             {product.stock <= 0 && (
               <span className="px-3 py-1 text-[10px] font-black uppercase tracking-widest bg-slate-900 text-white rounded-full shadow-lg">
-                Stok Habis
+                {t("Stok Habis", "Out of Stock")}
               </span>
             )}
             {isPreOrder && !isReleased && (
@@ -178,7 +183,7 @@ export function ProductCard({ product }: ProductCardProps) {
           {/* View Detail Indicator */}
           <div className="absolute bottom-4 left-0 right-0 flex justify-center opacity-0 group-hover:opacity-100 translate-y-4 group-hover:translate-y-0 transition-all duration-500">
             <span className="bg-white text-black text-[10px] font-black px-4 py-2 rounded-full shadow-2xl flex items-center gap-1 uppercase tracking-tighter">
-              Lihat Detail <ArrowRight className="h-3 w-3" />
+              {t("Lihat Detail", "View Details")} <ArrowRight className="h-3 w-3" />
             </span>
           </div>
         </div>
@@ -229,16 +234,16 @@ export function ProductCard({ product }: ProductCardProps) {
           <div className="mb-4 flex flex-wrap gap-2">
             {product.stock > 0 ? (
               <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 dark:bg-emerald-950/30 px-2 py-1 rounded-md">
-                Tersedia: {product.stock}
+                {t("Tersedia", "Available")}: {product.stock}
               </span>
             ) : (
               <span className="text-[10px] font-bold text-red-600 bg-red-50 dark:bg-red-950/30 px-2 py-1 rounded-md">
-                Stok Habis
+                {t("Stok Habis", "Out of Stock")}
               </span>
             )}
             {isPreOrder && !isReleased && (
               <span className="text-[10px] font-bold text-blue-600 bg-blue-50 dark:bg-blue-950/30 px-2 py-1 rounded-md flex items-center gap-1">
-                <Clock className="h-3 w-3" /> Rilis: {new Date(product.releaseDate!).toLocaleDateString("id-ID", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
+                <Clock className="h-3 w-3" /> {t("Rilis", "Release")}: {new Date(product.releaseDate!).toLocaleDateString(languageCode === "id" ? "id-ID" : "en-US", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
               </span>
             )}
           </div>
@@ -255,7 +260,7 @@ export function ProductCard({ product }: ProductCardProps) {
                 </>
               ) : (
                 <>
-                  <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider">Mulai dari</span>
+                  <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider">{t("Mulai dari", "Starting from")}</span>
                   <span className="font-black text-xl text-primary tracking-tighter">{formatPrice(product.price)}</span>
                 </>
               )}
@@ -277,7 +282,7 @@ export function ProductCard({ product }: ProductCardProps) {
                 }`}
               >
                 <ShoppingCart className="h-3.5 w-3.5" />
-                {product.stock <= 0 ? "Habis" : (isPreOrder && !isReleased) ? "Pre-Order" : "Tambah"}
+                {product.stock <= 0 ? t("Habis", "Out") : (isPreOrder && !isReleased) ? "Pre-Order" : t("Tambah", "Add")}
               </Button>
             </motion.div>
           </div>

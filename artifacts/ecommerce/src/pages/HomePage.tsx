@@ -1,7 +1,3 @@
-/**
- * HomePage.tsx
- * Premium Landing Experience - High-end Aesthetics.
- */
 import React, { useState, useMemo } from "react";
 import { Link } from "wouter";
 import { ShoppingBag, Star, Truck, Shield, ShieldCheck, Package, Search, X, SlidersHorizontal, ChevronDown, Radio, Eye, Zap, Sparkles, Trophy, Target, Award } from "lucide-react";
@@ -10,34 +6,36 @@ import { ProductCard } from "../components/ProductCard";
 import { useAuth } from "../contexts/AuthContext";
 import { useProducts } from "../contexts/ProductsContext";
 import { useLive } from "../contexts/LiveContext";
+import { useLanguage } from "../contexts/LanguageContext";
 
-const PERKS = [
-  { icon: Award,  label: "Authentic Luxury",  desc: "100% Produk Original" },
-  { icon: Target, label: "Precision Delivery", desc: "Pengiriman Cepat & Tepat" },
-  { icon: Trophy, label: "Top-Tier Support",   desc: "Layanan Bantuan 24/7" },
+const STATIC_PERKS = [
+  { icon: Award,  labelKey: "Authentic Luxury",  descId: "100% Produk Original", descEn: "100% Authentic Products" },
+  { icon: Target, labelKey: "Precision Delivery", descId: "Pengiriman Cepat & Tepat", descEn: "Fast & Precise Delivery" },
+  { icon: Trophy, labelKey: "Top-Tier Support",   descId: "Layanan Bantuan 24/7", descEn: "24/7 Premium Support" },
 ];
 
 type SortKey = "newest" | "price_asc" | "price_desc" | "name_asc";
-const SORT_OPTIONS: { key: SortKey; label: string }[] = [
-  { key: "newest",     label: "Terbaru" },
-  { key: "price_asc",  label: "Harga Terendah" },
-  { key: "price_desc", label: "Harga Tertinggi" },
-  { key: "name_asc",   label: "Nama A–Z" },
+const STATIC_SORT_OPTIONS: { key: SortKey; labelId: string; labelEn: string }[] = [
+  { key: "newest",     labelId: "Terbaru", labelEn: "Newest" },
+  { key: "price_asc",  labelId: "Harga Terendah", labelEn: "Lowest Price" },
+  { key: "price_desc", labelId: "Harga Tertinggi", labelEn: "Highest Price" },
+  { key: "name_asc",   labelId: "Nama A–Z", labelEn: "Name A–Z" },
 ];
 
 type PriceRange = "all" | "u100" | "100to300" | "300to500" | "o500";
-const PRICE_RANGES: { key: PriceRange; label: string; min: number; max: number }[] = [
-  { key: "all",      label: "Semua Harga", min: 0,      max: Infinity },
-  { key: "u100",     label: "< 100rb",     min: 0,      max: 100000 },
-  { key: "100to300", label: "100–300rb",   min: 100000, max: 300000 },
-  { key: "300to500", label: "300–500rb",   min: 300000, max: 500000 },
-  { key: "o500",     label: "> 500rb",     min: 500000, max: Infinity },
+const STATIC_PRICE_RANGES: { key: PriceRange; labelId: string; labelEn: string; min: number; max: number }[] = [
+  { key: "all",      labelId: "Semua Harga", labelEn: "All Prices", min: 0,      max: Infinity },
+  { key: "u100",     labelId: "< 100rb",     labelEn: "< Rp 100k",   min: 0,      max: 100000 },
+  { key: "100to300", labelId: "100–300rb",   labelEn: "Rp 100k-300k", min: 100000, max: 300000 },
+  { key: "300to500", labelId: "300–500rb",   labelEn: "Rp 300k-500k", min: 300000, max: 500000 },
+  { key: "o500",     labelId: "> 500rb",     labelEn: "> Rp 500k",   min: 500000, max: Infinity },
 ];
 
 export function HomePage() {
   const { user } = useAuth();
   const { allStoreProducts } = useProducts();
   const { activeSessions } = useLive();
+  const { t } = useLanguage();
   const liveCount = activeSessions.length;
   const mainLive = activeSessions[0];
 
@@ -53,7 +51,7 @@ export function HomePage() {
 
   const filtered = useMemo(() => {
     const q = query.toLowerCase().trim();
-    const pr = PRICE_RANGES.find((r) => r.key === priceRange)!;
+    const pr = STATIC_PRICE_RANGES.find((r) => r.key === priceRange)!;
 
     let result = allStoreProducts.filter((p) => {
       const matchCat   = activeCategory === "Semua" || p.category === activeCategory;
@@ -107,7 +105,7 @@ export function HomePage() {
                 </h1>
                 
                 <p className="text-xl text-muted-foreground font-medium max-w-xl mx-auto lg:mx-0 leading-relaxed opacity-70">
-                  Temukan koleksi eksklusif yang dirancang khusus untuk Anda. Keamanan transaksi terjamin oleh sistem VPS MariaDB tercanggih.
+                  {t("Temukan koleksi eksklusif yang dirancang khusus untuk Anda. Keamanan transaksi terjamin oleh sistem VPS MariaDB tercanggih.", "Discover exclusive collections curated just for you. Transaction security guaranteed by our advanced VPS MariaDB system.")}
                 </p>
 
                 <div className="flex flex-wrap gap-5 justify-center lg:justify-start pt-6">
@@ -134,16 +132,16 @@ export function HomePage() {
 
               {/* Perks Row */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 pt-12 border-t border-white/5">
-                {PERKS.map((p, i) => (
+                {STATIC_PERKS.map((p, i) => (
                   <motion.div 
-                    key={p.label}
+                    key={p.labelKey}
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.5 + i * 0.1 }}
                     className="flex flex-col items-center lg:items-start gap-2"
                   >
-                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-orange-500">{p.label}</p>
-                    <p className="text-xs text-muted-foreground font-bold">{p.desc}</p>
+                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-orange-500">{t(p.labelKey, p.labelKey)}</p>
+                    <p className="text-xs text-muted-foreground font-bold">{t(p.descId, p.descEn)}</p>
                   </motion.div>
                 ))}
               </div>
@@ -256,7 +254,7 @@ export function HomePage() {
                           activeCategory === c ? "bg-orange-600 text-white" : "bg-white/5 text-muted-foreground hover:bg-white/10 hover:text-white"
                         }`}
                       >
-                        {c}
+                        {c === "Semua" ? t("Semua", "All") : c}
                       </button>
                     ))}
                   </div>
@@ -264,7 +262,7 @@ export function HomePage() {
                 <div className="space-y-4">
                   <p className="text-[10px] font-black uppercase tracking-[0.2em] text-orange-500">Price Range</p>
                   <div className="flex flex-wrap gap-2">
-                    {PRICE_RANGES.map(r => (
+                    {STATIC_PRICE_RANGES.map(r => (
                       <button 
                         key={r.key} 
                         onClick={() => setPriceRange(r.key)}
@@ -272,7 +270,7 @@ export function HomePage() {
                           priceRange === r.key ? "bg-orange-600 text-white" : "bg-white/5 text-muted-foreground hover:bg-white/10 hover:text-white"
                         }`}
                       >
-                        {r.label}
+                        {t(r.labelId, r.labelEn)}
                       </button>
                     ))}
                   </div>
