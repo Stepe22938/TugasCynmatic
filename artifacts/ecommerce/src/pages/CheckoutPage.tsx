@@ -12,7 +12,7 @@ import { useAuth } from "../contexts/AuthContext";
 import { usePaymentSettings } from "../contexts/PaymentSettingsContext";
 import { useNotifications } from "../contexts/NotificationContext";
 import { useVouchers } from "../contexts/VoucherContext";
-import { formatPrice } from "../utils/formatPrice";
+import { useCurrency } from "../contexts/CurrencyContext";
 import { Button } from "../components/ui/button";
 import { useToast } from "../hooks/use-toast";
 import { useProducts } from "../contexts/ProductsContext";
@@ -37,6 +37,7 @@ export function CheckoutPage() {
   const { toast } = useToast();
   const { balance, spend } = useWallet();
   const { isSultan } = useSultan();
+  const { formatPrice } = useCurrency();
 
   const checkoutItems = directItem ? [directItem] : items;
   const subtotal = directItem ? directItem.price * directItem.quantity : cartSubtotal;

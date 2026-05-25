@@ -15,7 +15,7 @@ import { useWishlist } from "../contexts/WishlistContext";
 import { useAuth } from "../contexts/AuthContext";
 import { SellerInfoModal } from "./SellerInfoModal";
 import { AnimatePresence } from "framer-motion";
-import { formatPrice } from "../utils/formatPrice";
+import { useCurrency } from "../contexts/CurrencyContext";
 import { useCart } from "../contexts/CartContext";
 import { useToast } from "../hooks/use-toast";
 import { useProductRatings } from "../hooks/useProductRatings";
@@ -50,6 +50,7 @@ export function ProductCard({ product }: ProductCardProps) {
 
   const rating = allRatings[product.id];
   const sellerUser = allUsers.find(u => u.id === product.sellerId);
+  const { formatPrice } = useCurrency();
 
   const inWishlist = isInWishlist(product.id);
 

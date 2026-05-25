@@ -20,6 +20,7 @@ import { Button } from "../components/ui/button";
 import { motion, AnimatePresence } from "framer-motion";
 import { useSultan } from "../contexts/MySultanContext";
 import { useMyCrypto } from "../contexts/MyCryptoContext";
+import { useCurrency, CurrencyCode, CURRENCIES } from "../contexts/CurrencyContext";
 
 export function SettingsPage() {
   const params = useParams<{ subpage?: string }>();
@@ -75,11 +76,14 @@ export function SettingsPage() {
   const [accentTheme, setAccentTheme] = useState<"default" | "cyberpunk" | "emerald" | "sultan_gold" | "crimson">("default");
   const [languageCode, setLanguageCode] = useState<"id" | "en">("id");
   const [timezoneValue, setTimezoneValue] = useState<"WIB" | "WITA" | "WIT" | "UTC">("WIB");
-  const [currencyFormat, setCurrencyFormat] = useState<"IDR" | "USD" | "EUR">("IDR");
   const [clearingCache, setClearingCache] = useState(false);
   const [cacheSize, setCacheSize] = useState(14.8);
   const [readingMode, setReadingMode] = useState(false);
   const [systemRebooting, setSystemRebooting] = useState(false);
+
+  // Currency — connected to global CurrencyContext
+  const { currency: globalCurrency, setCurrency: setGlobalCurrency } = useCurrency();
+  const currencyFormat = globalCurrency.code;
 
   // Background Audio Synth Beat States
   const [musicPlaying, setMusicPlaying] = useState(false);
@@ -1270,12 +1274,6 @@ export function SettingsPage() {
 
               /* ── CURRENCY FORMAT ── */
               case "currency": {
-                const formats = [
-                  { code: "IDR", symbol: "Rp", name: "Rupiah Indonesia", desc: "Default Local Standard Balance" },
-                  { code: "USD", symbol: "$", name: "US Dollar", desc: "Simulated Conversions (Rate: $1 = Rp 16.000)" },
-                  { code: "EUR", symbol: "€", name: "Euro Europe", desc: "Simulated Conversions (Rate: €1 = Rp 17.500)" }
-                ] as const;
-
                 return (
                   <motion.div
                     key="currency-page"
@@ -1303,16 +1301,21 @@ export function SettingsPage() {
                       </div>
 
                       <div className="space-y-2">
-                        {formats.map((fmt) => {
+                        {CURRENCIES.map((fmt) => {
                           const isActive = currencyFormat === fmt.code;
+                          const descs: Record<string, string> = {
+                            IDR: "Default Local Standard Balance",
+                            USD: "Simulated Conversions (Rate: $1 = Rp 16.000)",
+                            EUR: "Simulated Conversions (Rate: €1 = Rp 17.500)"
+                          };
                           return (
                             <button
                               key={fmt.code}
                               onClick={() => {
-                                setCurrencyFormat(fmt.code);
+                                setGlobalCurrency(fmt.code);
                                 toast({
                                   title: t("Mata Uang Diubah", "Currency Scale Switched"),
-                                  description: t(`Semua saldo diubah ke format ${fmt.code}`, `All balance indexes translated into ${fmt.code}`)
+                                  description: t(`Harga produk & checkout diubah ke format ${fmt.code}`, `Product prices & checkout updated to ${fmt.code}`)
                                 });
                               }}
                               className={`w-full flex items-center justify-between p-4 rounded-2xl border transition-all text-left ${
@@ -1326,7 +1329,7 @@ export function SettingsPage() {
                                   {fmt.name}
                                   <span className="text-[10px] font-black text-emerald-400 font-mono">({fmt.symbol})</span>
                                 </p>
-                                <p className="text-[10px] text-white/40 mt-0.5">{fmt.desc}</p>
+                                <p className="text-[10px] text-white/40 mt-0.5">{descs[fmt.code]}</p>
                               </div>
 
                               {isActive && (

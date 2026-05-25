@@ -28,6 +28,7 @@ import { SultanProvider } from "./contexts/MySultanContext";
 import { MyCryptoProvider } from "./contexts/MyCryptoContext";
 import { WishlistProvider } from "./contexts/WishlistContext";
 import { VoteProvider } from "./contexts/VoteContext";
+import { CurrencyProvider } from "./contexts/CurrencyContext";
 
 import { Navbar } from "./components/Navbar";
 import { GlobalMusicPlayer } from "./components/GlobalMusicPlayer";
@@ -315,6 +316,7 @@ export default function App() {
   return (
     <AuthProvider>
       <ThemeProvider>
+        <CurrencyProvider>
         <QueryClientProvider client={queryClient}>
           <TooltipProvider>
             <PaymentSettingsProvider>
@@ -364,6 +366,7 @@ export default function App() {
             </PaymentSettingsProvider>
           </TooltipProvider>
         </QueryClientProvider>
+        </CurrencyProvider>
       </ThemeProvider>
     </AuthProvider>
   );

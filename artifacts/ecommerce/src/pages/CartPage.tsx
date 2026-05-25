@@ -6,7 +6,7 @@ import React from "react";
 import { useLocation, Link } from "wouter";
 import { Trash2, Plus, Minus, ArrowLeft, ShoppingBag } from "lucide-react";
 import { useCart } from "../contexts/CartContext";
-import { formatPrice } from "../utils/formatPrice";
+import { useCurrency } from "../contexts/CurrencyContext";
 import { useToast } from "../hooks/use-toast";
 import { Button } from "../components/ui/button";
 
@@ -16,6 +16,7 @@ export function CartPage() {
   const { state: { items }, dispatch, subtotal } = useCart();
   const [, setLocation] = useLocation();
   const { toast } = useToast();
+  const { formatPrice } = useCurrency();
 
   const handleUpdateQty = (id: number, quantity: number) =>
     dispatch({ type: "UPDATE_QUANTITY", payload: { id, quantity } });

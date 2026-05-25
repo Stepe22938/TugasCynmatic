@@ -20,7 +20,7 @@ import { useCart } from "../contexts/CartContext";
 import { useOrderHistory } from "../contexts/OrderHistoryContext";
 import { useProductRatings } from "../hooks/useProductRatings";
 import { AIProductChecker } from "../components/AIProductChecker";
-import { formatPrice } from "../utils/formatPrice";
+import { useCurrency } from "../contexts/CurrencyContext";
 import { useToast } from "../hooks/use-toast";
 import { Button } from "../components/ui/button";
 import { useAuth } from "../contexts/AuthContext";
@@ -130,6 +130,7 @@ export function ProductDetailPage() {
   const [, setLocation] = useLocation();
 
   const { allUsers } = useAuth();
+  const { formatPrice } = useCurrency();
   const [activeImage, setActiveImage] = useState(0);
   const [showFloatingBar, setShowFloatingBar] = useState(false);
   const [showSellerModal, setShowSellerModal] = useState(false);
