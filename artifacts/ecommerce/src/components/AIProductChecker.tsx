@@ -14,6 +14,7 @@ interface Props {
   description: string;
   price: number;
   category: string;
+  productId?: number;
 }
 
 interface AIResult {
@@ -24,12 +25,12 @@ interface AIResult {
 }
 
 const VERDICT_CONFIG = {
-  asli:         { icon: ShieldCheck,   color: "text-green-600", bg: "bg-green-50 border-green-200",  label: "Kemungkinan Asli" },
-  mencurigakan: { icon: AlertTriangle, color: "text-amber-600", bg: "bg-amber-50 border-amber-200",  label: "Perlu Diwaspadai" },
-  palsu:        { icon: XCircle,       color: "text-red-600",   bg: "bg-red-50 border-red-200",      label: "Kemungkinan Palsu" },
+  asli:         { icon: ShieldCheck,   color: "text-emerald-400", bg: "bg-emerald-500/10 border-emerald-500/20 text-emerald-100",  label: "Kemungkinan Asli" },
+  mencurigakan: { icon: AlertTriangle, color: "text-amber-400", bg: "bg-amber-500/10 border-amber-500/20 text-amber-100",  label: "Perlu Diwaspadai" },
+  palsu:        { icon: XCircle,       color: "text-rose-400",   bg: "bg-rose-500/10 border-rose-500/20 text-rose-100",      label: "Kemungkinan Palsu" },
 };
 
-export function AIProductChecker({ productName, description, price, category }: Props) {
+export function AIProductChecker({ productName, description, price, category, productId }: Props) {
   const [open,    setOpen]    = useState(false);
   const [loading, setLoading] = useState(false);
   const [result,  setResult]  = useState<AIResult | null>(null);
@@ -42,7 +43,7 @@ export function AIProductChecker({ productName, description, price, category }: 
     setLoading(true); setError(null); setResult(null);
     
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 15000);
+    const timeoutId = setTimeout(() => controller.abort(), 90000);
 
     try {
       const base = import.meta.env.BASE_URL?.replace(/\/$/, "") ?? "";
@@ -51,7 +52,7 @@ export function AIProductChecker({ productName, description, price, category }: 
       const res = await fetch(`${base}/api/ai/check-product`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: productName, description, price, category, apiKey, model }),
+        body: JSON.stringify({ name: productName, description, price, category, apiKey, model, productId }),
         signal: controller.signal
       });
       clearTimeout(timeoutId);
@@ -134,35 +135,41 @@ export function AIProductChecker({ productName, description, price, category }: 
               )}
 
               {error && (
-                <div className="bg-red-50 border border-red-200 rounded-xl px-3 py-2 text-xs text-red-700">
+                <div className="bg-red-500/10 border border-red-500/20 rounded-xl px-3 py-2.5 text-xs text-red-400">
                   {error}
                 </div>
               )}
 
               {result && cfg && (
-                <div className={`border rounded-xl p-3 space-y-2 ${cfg.bg}`}>
+                <div className={`border rounded-xl p-4.5 space-y-3.5 transition-all ${cfg.bg}`}>
                   <div className="flex items-center gap-2">
-                    {React.createElement(cfg.icon, { className: `h-5 w-5 ${cfg.color}` })}
+                    {React.createElement(cfg.icon, { className: `h-5 w-5 ${cfg.color} shrink-0` })}
                     <span className={`font-bold text-sm ${cfg.color}`}>{cfg.label}</span>
-                    <span className="ml-auto text-xs font-semibold text-muted-foreground">
+                    <span className="ml-auto text-xs font-semibold text-white/50">
                       {result.confidence}% yakin
                     </span>
                   </div>
-                  <div className="w-full bg-black/10 rounded-full h-1.5 overflow-hidden">
+                  <div className="w-full bg-white/10 rounded-full h-1.5 overflow-hidden">
                     <div
                       className={`h-full rounded-full transition-all ${
-                        result.verdict === "asli" ? "bg-green-500" : result.verdict === "mencurigakan" ? "bg-amber-500" : "bg-red-500"
+                        result.verdict === "asli" ? "bg-emerald-500" : result.verdict === "mencurigakan" ? "bg-amber-500" : "bg-rose-500"
                       }`}
                       style={{ width: `${result.confidence}%` }}
                     />
                   </div>
-                  <p className="text-xs leading-relaxed text-foreground">{result.reasoning}</p>
+                  <p className="text-xs leading-relaxed opacity-95">{result.reasoning}</p>
                   {result.tips && (
-                    <p className="text-[11px] text-muted-foreground italic border-t pt-2">
-                      💡 {result.tips}
-                    </p>
+                    <div className="text-[11px] opacity-80 italic border-t border-white/10 pt-3 flex items-start gap-1.5">
+                      <span className="shrink-0">💡</span>
+                      <span>{result.tips}</span>
+                    </div>
                   )}
-                  <Button variant="ghost" size="sm" className="text-xs h-7 mt-1 -mb-1" onClick={handleCheck}>
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className={`text-xs h-7 mt-1 -mb-1 px-2.5 font-medium border border-white/5 bg-white/[0.02] hover:bg-white/[0.08] ${cfg.color}`}
+                    onClick={handleCheck}
+                  >
                     <Sparkles className="h-3 w-3 mr-1" />Analisis Ulang
                   </Button>
                 </div>

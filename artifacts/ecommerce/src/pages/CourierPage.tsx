@@ -1,118 +1,321 @@
 /**
  * CourierPage.tsx
- * Halaman kurir — lihat pesanan yang siap dikirim, update status pengiriman.
+ * Halaman kurir untuk mengambil paket, update status, dan chat pembeli.
  */
-import React, { useState, useMemo } from "react";
-import { Package, Truck, CheckCircle2, MapPin, User, Phone, Clock, ChevronDown, ChevronUp, MessageSquare, Send, X } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+import React, { useMemo, useState } from "react";
+import {
+  ArrowRight,
+  CheckCircle2,
+  ChevronDown,
+  ChevronUp,
+  Clock3,
+  MapPin,
+  MessageSquare,
+  Navigation,
+  Package,
+  Phone,
+  Route,
+  Search,
+  Send,
+  ShieldCheck,
+  Sparkles,
+  Truck,
+  User,
+  X,
+} from "lucide-react";
+import { AnimatePresence, motion } from "framer-motion";
 import { useAuth } from "../contexts/AuthContext";
-import { useOrderHistory, PurchasedOrder, OrderStatus } from "../contexts/OrderHistoryContext";
+import { useOrderHistory, OrderStatus, PurchasedOrder } from "../contexts/OrderHistoryContext";
 import { formatPrice } from "../utils/formatPrice";
 import { Button } from "../components/ui/button";
 import { useToast } from "../hooks/use-toast";
 
-function formatDate(iso: string) {
-  return new Date(iso).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
-}
+type FilterTab = "shipped" | "in_delivery" | "delivered" | "all";
 
-const STATUS_CONFIG: Record<OrderStatus, { label: string; color: string; bg: string }> = {
-  placed:      { label: "Pesanan Masuk",       color: "text-blue-700",   bg: "bg-blue-100" },
-  processing:  { label: "Diproses Penjual",    color: "text-amber-700",  bg: "bg-amber-100" },
-  pending_po:  { label: "Delayed Protocol",    color: "text-cyan-700",   bg: "bg-cyan-100" },
-  shipped:     { label: "Siap Diambil Kurir",  color: "text-orange-700", bg: "bg-orange-100" },
-  in_delivery: { label: "Dalam Pengiriman",    color: "text-purple-700", bg: "bg-purple-100" },
-  delivered:   { label: "Terkirim",            color: "text-green-700",  bg: "bg-green-100" },
-  completed:   { label: "Selesai",             color: "text-green-800",  bg: "bg-green-200" },
-  problem:     { label: "Bermasalah",          color: "text-red-700",    bg: "bg-red-100" },
+const COURIER_STATUSES: OrderStatus[] = ["shipped", "in_delivery", "delivered", "completed", "problem"];
+
+const STATUS_CONFIG: Record<OrderStatus, { label: string; tone: string; dot: string }> = {
+  placed: { label: "Pesanan Masuk", tone: "bg-sky-500/10 text-sky-300 border-sky-400/20", dot: "bg-sky-400" },
+  processing: { label: "Diproses", tone: "bg-amber-500/10 text-amber-300 border-amber-400/20", dot: "bg-amber-400" },
+  pending_po: { label: "Pending PO", tone: "bg-cyan-500/10 text-cyan-300 border-cyan-400/20", dot: "bg-cyan-400" },
+  shipped: { label: "Siap Diambil", tone: "bg-orange-500/10 text-orange-300 border-orange-400/20", dot: "bg-orange-400" },
+  in_delivery: { label: "Dalam Pengiriman", tone: "bg-teal-500/10 text-teal-300 border-teal-400/20", dot: "bg-teal-400" },
+  delivered: { label: "Terkirim", tone: "bg-emerald-500/10 text-emerald-300 border-emerald-400/20", dot: "bg-emerald-400" },
+  completed: { label: "Selesai", tone: "bg-lime-500/10 text-lime-300 border-lime-400/20", dot: "bg-lime-400" },
+  problem: { label: "Bermasalah", tone: "bg-red-500/10 text-red-300 border-red-400/20", dot: "bg-red-400" },
 };
 
-function OrderCard({ order, onPickup, onDeliver, onMessage }: {
+function formatDate(iso: string) {
+  return new Date(iso).toLocaleDateString("id-ID", {
+    day: "numeric",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+function getCustomerName(order: PurchasedOrder) {
+  const firstName = order.shippingInfo?.firstName?.trim();
+  const lastName = order.shippingInfo?.lastName?.trim();
+  return [firstName, lastName].filter(Boolean).join(" ") || order.userName || "Pelanggan";
+}
+
+function CourierHero({ ready, active, delivered }: { ready: number; active: number; delivered: number }) {
+  const totalLive = ready + active;
+
+  return (
+    <section className="relative overflow-hidden rounded-2xl border border-white/10 bg-[#101010] shadow-2xl">
+      <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-orange-300/70 to-transparent" />
+      <div className="grid gap-6 p-5 sm:p-7 lg:grid-cols-[1.15fr_0.85fr] lg:items-center lg:p-8">
+        <div className="space-y-5">
+          <div className="inline-flex items-center gap-2 rounded-full border border-orange-400/20 bg-orange-500/10 px-3 py-1.5 text-[11px] font-black uppercase tracking-widest text-orange-200">
+            <Sparkles className="h-3.5 w-3.5" />
+            Cynmatic Express
+          </div>
+
+          <div className="space-y-3">
+            <h1 className="max-w-2xl text-4xl font-black leading-none tracking-normal text-white sm:text-5xl">
+              Kurir Control Center
+            </h1>
+            <p className="max-w-xl text-sm font-medium leading-6 text-white/55">
+              Pantau paket siap ambil, jalankan pengiriman, dan jaga komunikasi pembeli dari satu layar yang lebih cepat dipindai.
+            </p>
+          </div>
+
+          <div className="flex flex-wrap gap-3">
+            <div className="rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3">
+              <p className="text-[10px] font-black uppercase tracking-widest text-white/35">Live Route</p>
+              <p className="mt-1 text-2xl font-black text-white">{totalLive}</p>
+            </div>
+            <div className="rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3">
+              <p className="text-[10px] font-black uppercase tracking-widest text-white/35">Selesai</p>
+              <p className="mt-1 text-2xl font-black text-emerald-300">{delivered}</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="relative min-h-[210px] overflow-hidden rounded-2xl border border-white/10 bg-[#171717] p-5">
+          <div className="absolute inset-0 bg-[linear-gradient(135deg,rgba(249,115,22,0.14),transparent_38%,rgba(20,184,166,0.12))]" />
+          <div className="relative flex h-full flex-col justify-between gap-5">
+            <div className="flex items-center justify-between">
+              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-orange-500 text-white shadow-lg shadow-orange-950/40">
+                <Truck className="h-6 w-6" />
+              </div>
+              <div className="rounded-full border border-teal-300/20 bg-teal-400/10 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-teal-200">
+                Online
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <div className="flex items-center gap-3">
+                <div className="h-3 w-3 rounded-full bg-orange-400 shadow-[0_0_18px_rgba(251,146,60,0.8)]" />
+                <div className="h-px flex-1 bg-white/15" />
+                <Navigation className="h-4 w-4 text-white/35" />
+                <div className="h-px flex-1 bg-white/15" />
+                <div className="h-3 w-3 rounded-full bg-teal-300 shadow-[0_0_18px_rgba(94,234,212,0.7)]" />
+              </div>
+              <div className="flex items-center justify-between text-[10px] font-black uppercase tracking-widest text-white/40">
+                <span>Pickup</span>
+                <span>Delivery</span>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div className="rounded-xl bg-black/20 p-3">
+                <p className="text-[10px] font-black uppercase tracking-widest text-white/35">Ready</p>
+                <p className="mt-1 text-lg font-black text-orange-200">{ready} Paket</p>
+              </div>
+              <div className="rounded-xl bg-black/20 p-3">
+                <p className="text-[10px] font-black uppercase tracking-widest text-white/35">On Road</p>
+                <p className="mt-1 text-lg font-black text-teal-200">{active} Paket</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function OrderTimeline({ status }: { status: OrderStatus }) {
+  const steps = [
+    { id: "shipped", label: "Pickup" },
+    { id: "in_delivery", label: "On road" },
+    { id: "delivered", label: "Drop" },
+  ];
+  const activeIndex = status === "shipped" ? 0 : status === "in_delivery" ? 1 : 2;
+
+  return (
+    <div className="grid grid-cols-[auto_1fr_auto_1fr_auto] items-center gap-2">
+      {steps.map((step, index) => {
+        const done = index <= activeIndex;
+        return (
+          <React.Fragment key={step.id}>
+            <div className="flex flex-col items-center gap-1">
+              <div className={`h-8 w-8 rounded-xl border flex items-center justify-center ${done ? "border-orange-300/30 bg-orange-500 text-white" : "border-white/10 bg-white/5 text-white/25"}`}>
+                {index === 0 ? <Package className="h-4 w-4" /> : index === 1 ? <Truck className="h-4 w-4" /> : <CheckCircle2 className="h-4 w-4" />}
+              </div>
+              <span className="text-[9px] font-black uppercase tracking-widest text-white/35">{step.label}</span>
+            </div>
+            {index < steps.length - 1 && (
+              <div className={`h-px ${index < activeIndex ? "bg-orange-300/60" : "bg-white/10"}`} />
+            )}
+          </React.Fragment>
+        );
+      })}
+    </div>
+  );
+}
+
+function CourierOrderCard({
+  order,
+  onPickup,
+  onDeliver,
+  onMessage,
+}: {
   order: PurchasedOrder;
-  onPickup:  (id: string) => void;
+  onPickup: (id: string) => void;
   onDeliver: (id: string) => void;
   onMessage: (order: PurchasedOrder) => void;
 }) {
   const [expanded, setExpanded] = useState(false);
   const cfg = STATUS_CONFIG[order.status];
+  const customerName = getCustomerName(order);
 
   return (
-    <div className="bg-card border rounded-2xl overflow-hidden shadow-sm">
-      {/* Header */}
-      <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-3 border-b bg-muted/20">
-        <div className="flex items-center gap-2">
-          <Package className="h-4 w-4 text-primary" />
-          <span className="font-bold text-primary text-sm">{order.orderNumber}</span>
-          <span className="text-xs text-muted-foreground">· {formatDate(order.date)}</span>
+    <motion.article
+      layout
+      initial={{ opacity: 0, y: 16 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -12 }}
+      className="overflow-hidden rounded-2xl border border-white/10 bg-[#111111] shadow-xl shadow-black/30"
+    >
+      <div className="flex items-start justify-between gap-4 border-b border-white/10 bg-white/[0.03] p-4">
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-2">
+            <p className="truncate text-sm font-black text-white">{order.orderNumber}</p>
+            <span className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-black uppercase tracking-widest ${cfg.tone}`}>
+              <span className={`h-1.5 w-1.5 rounded-full ${cfg.dot}`} />
+              {cfg.label}
+            </span>
+          </div>
+          <p className="mt-1 flex items-center gap-1.5 text-xs font-semibold text-white/40">
+            <Clock3 className="h-3.5 w-3.5" />
+            {formatDate(order.date)}
+          </p>
         </div>
-        <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${cfg.bg} ${cfg.color}`}>{cfg.label}</span>
+        <button
+          type="button"
+          onClick={() => onMessage(order)}
+          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-white/[0.04] text-white/70 transition hover:border-orange-300/30 hover:bg-orange-500/10 hover:text-orange-200"
+          aria-label="Buka chat"
+        >
+          <MessageSquare className="h-4 w-4" />
+        </button>
       </div>
 
-      {/* Shipping info */}
-      {order.shippingInfo && (
-        <div className="px-4 py-3 bg-blue-50/50 border-b space-y-1">
-          <div className="flex items-center gap-2 text-sm font-semibold">
-            <User className="h-4 w-4 text-blue-600" />
-            <span>{order.shippingInfo.firstName} {order.shippingInfo.lastName}</span>
-          </div>
-          {order.shippingInfo.phone && (
-            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-              <Phone className="h-3.5 w-3.5" /><span>{order.shippingInfo.phone}</span>
+      <div className="space-y-5 p-4">
+        <OrderTimeline status={order.status} />
+
+        <div className="space-y-3 rounded-xl border border-white/10 bg-black/20 p-4">
+          <div className="flex items-start gap-3">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-teal-400/10 text-teal-200">
+              <MapPin className="h-4 w-4" />
             </div>
-          )}
-          <div className="flex items-start gap-2 text-xs text-muted-foreground">
-            <MapPin className="h-3.5 w-3.5 flex-shrink-0 mt-0.5" />
-            <span className="leading-relaxed">{order.shippingInfo.address}</span>
+            <div className="min-w-0">
+              <p className="text-sm font-black text-white">{customerName}</p>
+              <p className="mt-1 text-xs font-medium leading-5 text-white/50">
+                {order.shippingInfo?.address || "Alamat pengiriman belum tersedia."}
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-3">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-orange-400/10 text-orange-200">
+              <Phone className="h-4 w-4" />
+            </div>
+            <p className="text-xs font-bold tracking-wide text-white/60">{order.shippingInfo?.phone || "Nomor belum tersedia"}</p>
           </div>
         </div>
-      )}
 
-      {/* Items summary */}
-      <button className="w-full flex items-center justify-between px-4 py-2 hover:bg-muted/20 transition-colors text-xs text-primary font-semibold"
-        onClick={() => setExpanded((v) => !v)}>
-        <span>{order.items.length} produk · {formatPrice(order.grandTotal)}</span>
-        {expanded ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
-      </button>
+        <button
+          type="button"
+          onClick={() => setExpanded((value) => !value)}
+          className="flex w-full items-center justify-between rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 text-left transition hover:bg-white/[0.06]"
+        >
+          <div>
+            <p className="text-[10px] font-black uppercase tracking-widest text-white/35">Isi Paket</p>
+            <p className="mt-1 text-sm font-black text-white">
+              {order.items.length} produk <span className="text-orange-300">{formatPrice(order.grandTotal)}</span>
+            </p>
+          </div>
+          {expanded ? <ChevronUp className="h-4 w-4 text-white/45" /> : <ChevronDown className="h-4 w-4 text-white/45" />}
+        </button>
 
-      {expanded && (
-        <div className="px-4 pb-3 space-y-2 border-t">
-          {order.items.map((item) => (
-            <div key={item.id} className="flex gap-2 items-center py-2">
-              <img src={item.image} alt={item.name}
-                className="w-10 h-10 rounded-lg object-cover flex-shrink-0 bg-muted"
-                onError={(e) => { (e.target as HTMLImageElement).src = "https://placehold.co/40x40?text=?"; }} />
-              <div className="flex-1 min-w-0">
-                <p className="text-xs font-semibold truncate">{item.name}</p>
-                <p className="text-[11px] text-muted-foreground">x{item.quantity} · {formatPrice(item.price)}</p>
+        <AnimatePresence initial={false}>
+          {expanded && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: "auto", opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              className="overflow-hidden"
+            >
+              <div className="space-y-2">
+                {order.items.map((item) => (
+                  <div key={item.id} className="flex items-center gap-3 rounded-xl bg-white/[0.03] p-2">
+                    <img
+                      src={item.image}
+                      alt={item.name}
+                      className="h-11 w-11 shrink-0 rounded-lg bg-white/5 object-cover"
+                      onError={(event) => {
+                        event.currentTarget.src = "https://placehold.co/80x80/171717/f97316?text=C";
+                      }}
+                    />
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-xs font-black text-white">{item.name}</p>
+                      <p className="mt-0.5 text-[11px] font-semibold text-white/40">
+                        x{item.quantity} - {formatPrice(item.price)}
+                      </p>
+                    </div>
+                  </div>
+                ))}
               </div>
-            </div>
-          ))}
-        </div>
-      )}
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
 
-      {/* Actions */}
-      <div className="flex gap-2 px-4 pb-4 pt-2 flex-wrap">
+      <div className="flex gap-3 border-t border-white/10 bg-white/[0.03] p-4">
         {order.status === "shipped" && (
-          <Button size="sm" onClick={() => onPickup(order.id)}
-            className="bg-purple-600 hover:bg-purple-700 text-white gap-1.5 text-xs">
-            <Truck className="h-3.5 w-3.5" />Ambil & Antar
+          <Button onClick={() => onPickup(order.id)} className="h-11 flex-1 rounded-xl bg-orange-600 text-xs font-black uppercase tracking-widest text-white hover:bg-orange-500">
+            <Truck className="mr-2 h-4 w-4" />
+            Ambil Paket
           </Button>
         )}
         {order.status === "in_delivery" && (
-          <Button size="sm" onClick={() => onDeliver(order.id)}
-            className="bg-green-600 hover:bg-green-700 text-white gap-1.5 text-xs">
-            <CheckCircle2 className="h-3.5 w-3.5" />Konfirmasi Terkirim
+          <Button onClick={() => onDeliver(order.id)} className="h-11 flex-1 rounded-xl bg-emerald-600 text-xs font-black uppercase tracking-widest text-white hover:bg-emerald-500">
+            <CheckCircle2 className="mr-2 h-4 w-4" />
+            Terkirim
           </Button>
         )}
-        <Button size="sm" variant="outline" onClick={() => onMessage(order)}
-          className="gap-1.5 text-xs ml-auto">
-          <MessageSquare className="h-3.5 w-3.5" />Chat
+        {order.status !== "shipped" && order.status !== "in_delivery" && (
+          <div className="flex h-11 flex-1 items-center justify-center rounded-xl border border-white/10 bg-white/[0.03] text-[10px] font-black uppercase tracking-widest text-white/35">
+            Status terkunci
+          </div>
+        )}
+        <Button
+          variant="outline"
+          onClick={() => onMessage(order)}
+          className="h-11 w-11 rounded-xl border-white/10 bg-white/[0.04] p-0 text-white hover:bg-white/[0.08]"
+          aria-label="Chat pembeli"
+        >
+          <MessageSquare className="h-4 w-4" />
         </Button>
       </div>
-    </div>
+    </motion.article>
   );
 }
 
-function ChatPanel({ order, onClose }: { order: PurchasedOrder; onClose: () => void }) {
+function ChatModal({ order, onClose }: { order: PurchasedOrder; onClose: () => void }) {
   const { user } = useAuth();
   const { addMessage } = useOrderHistory();
   const [text, setText] = useState("");
@@ -129,311 +332,235 @@ function ChatPanel({ order, onClose }: { order: PurchasedOrder; onClose: () => v
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-black/50">
-      <div className="bg-background rounded-2xl shadow-2xl w-full max-w-md flex flex-col" style={{ maxHeight: "80vh" }}>
-        <div className="flex items-center justify-between px-4 py-3 border-b">
-          <div>
-            <p className="font-bold text-sm">Pesan — {order.orderNumber}</p>
-            <p className="text-xs text-muted-foreground">Pembeli: {order.shippingInfo?.firstName} {order.shippingInfo?.lastName}</p>
+    <div className="fixed inset-0 z-[100] flex items-end justify-center bg-black/70 p-3 backdrop-blur-xl sm:items-center sm:p-6">
+      <motion.div
+        initial={{ opacity: 0, y: 24, scale: 0.98 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        exit={{ opacity: 0, y: 20, scale: 0.98 }}
+        className="flex h-[78vh] w-full max-w-lg flex-col overflow-hidden rounded-2xl border border-white/10 bg-[#101010] shadow-2xl"
+      >
+        <div className="flex items-center justify-between border-b border-white/10 bg-white/[0.03] p-4">
+          <div className="min-w-0">
+            <p className="truncate text-base font-black text-white">Chat Pengiriman</p>
+            <p className="mt-1 truncate text-xs font-semibold text-white/40">
+              {order.orderNumber} - {getCustomerName(order)}
+            </p>
           </div>
-          <button onClick={onClose} className="text-muted-foreground hover:text-foreground text-xl font-bold">×</button>
-        </div>
-        <div className="flex-1 overflow-y-auto p-4 space-y-2 min-h-0" style={{ maxHeight: "300px" }}>
-          {(order.messages ?? []).length === 0 ? (
-            <p className="text-center text-xs text-muted-foreground py-8">Belum ada pesan.</p>
-          ) : (order.messages ?? []).map((msg) => (
-            <div key={msg.id} className={`flex flex-col ${msg.senderId === user?.id ? "items-end" : "items-start"}`}>
-              <span className="text-[10px] text-muted-foreground mb-0.5">{msg.senderName} · {msg.senderRole}</span>
-              <div className={`max-w-[80%] px-3 py-2 rounded-2xl text-sm ${
-                msg.senderId === user?.id
-                  ? "bg-primary text-primary-foreground"
-                  : "bg-muted text-foreground"
-              }`}>{msg.text}</div>
-            </div>
-          ))}
-        </div>
-        <div className="flex gap-2 p-3 border-t">
-          <input value={text} onChange={(e) => setText(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && send()}
-            placeholder="Tulis pesan..."
-            className="flex-1 px-3 py-2 text-sm border rounded-xl bg-background focus:outline-none focus:ring-2 focus:ring-ring" />
-          <button onClick={send}
-            className="w-9 h-9 bg-primary rounded-xl flex items-center justify-center flex-shrink-0">
-            <Send className="h-4 w-4 text-primary-foreground" />
+          <button
+            type="button"
+            onClick={onClose}
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-white/[0.04] text-white/65 transition hover:text-white"
+            aria-label="Tutup chat"
+          >
+            <X className="h-4 w-4" />
           </button>
         </div>
-      </div>
+
+        <div className="flex-1 space-y-3 overflow-y-auto p-4">
+          {(order.messages ?? []).length === 0 ? (
+            <div className="flex h-full flex-col items-center justify-center text-center">
+              <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white/[0.04] text-white/25">
+                <MessageSquare className="h-7 w-7" />
+              </div>
+              <p className="mt-4 text-xs font-black uppercase tracking-widest text-white/35">Belum ada pesan</p>
+            </div>
+          ) : (
+            (order.messages ?? []).map((msg) => {
+              const mine = msg.senderId === user?.id;
+              return (
+                <div key={msg.id} className={`flex flex-col ${mine ? "items-end" : "items-start"}`}>
+                  <span className="mb-1 text-[10px] font-bold text-white/30">
+                    {msg.senderName} - {msg.senderRole}
+                  </span>
+                  <div className={`max-w-[85%] rounded-2xl px-4 py-3 text-sm font-semibold leading-6 ${mine ? "bg-orange-600 text-white" : "bg-white/[0.06] text-white/75"}`}>
+                    {msg.text}
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
+
+        <div className="border-t border-white/10 bg-white/[0.03] p-4">
+          <div className="flex items-center gap-2 rounded-xl border border-white/10 bg-black/20 p-2">
+            <input
+              value={text}
+              onChange={(event) => setText(event.target.value)}
+              onKeyDown={(event) => event.key === "Enter" && send()}
+              placeholder="Tulis pesan ke pembeli..."
+              className="min-w-0 flex-1 bg-transparent px-2 text-sm font-semibold text-white outline-none placeholder:text-white/25"
+            />
+            <button
+              type="button"
+              onClick={send}
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-orange-600 text-white transition hover:bg-orange-500"
+              aria-label="Kirim pesan"
+            >
+              <Send className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
+      </motion.div>
     </div>
   );
 }
-
-type FilterTab = "all" | "shipped" | "in_delivery" | "delivered";
 
 export function CourierPage() {
   const { user } = useAuth();
   const { getAllOrders, updateOrderStatus } = useOrderHistory();
   const { toast } = useToast();
   const [filter, setFilter] = useState<FilterTab>("shipped");
+  const [query, setQuery] = useState("");
   const [chatOrder, setChatOrder] = useState<PurchasedOrder | null>(null);
 
-  if (!user || (user.role !== "kurir" && user.role !== "admin")) return null;
-
   const allOrders = getAllOrders();
-  const activeOrders = useMemo(() => {
-    if (filter === "all") return allOrders.filter((o) => ["shipped", "in_delivery", "delivered", "completed", "problem"].includes(o.status));
-    return allOrders.filter((o) => o.status === filter);
-  }, [allOrders, filter]);
+  const courierOrders = useMemo(
+    () => allOrders.filter((order) => COURIER_STATUSES.includes(order.status)),
+    [allOrders],
+  );
 
-  const counts = {
-    shipped:     allOrders.filter((o) => o.status === "shipped").length,
-    in_delivery: allOrders.filter((o) => o.status === "in_delivery").length,
-    delivered:   allOrders.filter((o) => o.status === "delivered").length,
-  };
+  const counts = useMemo(
+    () => ({
+      shipped: courierOrders.filter((order) => order.status === "shipped").length,
+      in_delivery: courierOrders.filter((order) => order.status === "in_delivery").length,
+      delivered: courierOrders.filter((order) => order.status === "delivered" || order.status === "completed").length,
+      problem: courierOrders.filter((order) => order.status === "problem").length,
+    }),
+    [courierOrders],
+  );
+
+  const filteredOrders = useMemo(() => {
+    const normalizedQuery = query.trim().toLowerCase();
+    return courierOrders.filter((order) => {
+      const matchesTab = filter === "all" || order.status === filter || (filter === "delivered" && order.status === "completed");
+      if (!matchesTab) return false;
+      if (!normalizedQuery) return true;
+      const haystack = [
+        order.orderNumber,
+        getCustomerName(order),
+        order.shippingInfo?.address,
+        order.shippingInfo?.phone,
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
+      return haystack.includes(normalizedQuery);
+    });
+  }, [courierOrders, filter, query]);
+
+  const filterTabs: { id: FilterTab; label: string; count?: number; icon: React.ElementType }[] = [
+    { id: "shipped", label: "Pickup", count: counts.shipped, icon: Package },
+    { id: "in_delivery", label: "On Road", count: counts.in_delivery, icon: Truck },
+    { id: "delivered", label: "Drop", count: counts.delivered, icon: CheckCircle2 },
+    { id: "all", label: "Semua", count: courierOrders.length, icon: Route },
+  ];
 
   const handlePickup = (orderId: string) => {
     updateOrderStatus(orderId, "in_delivery");
-    toast({ title: "✅ Paket diambil!", description: "Status berubah menjadi 'Dalam Pengiriman'." });
+    toast({ title: "Paket diambil", description: "Status berubah menjadi Dalam Pengiriman." });
   };
 
   const handleDeliver = (orderId: string) => {
     updateOrderStatus(orderId, "delivered");
-    toast({ title: "✅ Terkirim!", description: "Pembeli akan mendapatkan notifikasi." });
+    toast({ title: "Paket terkirim", description: "Pembeli akan mendapatkan update status." });
   };
 
-  const FILTER_TABS: { id: FilterTab; label: string; count?: number }[] = [
-    { id: "shipped",     label: `Siap Diambil (${counts.shipped})` },
-    { id: "in_delivery", label: `Dalam Pengiriman (${counts.in_delivery})` },
-    { id: "delivered",   label: `Terkirim (${counts.delivered})` },
-    { id: "all",         label: "Semua" },
-  ];
+  if (!user || (user.role !== "kurir" && user.role !== "admin")) return null;
 
   return (
-    <div className="min-h-screen bg-[#050505] pt-4 pb-20 overflow-x-hidden">
-      <div className="container mx-auto px-6 max-w-4xl space-y-10">
-        
-        {/* ── Premium Courier Header ─────────────────────────────────── */}
-        <div className="relative overflow-hidden rounded-[3rem] p-10 border border-white/5 bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-purple-950/20 via-background to-background shadow-2xl group">
-          <div className="absolute top-0 right-0 w-64 h-64 bg-purple-600/10 blur-[100px] rounded-full -translate-y-1/2 translate-x-1/2 group-hover:scale-150 transition-transform duration-1000" />
-          
-          <div className="relative z-10 flex flex-col md:flex-row items-center gap-8 text-center md:text-left">
-            <div className="w-24 h-24 bg-gradient-to-br from-purple-500 to-indigo-700 rounded-[2rem] flex items-center justify-center shadow-2xl shadow-purple-600/30 group-hover:rotate-6 transition-transform">
-              <Truck className="h-12 w-12 text-white" />
-            </div>
-            <div className="flex-1 space-y-2">
-              <h1 className="text-4xl lg:text-5xl font-black tracking-tighter uppercase italic text-gradient bg-gradient-to-r from-purple-400 to-indigo-600">Logistic Hub</h1>
-              <p className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.3em] opacity-60">Elite Delivery Network v1.2</p>
-            </div>
-            <div className="flex gap-4">
-               <div className="glass-card px-6 py-3 rounded-2xl text-center border-white/5 shadow-xl">
-                  <p className="text-[9px] font-black uppercase text-muted-foreground tracking-widest">Active Fleet</p>
-                  <p className="text-xl font-black text-white mt-1">{(counts.shipped + counts.in_delivery)}</p>
-               </div>
-            </div>
-          </div>
-        </div>
+    <div className="min-h-screen bg-[#080808] pb-20 pt-3 text-white">
+      <div className="mx-auto w-full max-w-6xl space-y-5 px-4 sm:px-6">
+        <CourierHero ready={counts.shipped} active={counts.in_delivery} delivered={counts.delivered} />
 
-        {/* ── Fleet Stats ────────────────────────────────────────────── */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {[
-            { label: "Siap Diambil",     count: counts.shipped,     icon: Package,  color: "text-orange-500", bg: "bg-orange-500/10" },
-            { label: "Dalam Pengiriman", count: counts.in_delivery, icon: Truck,    color: "text-purple-500", bg: "bg-purple-500/10" },
-            { label: "Terkirim",         count: counts.delivered,   icon: CheckCircle2, color: "text-emerald-500", bg: "bg-emerald-500/10" },
-          ].map((s) => (
-            <div key={s.label} className="glass-card p-6 rounded-[2.5rem] border-white/5 flex items-center gap-5 hover:border-white/10 transition-all">
-              <div className={`w-12 h-12 ${s.bg} rounded-2xl flex items-center justify-center`}>
-                <s.icon className={`h-6 w-6 ${s.color}`} />
+            { label: "Siap Ambil", value: counts.shipped, icon: Package, color: "text-orange-200", bg: "bg-orange-500/10" },
+            { label: "On Road", value: counts.in_delivery, icon: Navigation, color: "text-teal-200", bg: "bg-teal-500/10" },
+            { label: "Terkirim", value: counts.delivered, icon: ShieldCheck, color: "text-emerald-200", bg: "bg-emerald-500/10" },
+            { label: "Issue", value: counts.problem, icon: User, color: "text-red-200", bg: "bg-red-500/10" },
+          ].map((stat) => (
+            <div key={stat.label} className="flex items-center gap-4 rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+              <div className={`flex h-11 w-11 items-center justify-center rounded-xl ${stat.bg} ${stat.color}`}>
+                <stat.icon className="h-5 w-5" />
               </div>
               <div>
-                <p className="text-2xl font-black tracking-tighter text-white">{s.count}</p>
-                <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">{s.label}</p>
+                <p className="text-2xl font-black text-white">{stat.value}</p>
+                <p className="text-[10px] font-black uppercase tracking-widest text-white/35">{stat.label}</p>
               </div>
             </div>
           ))}
-        </div>
+        </section>
 
-        {/* ── Management Tabs ────────────────────────────────────────── */}
-        <div className="flex flex-wrap gap-3">
-          {FILTER_TABS.map((t) => (
-            <button
-              key={t.id}
-              onClick={() => setFilter(t.id)}
-              className={`px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all border ${
-                filter === t.id 
-                  ? "bg-purple-600 border-purple-500 text-white shadow-xl shadow-purple-600/20" 
-                  : "glass-card border-white/5 text-muted-foreground hover:border-white/20 hover:text-white"
-              }`}
+        <section className="sticky top-20 z-20 space-y-3 rounded-2xl border border-white/10 bg-[#101010]/90 p-3 backdrop-blur-xl">
+          <div className="flex gap-2 overflow-x-auto pb-1">
+            {filterTabs.map((tab) => {
+              const Icon = tab.icon;
+              const active = filter === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  type="button"
+                  onClick={() => setFilter(tab.id)}
+                  className={`flex h-11 shrink-0 items-center gap-2 rounded-xl border px-3 text-xs font-black uppercase tracking-widest transition ${
+                    active
+                      ? "border-orange-300/30 bg-orange-600 text-white shadow-lg shadow-orange-950/30"
+                      : "border-white/10 bg-white/[0.03] text-white/45 hover:text-white"
+                  }`}
+                >
+                  <Icon className="h-4 w-4" />
+                  {tab.label}
+                  <span className={`rounded-full px-2 py-0.5 text-[10px] ${active ? "bg-white/15" : "bg-white/[0.06]"}`}>{tab.count}</span>
+                </button>
+              );
+            })}
+          </div>
+
+          <label className="flex h-11 items-center gap-2 rounded-xl border border-white/10 bg-black/20 px-3">
+            <Search className="h-4 w-4 text-white/30" />
+            <input
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="Cari order, nama, alamat, atau nomor HP"
+              className="min-w-0 flex-1 bg-transparent text-sm font-semibold text-white outline-none placeholder:text-white/25"
+            />
+            <ArrowRight className="h-4 w-4 text-white/25" />
+          </label>
+        </section>
+
+        <AnimatePresence mode="popLayout">
+          {filteredOrders.length === 0 ? (
+            <motion.section
+              key="empty"
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -12 }}
+              className="rounded-2xl border border-white/10 bg-white/[0.03] px-5 py-16 text-center"
             >
-              {t.label}
-            </button>
-          ))}
-        </div>
-
-        {/* ── Active Fleet List ──────────────────────────────────────── */}
-        <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
-          {activeOrders.length === 0 ? (
-            <div className="glass-card py-20 rounded-[3rem] border-white/5 text-center space-y-4">
-              <div className="w-20 h-20 bg-white/5 rounded-full flex items-center justify-center mx-auto">
-                <Truck className="h-10 w-10 text-white/20" />
+              <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-white/[0.04] text-white/20">
+                <Truck className="h-8 w-8" />
               </div>
-              <div className="space-y-1">
-                <p className="text-sm font-black uppercase tracking-widest text-white/40 italic">Terminal Empty</p>
-                <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest">Awaiting new logistic assignment</p>
-              </div>
-            </div>
+              <p className="mt-5 text-sm font-black uppercase tracking-widest text-white/45">Tidak ada paket</p>
+              <p className="mt-2 text-xs font-semibold text-white/35">Coba ganti filter atau kata pencarian.</p>
+            </motion.section>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {activeOrders.map((order) => (
-                <div key={order.id} className="glass-card rounded-[2.5rem] border-white/5 overflow-hidden flex flex-col group hover:border-white/10 transition-all shadow-2xl">
-                   {/* Card Header */}
-                   <div className="p-6 bg-white/5 flex items-center justify-between border-b border-white/5">
-                      <div className="flex items-center gap-3">
-                         <div className="w-8 h-8 bg-purple-500/20 rounded-lg flex items-center justify-center">
-                            <Package className="h-4 w-4 text-purple-500" />
-                         </div>
-                         <div>
-                            <p className="text-[10px] font-black text-white uppercase tracking-tighter">{order.orderNumber}</p>
-                            <p className="text-[9px] text-muted-foreground font-bold uppercase tracking-widest">{formatDate(order.date)}</p>
-                         </div>
-                      </div>
-                      <div className={`px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest ${STATUS_CONFIG[order.status].bg} ${STATUS_CONFIG[order.status].color}`}>
-                        {STATUS_CONFIG[order.status].label}
-                      </div>
-                   </div>
-
-                   {/* Shipping Details */}
-                   <div className="p-6 flex-1 space-y-4">
-                      <div className="space-y-3">
-                         <div className="flex items-start gap-4">
-                            <div className="w-8 h-8 bg-blue-500/10 rounded-lg flex items-center justify-center flex-shrink-0">
-                               <MapPin className="h-4 w-4 text-blue-500" />
-                            </div>
-                            <div className="flex-1">
-                               <p className="text-xs font-black text-white uppercase tracking-tight">{order.shippingInfo?.firstName} {order.shippingInfo?.lastName}</p>
-                               <p className="text-[11px] text-muted-foreground leading-relaxed mt-1">{order.shippingInfo?.address}</p>
-                            </div>
-                         </div>
-                         <div className="flex items-center gap-4">
-                            <div className="w-8 h-8 bg-emerald-500/10 rounded-lg flex items-center justify-center flex-shrink-0">
-                               <Phone className="h-4 w-4 text-emerald-500" />
-                            </div>
-                            <p className="text-xs font-mono font-bold text-white/60 tracking-wider">{order.shippingInfo?.phone || "No Contact"}</p>
-                         </div>
-                      </div>
-
-                      <div className="pt-4 border-t border-white/5 flex items-center justify-between">
-                         <div>
-                            <p className="text-[9px] font-black text-white/20 uppercase tracking-widest">Parcel Value</p>
-                            <p className="text-sm font-black text-orange-500 italic mt-1">{formatPrice(order.grandTotal)}</p>
-                         </div>
-                         <div className="flex -space-x-2">
-                            {order.items.slice(0, 3).map((item, idx) => (
-                               <div key={item.id} className="w-8 h-8 rounded-lg border-2 border-slate-900 overflow-hidden bg-slate-800" style={{ zIndex: 3 - idx }}>
-                                  <img src={item.image} className="w-full h-full object-cover" />
-                               </div>
-                            ))}
-                            {order.items.length > 3 && (
-                               <div className="w-8 h-8 rounded-lg border-2 border-slate-900 bg-slate-800 flex items-center justify-center text-[9px] font-black text-white/40" style={{ zIndex: 0 }}>
-                                  +{order.items.length - 3}
-                               </div>
-                            )}
-                         </div>
-                      </div>
-                   </div>
-
-                   {/* Actions */}
-                   <div className="p-4 bg-white/5 border-t border-white/5 flex gap-3">
-                      {order.status === "shipped" && (
-                        <Button 
-                          onClick={() => handlePickup(order.id)}
-                          className="flex-1 bg-purple-600 hover:bg-purple-700 h-11 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-purple-600/20"
-                        >
-                          Pickup Parcel
-                        </Button>
-                      )}
-                      {order.status === "in_delivery" && (
-                        <Button 
-                          onClick={() => handleDeliver(order.id)}
-                          className="flex-1 bg-emerald-600 hover:bg-emerald-700 h-11 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-emerald-600/20"
-                        >
-                          Confirm Delivery
-                        </Button>
-                      )}
-                      <Button 
-                        variant="outline" 
-                        onClick={() => setChatOrder(order)}
-                        className="h-11 w-11 rounded-xl border-white/10 bg-white/5 hover:bg-white/10 flex items-center justify-center"
-                      >
-                        <MessageSquare className="h-4 w-4 text-white" />
-                      </Button>
-                   </div>
-                </div>
+            <motion.section layout className="grid gap-4 lg:grid-cols-2">
+              {filteredOrders.map((order) => (
+                <CourierOrderCard
+                  key={order.id}
+                  order={order}
+                  onPickup={handlePickup}
+                  onDeliver={handleDeliver}
+                  onMessage={setChatOrder}
+                />
               ))}
-            </div>
+            </motion.section>
           )}
-        </div>
-
+        </AnimatePresence>
       </div>
 
-      {chatOrder && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-background/80 backdrop-blur-2xl">
-          <motion.div 
-            initial={{ scale: 0.9, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            className="glass-card w-full max-w-lg rounded-[3rem] overflow-hidden flex flex-col shadow-2xl h-[600px]"
-          >
-             <div className="p-8 border-b border-white/5 bg-white/5 flex items-center justify-between">
-                <div>
-                  <h3 className="text-xl font-black tracking-tighter uppercase italic">Secure Channel</h3>
-                  <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Order: {chatOrder.orderNumber}</p>
-                </div>
-                <button onClick={() => setChatOrder(null)} className="w-10 h-10 flex items-center justify-center rounded-xl bg-white/5 hover:bg-white/10 transition">
-                  <X className="h-5 w-5 text-white" />
-                </button>
-             </div>
-
-             <div className="flex-1 overflow-y-auto p-8 space-y-4 no-scrollbar">
-                {(chatOrder.messages ?? []).length === 0 ? (
-                  <div className="h-full flex flex-col items-center justify-center text-center space-y-3 opacity-30">
-                    <MessageSquare className="h-12 w-12" />
-                    <p className="text-[10px] font-black uppercase tracking-widest">No communication established</p>
-                  </div>
-                ) : (chatOrder.messages ?? []).map((msg) => (
-                  <div key={msg.id} className={`flex flex-col ${msg.senderId === user?.id ? "items-end" : "items-start"}`}>
-                    <span className="text-[8px] font-black uppercase text-white/20 mb-1 tracking-widest">{msg.senderName} · {msg.senderRole}</span>
-                    <div className={`max-w-[85%] px-5 py-3 rounded-2xl text-xs font-bold leading-relaxed ${
-                      msg.senderId === user?.id
-                        ? "bg-purple-600 text-white shadow-lg shadow-purple-600/20"
-                        : "glass-card border-white/10 text-white/80"
-                    }`}>
-                      {msg.text}
-                    </div>
-                  </div>
-                ))}
-             </div>
-
-             <div className="p-6 bg-white/5 border-t border-white/5">
-                <div className="flex gap-3 h-14 bg-white/5 rounded-2xl border border-white/5 px-4 items-center">
-                   <input 
-                     placeholder="Type a secure message..."
-                     className="flex-1 bg-transparent border-none focus:ring-0 text-sm font-bold text-white placeholder:text-white/20"
-                     onKeyDown={(e) => {
-                       if (e.key === "Enter") {
-                         const val = (e.target as HTMLInputElement).value;
-                         if (val.trim()) {
-                            // Update logic here
-                            (e.target as HTMLInputElement).value = "";
-                         }
-                       }
-                     }}
-                   />
-                   <button className="w-10 h-10 bg-purple-600 rounded-xl flex items-center justify-center hover:bg-purple-700 transition">
-                      <Send className="h-4 w-4 text-white" />
-                   </button>
-                </div>
-             </div>
-          </motion.div>
-        </div>
-      )}
+      <AnimatePresence>
+        {chatOrder && <ChatModal order={chatOrder} onClose={() => setChatOrder(null)} />}
+      </AnimatePresence>
     </div>
   );
 }

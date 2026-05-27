@@ -5,6 +5,36 @@ import { eq } from "drizzle-orm";
 
 const router = Router();
 
+type GoogleTokenInfo = {
+  aud?: string;
+  sub?: string;
+  email?: string;
+  email_verified?: "true" | "false" | boolean;
+  name?: string;
+  picture?: string;
+};
+
+async function verifyGoogleCredential(credential: string): Promise<GoogleTokenInfo> {
+  const response = await fetch(`https://oauth2.googleapis.com/tokeninfo?id_token=${encodeURIComponent(credential)}`);
+
+  if (!response.ok) {
+    throw new Error("Token Google tidak valid atau sudah kedaluwarsa");
+  }
+
+  const info = (await response.json()) as GoogleTokenInfo;
+  const configuredClientId = process.env["GOOGLE_CLIENT_ID"];
+
+  if (configuredClientId && info.aud !== configuredClientId) {
+    throw new Error("Token Google tidak cocok dengan client ID server");
+  }
+
+  if (!info.sub || !info.email || info.email_verified === "false" || info.email_verified === false) {
+    throw new Error("Akun Google belum terverifikasi");
+  }
+
+  return info;
+}
+
 // ─── GET ALL USERS (lightweight — excludes heavy JSON arrays) ──────────────
 router.get("/", async (req, res) => {
   try {
@@ -168,6 +198,72 @@ router.post("/login", async (req, res) => {
   } catch (error: any) {
     console.error("[AUTH] Login Error:", error);
     res.status(500).json({ error: "Gagal terhubung ke database MariaDB: " + error.message });
+  }
+});
+
+router.post("/google-login", async (req, res) => {
+  try {
+    const { credential } = req.body as { credential?: string };
+
+    if (!credential) {
+      return res.status(400).json({ error: "Google credential wajib dikirim" });
+    }
+
+    const googleUser = await verifyGoogleCredential(credential);
+    const email = googleUser.email!.toLowerCase().trim();
+    const found = await db.select().from(users).where(eq(users.email, email));
+
+    if (found.length > 0) {
+      const existing = found[0];
+      if (existing.isBanned) {
+        return res.status(403).json({ error: `Akun ditangguhkan: ${existing.banReason || "Pelanggaran Ketentuan"}` });
+      }
+
+      console.log(`[GOOGLE AUTH] Login OK: ${existing.name} (${existing.role})`);
+      return res.json({
+        ...existing,
+        avatar: existing.avatar || googleUser.picture,
+        authProvider: "google",
+        googleSub: googleUser.sub,
+      });
+    }
+
+    const newUser = {
+      id: `google-${googleUser.sub}`,
+      name: googleUser.name || email.split("@")[0] || "Google User",
+      email,
+      password: `google:${googleUser.sub}`,
+      role: "user" as const,
+      coins: 20000,
+      balance: "0",
+      points: 0,
+      friends: [],
+      friendRequests: [],
+      sentRequests: [],
+      referralCode: `GGL-${Math.random().toString(36).slice(2, 7).toUpperCase()}`,
+      isBanned: false,
+      activityLog: [],
+      purchaseHistory: [],
+      ownedCosmetics: [],
+      equippedCosmetics: [],
+      walletTransactions: [],
+      wishlist: [],
+      profileLayout: "premium",
+      avatar: googleUser.picture,
+    };
+
+    await db.insert(users).values(newUser);
+    const created = await db.select().from(users).where(eq(users.email, email));
+
+    console.log(`[GOOGLE AUTH] New user: ${newUser.name} (${email})`);
+    res.json({
+      ...created[0],
+      authProvider: "google",
+      googleSub: googleUser.sub,
+    });
+  } catch (error: any) {
+    console.error("[GOOGLE AUTH] Error:", error);
+    res.status(401).json({ error: error.message || "Login Google gagal" });
   }
 });
 

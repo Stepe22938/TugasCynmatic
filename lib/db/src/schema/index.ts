@@ -99,6 +99,8 @@ export const orders = mysqlTable("orders", {
   paymentMethod: varchar("paymentMethod", { length: 50 }),
   voucherCode: varchar("voucherCode", { length: 100 }),
   voucherDiscount: int("voucherDiscount"),
+  sellerVoucherCode: varchar("sellerVoucherCode", { length: 100 }),
+  sellerVoucherDiscount: int("sellerVoucherDiscount"),
   coinDiscount: int("coinDiscount"),
   messages: json("messages"),
   problemReport: text("problemReport"),
@@ -186,6 +188,10 @@ export const vouchers = mysqlTable("vouchers", {
   usedCount: int("usedCount").default(0),
   isActive: boolean("isActive").default(true),
   description: text("description"),
+  sellerId: varchar("sellerId", { length: 255 }),
+  sellerName: varchar("sellerName", { length: 255 }),
+  productId: int("productId"),
+  productName: varchar("productName", { length: 255 }),
   createdAt: timestamp("createdAt").defaultNow(),
 });
 
@@ -246,4 +252,37 @@ export const messages = mysqlTable("messages", {
   mediaUrl: varchar("mediaUrl", { length: 500 }),
   mediaType: varchar("mediaType", { length: 20 }), // "image" | "video" | null
   createdAt: timestamp("createdAt").defaultNow(),
+});
+
+// ============================================================
+// COLLABORATION REQUESTS TABLE
+// ============================================================
+export const collabRequests = mysqlTable("collab_requests", {
+  id: varchar("id", { length: 255 }).primaryKey(),
+  fromSellerId: varchar("fromSellerId", { length: 255 }).notNull(),
+  fromSellerName: varchar("fromSellerName", { length: 255 }).notNull(),
+  toSellerId: varchar("toSellerId", { length: 255 }).notNull(),
+  toSellerName: varchar("toSellerName", { length: 255 }).notNull(),
+  type: varchar("type", { length: 50 }).notNull(), // "reseller" | "dropship"
+  message: text("message").notNull(),
+  status: varchar("status", { length: 50 }).default("pending").notNull(), // "pending" | "accepted" | "rejected"
+  createdAt: varchar("createdAt", { length: 255 }).notNull(),
+  responseAt: varchar("responseAt", { length: 255 }),
+  productId: int("productId"),
+  productName: varchar("productName", { length: 255 }),
+  productPrice: decimal("productPrice", { precision: 15, scale: 2 }),
+  productImage: varchar("productImage", { length: 500 }),
+  proposedPrice: decimal("proposedPrice", { precision: 15, scale: 2 }),
+  proposedQuantity: int("proposedQuantity"),
+  commissionPercent: int("commissionPercent"),
+  feedbackMessage: text("feedbackMessage"),
+});
+
+// ============================================================
+// AI SETTINGS TABLE — Global configuration of OpenRouter
+// ============================================================
+export const aiSettings = mysqlTable("ai_settings", {
+  id: varchar("id", { length: 255 }).primaryKey(), // "global"
+  openrouterKey: text("openrouterKey"),
+  openrouterModel: varchar("openrouterModel", { length: 255 }),
 });

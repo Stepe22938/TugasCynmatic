@@ -8,9 +8,9 @@ import { Link } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ShieldCheck, Package, Users, CheckCircle2, XCircle, Trash2, Clock,
-  ChevronDown, ToggleLeft, ToggleRight, Bot, Eye, EyeOff, KeyRound,
+  ChevronDown, ChevronLeft, Menu, ToggleLeft, ToggleRight, Bot, Eye, EyeOff, KeyRound,
   CreditCard, Smartphone, QrCode, Tag, Radio, Plus, X, Search, Coins, Ban, Globe, ArrowRight, Gift, Crown,
-  History, Wallet, AlertTriangle, Activity, ShoppingBag, Vote, BarChart3, ListTodo, Palette, Database, Server, Zap, Cpu, Loader2
+  History, Wallet, AlertTriangle, Activity, ShoppingBag, Vote, BarChart3, ListTodo, Palette, Database, Server, Zap, Cpu, Loader2, ArrowLeft
 } from "lucide-react";
 import { useAuth, User, UserRole } from "../contexts/AuthContext";
 import { useCosmetics, Cosmetic } from "../contexts/CosmeticContext";
@@ -380,21 +380,21 @@ function UserRow({ user, currentUser, onRoleChange, onBanToggle, onUpdateBalance
                     setCryptoAmountInput("0"); 
                   }}
                 >
-                  ➕ Add {selectedCrypto}
+                  âž• Add {selectedCrypto}
                 </Button>
                 
                 <Button 
                   size="lg" 
                   className="flex-1 md:flex-none h-14 px-8 rounded-2xl bg-rose-600/20 hover:bg-rose-600 text-rose-500 hover:text-white border border-rose-500/30 font-black uppercase tracking-widest text-[10px] shadow-2xl transition-all" 
                   onClick={() => { 
-                    if (window.confirm(`⚠️ Apakah Anda yakin ingin me-reset saldo ${selectedCrypto} user ini menjadi 0.000000?`)) {
+                    if (window.confirm(`âš ï¸ Apakah Anda yakin ingin me-reset saldo ${selectedCrypto} user ini menjadi 0.000000?`)) {
                       onUpdateCrypto(user.id, selectedCrypto, "reset"); 
                       setEditingCrypto(false); 
                       setCryptoAmountInput("0");
                     }
                   }}
                 >
-                  🔄 Reset {selectedCrypto}
+                  ðŸ”„ Reset {selectedCrypto}
                 </Button>
 
                 <Button 
@@ -538,7 +538,7 @@ function APIKeyInput({ label, value, onChange, placeholder }: { label: string; v
   );
 }
 
-// ─── Voucher row ──────────────────────────────────────────────────────────────
+// â”€â”€â”€ Voucher row â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function VoucherRow({ voucher, onToggle, onDelete }: { voucher: Voucher; onToggle: () => void; onDelete: () => void }) {
   return (
     <div className={`glass-card rounded-[2.5rem] p-8 transition-all duration-700 border border-white/5 ${voucher.isActive ? "bg-white/5 shadow-2xl hover:border-orange-500/20" : "bg-white/5 opacity-40 grayscale"}`}>
@@ -943,7 +943,7 @@ export function DatabaseExplorer() {
 
   return (
     <div className="space-y-8">
-      {/* ── Connection Info Header ── */}
+      {/* â”€â”€ Connection Info Header â”€â”€ */}
       <div className="glass-card bg-gradient-to-br from-[#0a0a0b] via-[#111] to-[#0a0a0b] text-white rounded-[2.5rem] p-8 border border-white/5 shadow-2xl relative overflow-hidden group">
         <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:opacity-10 transition-all duration-1000">
           <Server className="h-40 w-40 text-orange-500" />
@@ -973,7 +973,7 @@ export function DatabaseExplorer() {
               <div>
                 <p className="text-[8px] font-black text-white/40 uppercase tracking-widest leading-none">Database Host IP</p>
                 <p className="text-xs font-mono font-black text-white italic mt-1">
-                  {hideDbIp ? "•••.•••.•••.•••" : (dbInfo?.host || "185.128.227.237")}
+                  {hideDbIp ? "â€¢â€¢â€¢.â€¢â€¢â€¢.â€¢â€¢â€¢.â€¢â€¢â€¢" : (dbInfo?.host || "185.128.227.237")}
                 </p>
               </div>
               <button 
@@ -995,7 +995,7 @@ export function DatabaseExplorer() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-        {/* ── Sidebar: Tables Navigator ── */}
+        {/* â”€â”€ Sidebar: Tables Navigator â”€â”€ */}
         <div className="lg:col-span-1 space-y-4">
           <h4 className="text-[10px] font-black text-white/40 uppercase tracking-[0.3em] ml-4 flex items-center gap-2">
             <ListTodo className="h-3.5 w-3.5" /> Database Tables
@@ -1039,7 +1039,7 @@ export function DatabaseExplorer() {
           </button>
         </div>
 
-        {/* ── Main View: Data Explorer ── */}
+        {/* â”€â”€ Main View: Data Explorer â”€â”€ */}
         <div className="lg:col-span-3 space-y-6">
           {/* Search bar & Metadata */}
           <div className="glass-card border border-white/5 rounded-[2rem] p-6 flex flex-col sm:flex-row gap-4 items-center justify-between shadow-xl">
@@ -1120,7 +1120,7 @@ export function DatabaseExplorer() {
                           if (h.toLowerCase().includes("ip")) {
                             return (
                               <td key={h} className="px-6 py-4 font-mono font-bold text-blue-400">
-                                {hideDbIp ? "•••.•••.•••.•••" : String(val)}
+                                {hideDbIp ? "â€¢â€¢â€¢.â€¢â€¢â€¢.â€¢â€¢â€¢.â€¢â€¢â€¢" : String(val)}
                               </td>
                             );
                           }
@@ -1141,7 +1141,7 @@ export function DatabaseExplorer() {
         </div>
       </div>
 
-      {/* ── JSON/Complex Object Modal Viewer ── */}
+      {/* â”€â”€ JSON/Complex Object Modal Viewer â”€â”€ */}
       {selectedJson && (
         <div className="fixed inset-0 z-[120] flex items-center justify-center p-6 bg-black/90 backdrop-blur-xl">
           <div className="glass-card border-orange-500/20 bg-[#050505] rounded-[3rem] p-10 w-full max-w-2xl shadow-2xl relative animate-in zoom-in duration-300">
@@ -1170,7 +1170,7 @@ export function DatabaseExplorer() {
         </div>
       )}
 
-      {/* ── Old Migration View (Hidden by default, triggered by button) ── */}
+      {/* â”€â”€ Old Migration View (Hidden by default, triggered by button) â”€â”€ */}
       {showMigration && (
         <div className="animate-in fade-in slide-in-from-top-4 duration-500 border-t border-white/5 pt-8">
           <div className="flex items-center justify-between mb-4">
@@ -1814,7 +1814,7 @@ export function DatabaseMigrationWizard({ hideDbIp = true, setHideDbIp }: { hide
               <Button 
                 size="lg"
                 onClick={async () => {
-                  if (!window.confirm("⚠️ Hapus SEMUA user KECUALI alrizalarkan@gmail.com dari VPS? Tindakan ini TIDAK BISA DIBATALKAN!")) return;
+                  if (!window.confirm("âš ï¸ Hapus SEMUA user KECUALI alrizalarkan@gmail.com dari VPS? Tindakan ini TIDAK BISA DIBATALKAN!")) return;
                   try {
                     const res = await fetch('/api/users/reset-all', { 
                       method: 'POST', 
@@ -1823,7 +1823,7 @@ export function DatabaseMigrationWizard({ hideDbIp = true, setHideDbIp }: { hide
                     });
                     const data = await res.json();
                     if (data.success) {
-                      toast({ title: "✅ Berhasil!", description: data.message + " Refresh halaman untuk melihat perubahan." });
+                      toast({ title: "âœ… Berhasil!", description: data.message + " Refresh halaman untuk melihat perubahan." });
                       setTimeout(() => window.location.reload(), 2000);
                     } else {
                       toast({ variant: "destructive", title: "Gagal", description: data.error || "Unknown error" });
@@ -1834,7 +1834,7 @@ export function DatabaseMigrationWizard({ hideDbIp = true, setHideDbIp }: { hide
                 }}
                 className="rounded-2xl px-12 h-16 bg-rose-600 hover:bg-rose-700 text-white font-black uppercase tracking-widest text-[11px] shadow-2xl shadow-rose-600/40 italic border-0"
               >
-                🗑️ Hapus Semua User (Kecuali Alrizalarkan)
+                ðŸ—‘ï¸ Hapus Semua User (Kecuali Alrizalarkan)
               </Button>
             </div>
           )}
@@ -1971,7 +1971,7 @@ npm run start`}
               <input 
                 type="text" 
                 readOnly 
-                value={hideDbIp ? "•••.•••.•••.•••" : "185.128.227.237"} 
+                value={hideDbIp ? "â€¢â€¢â€¢.â€¢â€¢â€¢.â€¢â€¢â€¢.â€¢â€¢â€¢" : "185.128.227.237"} 
                 className="w-full pl-4 pr-10 py-2.5 bg-muted/50 border rounded-xl text-sm font-mono" 
               />
               {setHideDbIp && (
@@ -2058,6 +2058,7 @@ export function AdminPanel() {
 
   // Live search
   const [liveSearch, setLiveSearch] = useState("");
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   if (!user || user.role !== "admin") return <div className="text-center py-20 font-semibold">Akses Ditolak</div>;
 
@@ -2095,9 +2096,9 @@ export function AdminPanel() {
   const handleUpdateCrypto = (uid: string, cryptoType: "BTC" | "ETH", action: "add" | "reset", amount?: number) => {
     updateCryptoBalance(uid, cryptoType, action, amount);
     if (action === "reset") {
-      toast({ title: `✅ Saldo ${cryptoType} pengguna berhasil di-reset.` });
+      toast({ title: `âœ… Saldo ${cryptoType} pengguna berhasil di-reset.` });
     } else {
-      toast({ title: `✅ Saldo ${cryptoType} pengguna berhasil ditambahkan.` });
+      toast({ title: `âœ… Saldo ${cryptoType} pengguna berhasil ditambahkan.` });
     }
   };
   const handleSaveKeys = () => {
@@ -2210,60 +2211,157 @@ export function AdminPanel() {
   ];
 
   return (
-    <div className="min-h-screen bg-[#050505] pt-4 pb-20">
-      <div className="container mx-auto px-6 max-w-5xl space-y-10">
-      
-      {/* ── Premium Admin Header ─────────────────────────────────── */}
-      <div className="relative overflow-hidden rounded-[3rem] p-10 border border-white/5 bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-orange-950/20 via-background to-background shadow-2xl group">
-        {/* Decorative Background */}
-        <div className="absolute top-0 right-0 w-64 h-64 bg-orange-600/10 blur-[100px] rounded-full -translate-y-1/2 translate-x-1/2 group-hover:scale-150 transition-transform duration-1000" />
-        
-        <div className="relative z-10 flex flex-col md:flex-row items-center gap-8 text-center md:text-left">
-          <div className="w-24 h-24 bg-gradient-to-br from-orange-500 to-orange-700 rounded-[2rem] flex items-center justify-center shadow-2xl shadow-orange-600/30 group-hover:rotate-6 transition-transform">
-            <ShieldCheck className="h-12 w-12 text-white" />
-          </div>
-          <div className="flex-1 space-y-2">
-            <h1 className="text-4xl lg:text-5xl font-black tracking-tighter uppercase italic text-gradient">Command Center</h1>
-            <p className="text-xs font-bold text-muted-foreground uppercase tracking-[0.3em] opacity-60">Authorized Administrative Node v2.5</p>
-          </div>
-          <div className="flex gap-4">
-             <div className="glass-card px-6 py-3 rounded-2xl text-center border-white/5 shadow-xl">
-                <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Server Status</p>
-                <div className="flex items-center gap-2 mt-1">
-                   <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_10px_rgba(16,185,129,0.5)]" />
-                   <p className="text-sm font-black uppercase italic text-emerald-500">Live</p>
-                </div>
-             </div>
-          </div>
-        </div>
-      </div>
+    <div className="min-h-screen bg-[#050505] flex">
+      {/* â”€â”€ SIDEBAR â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+      <aside
+        className={`relative flex-shrink-0 flex flex-col border-r border-white/[0.06] bg-[#0a0a0b]/95 backdrop-blur-xl transition-all duration-500 ease-in-out ${
+          sidebarCollapsed ? "w-[72px]" : "w-[260px]"
+        } min-h-screen sticky top-0 h-screen overflow-hidden z-30`}
+      >
+        {/* Sidebar top glow */}
+        <div className="absolute top-0 left-0 right-0 h-40 bg-gradient-to-b from-orange-600/10 to-transparent pointer-events-none" />
 
-      {/* ── Premium Scrollable Tabs ──────────────────────────────── */}
-      <div className="relative group">
-        <div className="flex overflow-x-auto pb-4 gap-3 no-scrollbar scroll-smooth px-2">
-          {TABS.map((t) => (
-            <button
-              key={t.id}
-              onClick={() => setTab(t.id)}
-              className={`flex items-center gap-3 px-6 py-4 rounded-2xl border-2 transition-all flex-shrink-0 group/tab relative ${
-                tab === t.id 
-                  ? "bg-orange-600 border-orange-500 text-white shadow-xl shadow-orange-600/20" 
-                  : "glass-card border-white/5 text-muted-foreground hover:border-white/20 hover:text-white"
+        {/* Logo / Brand */}
+        <div className={`flex items-center gap-3 px-4 pt-6 pb-5 border-b border-white/[0.06] relative z-10 ${sidebarCollapsed ? "justify-center px-3" : ""}`}>
+          <div className="w-10 h-10 flex-shrink-0 bg-gradient-to-br from-orange-500 to-orange-700 rounded-xl flex items-center justify-center shadow-lg shadow-orange-600/30">
+            <ShieldCheck className="h-5 w-5 text-white" />
+          </div>
+          {!sidebarCollapsed && (
+            <div className="overflow-hidden">
+              <p className="text-[13px] font-black uppercase tracking-tighter text-white leading-none">Command</p>
+              <p className="text-[10px] font-black text-orange-500 uppercase tracking-widest">Center</p>
+            </div>
+          )}
+        </div>
+
+        {/* Nav Items */}
+        <nav className="flex-1 overflow-y-auto overflow-x-hidden py-4 space-y-1 px-2 no-scrollbar">
+          {TABS.map((t) => {
+            const isActive = tab === t.id;
+            return (
+              <button
+                key={t.id}
+                onClick={() => setTab(t.id)}
+                title={sidebarCollapsed ? t.label : undefined}
+                className={`relative w-full flex items-center gap-3 rounded-xl transition-all duration-200 group/nav ${
+                  sidebarCollapsed ? "justify-center px-2 py-3" : "px-3 py-2.5"
+                } ${
+                  isActive
+                    ? "bg-orange-600/15 text-orange-400 border border-orange-500/30"
+                    : "text-white/30 hover:text-white hover:bg-white/[0.06] border border-transparent"
+                }`}
+              >
+                {/* Active indicator line */}
+                {isActive && (
+                  <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-6 bg-orange-500 rounded-r-full shadow-[0_0_8px_rgba(249,115,22,0.7)]" />
+                )}
+                <t.icon
+                  className={`h-4 w-4 flex-shrink-0 transition-all ${
+                    isActive ? "text-orange-400" : "text-white/30 group-hover/nav:text-orange-400"
+                  }`}
+                />
+                {!sidebarCollapsed && (
+                  <span className={`text-[11px] font-black uppercase tracking-widest flex-1 text-left leading-none ${
+                    isActive ? "text-white" : ""
+                  }`}>
+                    {t.label}
+                  </span>
+                )}
+                {/* Live badge */}
+                {t.id === "live" && isLive && (
+                  <span className={`w-2 h-2 bg-red-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(239,68,68,0.7)] flex-shrink-0 ${
+                    sidebarCollapsed ? "absolute top-2 right-2" : ""
+                  }`} />
+                )}
+              </button>
+            );
+          })}
+        </nav>
+
+        {/* Back to Store */}
+        <div className="border-t border-white/[0.06] p-3">
+          <Link href="/">
+            <a
+              title={sidebarCollapsed ? "Kembali ke Toko Utama" : undefined}
+              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-white/20 hover:text-white hover:bg-white/[0.06] transition-all duration-200 ${
+                sidebarCollapsed ? "justify-center" : ""
               }`}
             >
-              <t.icon className={`h-4 w-4 transition-transform group-hover/tab:scale-110 ${tab === t.id ? "text-white" : "text-orange-500"}`} />
-              <span className="text-[11px] font-black uppercase tracking-widest">{t.label}</span>
-              {t.id === "live" && isLive && (
-                <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full animate-pulse shadow-lg shadow-red-500/50 border-2 border-background" />
-              )}
-            </button>
-          ))}
+              <ArrowLeft className="h-4 w-4 text-white/30 group-hover:text-white flex-shrink-0" />
+              {!sidebarCollapsed && <span className="text-[10px] font-black uppercase tracking-widest">Ke Toko Utama</span>}
+            </a>
+          </Link>
         </div>
-      </div>
 
-      <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
+        {/* Collapse toggle */}
+        <div className="border-t border-white/[0.06] p-3">
+          <button
+            onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-white/20 hover:text-white hover:bg-white/[0.06] transition-all duration-200 ${
+              sidebarCollapsed ? "justify-center" : ""
+            }`}
+          >
+            <ChevronLeft className={`h-4 w-4 flex-shrink-0 transition-transform duration-300 ${
+              sidebarCollapsed ? "rotate-180" : ""
+            }`} />
+            {!sidebarCollapsed && <span className="text-[10px] font-black uppercase tracking-widest">Collapse</span>}
+          </button>
+        </div>
+      </aside>
 
-      {/* ── Tab Produk ─────────────────────────────────────────────────── */}
+      {/* â”€â”€ MAIN CONTENT â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+      <div className="flex-1 flex flex-col min-h-screen overflow-hidden">
+        {/* Top Header Bar */}
+        <header className="sticky top-0 z-20 border-b border-white/[0.06] bg-[#050505]/90 backdrop-blur-xl">
+          <div className="flex items-center gap-4 px-6 py-4">
+            {/* Mobile sidebar toggle */}
+            <button
+              onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+              className="flex items-center justify-center w-9 h-9 rounded-xl bg-white/5 text-white/40 hover:text-white hover:bg-white/10 transition-all lg:hidden"
+            >
+              <Menu className="h-4 w-4" />
+            </button>
+
+            {/* Page title based on active tab */}
+            <div className="flex-1">
+              {(() => {
+                const activeTab = TABS.find(t => t.id === tab);
+                return (
+                  <div className="flex items-center gap-3">
+                    {activeTab && <activeTab.icon className="h-5 w-5 text-orange-500" />}
+                    <div>
+                      <h1 className="text-base font-black uppercase tracking-tight text-white leading-none">
+                        {activeTab?.label ?? "Admin"}
+                      </h1>
+                      <p className="text-[10px] font-black text-white/20 uppercase tracking-[0.2em] mt-0.5">Cynmatic Admin Panel</p>
+                    </div>
+                  </div>
+                );
+              })()}
+            </div>
+
+            {/* Right: server status + admin badge */}
+            <div className="flex items-center gap-3">
+              <div className="hidden sm:flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/20 px-4 py-2 rounded-xl">
+                <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.6)]" />
+                <span className="text-[10px] font-black uppercase tracking-widest text-emerald-400">Server Live</span>
+              </div>
+              <div className="flex items-center gap-2 bg-orange-500/10 border border-orange-500/20 px-3 py-2 rounded-xl">
+                <div className="w-6 h-6 rounded-lg bg-orange-600 flex items-center justify-center shadow-md">
+                  <ShieldCheck className="h-3 w-3 text-white" />
+                </div>
+                <span className="text-[10px] font-black uppercase tracking-widest text-orange-400 hidden md:block">{user?.name}</span>
+              </div>
+            </div>
+          </div>
+        </header>
+
+        {/* Content Area */}
+        <main className="flex-1 overflow-y-auto p-6">
+          <div className="max-w-5xl mx-auto">
+          <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+
+      {/* â”€â”€ Tab Produk â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       {tab === "products" && (
         <div>
           <div className="flex gap-2 mb-4 flex-wrap">
@@ -2282,7 +2380,7 @@ export function AdminPanel() {
         </div>
       )}
 
-      {/* ── Tab Pengguna ──────────────────────────────────────────────── */}
+      {/* â”€â”€ Tab Pengguna â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       {tab === "users" && (
         <div className="space-y-4">
           <div className="glass-card border-white/5 rounded-[2.5rem] p-6 shadow-2xl space-y-6">
@@ -2329,7 +2427,7 @@ export function AdminPanel() {
                           const res = await fetch(`/api/users/${id}`, { method: 'DELETE' });
                           const data = await res.json();
                           if (data.success) {
-                            toast({ title: `✅ User "${name}" berhasil dihapus!` });
+                            toast({ title: `âœ… User "${name}" berhasil dihapus!` });
                             setTimeout(() => window.location.reload(), 1000);
                           } else {
                             toast({ variant: 'destructive', title: 'Gagal hapus user', description: data.error });
@@ -2350,7 +2448,7 @@ export function AdminPanel() {
         <UserDetailView user={selectedUser} onClose={() => setSelectedUser(null)} />
       )}
 
-      {/* ── Tab Koin ──────────────────────────────────────────────── */}
+      {/* â”€â”€ Tab Koin â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       {tab === "coins" && (
         <div className="space-y-6">
           <div className="glass-card bg-gradient-to-br from-amber-600/10 to-orange-600/5 border border-white/5 rounded-[2.5rem] p-10 shadow-2xl">
@@ -2448,7 +2546,7 @@ export function AdminPanel() {
         </div>
       )}
 
-      {/* ── Tab IP List ──────────────────────────────────────────────── */}
+      {/* â”€â”€ Tab IP List â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       {tab === "ip_list" && (
         <div className="space-y-4">
           <div className="flex items-center justify-between">
@@ -2494,14 +2592,14 @@ export function AdminPanel() {
                       </td>
                       <td className="px-4 py-3 font-mono text-xs">
                         {u.publicIp ? (
-                          hideUserIps ? "•••.•••.•••.•••" : u.publicIp
+                          hideUserIps ? "â€¢â€¢â€¢.â€¢â€¢â€¢.â€¢â€¢â€¢.â€¢â€¢â€¢" : u.publicIp
                         ) : (
                           <span className="text-muted-foreground italic">Belum tercatat</span>
                         )}
                       </td>
                       <td className="px-4 py-3 font-mono text-[10px]">
                         {u.localIp ? (
-                          hideUserIps ? "•••.•••.•••.•••" : u.localIp
+                          hideUserIps ? "â€¢â€¢â€¢.â€¢â€¢â€¢.â€¢â€¢â€¢.â€¢â€¢â€¢" : u.localIp
                         ) : (
                           <span className="text-muted-foreground italic">Belum tercatat</span>
                         )}
@@ -2515,7 +2613,7 @@ export function AdminPanel() {
         </div>
       )}
 
-      {/* ── Tab Tiket ──────────────────────────────────────────────── */}
+      {/* â”€â”€ Tab Tiket â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       {tab === "tickets" && (
         <div className="space-y-4">
           <div className="flex items-center justify-between">
@@ -2567,7 +2665,7 @@ export function AdminPanel() {
         </div>
       )}
 
-      {/* ── Tab Voucher ────────────────────────────────────────────────── */}
+      {/* â”€â”€ Tab Voucher â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       {tab === "vouchers" && (
         <div className="space-y-4">
           {/* Header */}
@@ -2624,7 +2722,7 @@ export function AdminPanel() {
                   </div>
                 )}
                 <div className="space-y-1">
-                  <label className="text-xs font-semibold text-muted-foreground">Maks. Penggunaan (0=∞)</label>
+                  <label className="text-xs font-semibold text-muted-foreground">Maks. Penggunaan (0=âˆž)</label>
                   <input value={vMaxUses} onChange={(e) => setVMaxUses(e.target.value)} type="number" min="0"
                     placeholder="0"
                     className="w-full px-3 py-2 text-sm border rounded-xl bg-background focus:outline-none focus:ring-2 focus:ring-ring" />
@@ -2658,7 +2756,7 @@ export function AdminPanel() {
         </div>
       )}
 
-      {/* ── Tab Redeem ────────────────────────────────────────────────── */}
+      {/* â”€â”€ Tab Redeem â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       {tab === "redeem" && (
         <div className="space-y-4">
           <div className="flex items-center justify-between">
@@ -2697,7 +2795,7 @@ export function AdminPanel() {
                     className="w-full px-3 py-2 text-sm border rounded-xl bg-background focus:outline-none focus:ring-2 focus:ring-ring" />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-xs font-semibold text-muted-foreground">Batas Penggunaan (0=∞)</label>
+                  <label className="text-xs font-semibold text-muted-foreground">Batas Penggunaan (0=âˆž)</label>
                   <input value={rMaxUses} onChange={(e) => setRMaxUses(e.target.value)} type="number" min="0"
                     placeholder="1"
                     className="w-full px-3 py-2 text-sm border rounded-xl bg-background focus:outline-none focus:ring-2 focus:ring-ring" />
@@ -2748,7 +2846,7 @@ export function AdminPanel() {
         </div>
       )}
 
-      {/* ── Tab Live ───────────────────────────────────────────────────── */}
+      {/* â”€â”€ Tab Live â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       {tab === "live" && (
         <div className="space-y-5">
           {/* Admin's own live session */}
@@ -2776,7 +2874,7 @@ export function AdminPanel() {
                     toast({ title: "Live dihentikan." });
                   } else {
                     startLive(user!.id, user!.name);
-                    toast({ title: "Live dimulai! 🔴" });
+                    toast({ title: "Live dimulai! ðŸ”´" });
                   }
                 }}
                 className="flex-shrink-0 transition-transform active:scale-90"
@@ -2858,17 +2956,17 @@ export function AdminPanel() {
         </div>
       )}
 
-      {/* ── Tab Sultan ──────────────────────────────────────────────── */}
+      {/* â”€â”€ Tab Sultan â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       {tab === "sultan" && (
         <SultanAdminTab />
       )}
 
-      {/* ── Tab Voting ──────────────────────────────────────────────── */}
+      {/* â”€â”€ Tab Voting â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       {tab === "voting" && (
         <VotingAdminTab />
       )}
 
-      {/* ── Tab Cosmetics ──────────────────────────────────────────────── */}
+      {/* â”€â”€ Tab Cosmetics â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       {tab === "cosmetics" && (
         <div className="space-y-6">
           <div className="bg-card border-2 border-dashed border-indigo-200 rounded-[2.5rem] p-8">
@@ -2914,7 +3012,7 @@ export function AdminPanel() {
                   </div>
                   <div>
                     <p className="text-sm font-bold">{c.name}</p>
-                    <p className="text-[10px] text-muted-foreground font-black uppercase">{c.rarity} · {formatPrice(c.price)}</p>
+                    <p className="text-[10px] text-muted-foreground font-black uppercase">{c.rarity} Â· {formatPrice(c.price)}</p>
                   </div>
                 </div>
                 <button onClick={() => deleteCosmetic(c.id)} className="p-2 text-red-500 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -2926,21 +3024,21 @@ export function AdminPanel() {
         </div>
       )}
 
-      {/* ── Tab Sistem Database ────────────────────────────────────────── */}
+      {/* â”€â”€ Tab Sistem Database â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       {tab === "database" && (
         <div className="space-y-6">
           <DatabaseExplorer />
         </div>
       )}
 
-      {/* ── Tab Android Package ────────────────────────────────────────── */}
+      {/* â”€â”€ Tab Android Package â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       {tab === "android" && (
         <div className="space-y-6">
           <AndroidPackagePanel />
         </div>
       )}
 
-      {/* ── Tab Pengaturan ────────────────────────────────────────────── */}
+      {/* â”€â”€ Tab Pengaturan â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       {tab === "settings" && (
         <div className="space-y-4">
 
@@ -2959,7 +3057,7 @@ export function AdminPanel() {
               </button>
             </div>
             <div className={`mt-3 text-xs font-semibold px-3 py-1.5 rounded-lg inline-block ${autoApprove ? "bg-green-100 text-green-700" : "bg-muted text-muted-foreground"}`}>
-              {autoApprove ? "Aktif — produk langsung masuk toko" : "Nonaktif — produk perlu disetujui manual"}
+              {autoApprove ? "Aktif â€” produk langsung masuk toko" : "Nonaktif â€” produk perlu disetujui manual"}
             </div>
           </div>
 
@@ -3013,11 +3111,11 @@ export function AdminPanel() {
                 </button>
               </div>
               <div className={`mt-2 text-xs font-semibold px-3 py-1.5 rounded-lg inline-block ${pay.dummyMode ? "bg-amber-100 text-amber-700" : "bg-muted text-muted-foreground"}`}>
-                {pay.dummyMode ? "⚠ Mode Demo aktif — tidak ada pembayaran nyata" : "Mode Produksi — gunakan gateway sungguhan"}
+                {pay.dummyMode ? "âš  Mode Demo aktif â€” tidak ada pembayaran nyata" : "Mode Produksi â€” gunakan gateway sungguhan"}
               </div>
             </div>
             <div className="text-xs text-muted-foreground bg-muted/30 rounded-xl px-3 py-2">
-              Metode aktif: {[pay.danaEnabled && "DANA", pay.qrisEnabled && "QRIS"].filter(Boolean).join(", ") || "—"}
+              Metode aktif: {[pay.danaEnabled && "DANA", pay.qrisEnabled && "QRIS"].filter(Boolean).join(", ") || "â€”"}
             </div>
           </div>
 
@@ -3038,7 +3136,7 @@ export function AdminPanel() {
                   placeholder="openai/gpt-4o-mini"
                   className="w-full px-3 py-2 text-sm border border-input rounded-xl bg-background focus:outline-none focus:ring-2 focus:ring-ring font-mono" />
                 <p className="text-[11px] text-muted-foreground">
-                  Format: <code className="bg-muted px-1 rounded">provider/model-name</code> — contoh:{" "}
+                  Format: <code className="bg-muted px-1 rounded">provider/model-name</code> â€” contoh:{" "}
                   <button type="button" className="text-primary hover:underline font-mono" onClick={() => setDraftOpenrouterModel("openai/gpt-4o-mini")}>openai/gpt-4o-mini</button>
                   {", "}
                   <button type="button" className="text-primary hover:underline font-mono" onClick={() => setDraftOpenrouterModel("google/gemini-flash-1.5")}>google/gemini-flash-1.5</button>.
@@ -3049,16 +3147,19 @@ export function AdminPanel() {
             
             <div className={`text-xs font-semibold px-3 py-2 rounded-lg ${ai.isAIEnabled ? "bg-green-100 text-green-700" : "bg-muted text-muted-foreground"}`}>
               {ai.isAIEnabled
-                ? `✓ AI aktif — menggunakan OpenRouter`
-                : "AI tidak aktif — fitur analisis produk dinonaktifkan"}
+                ? `âœ“ AI aktif â€” menggunakan OpenRouter`
+                : "AI tidak aktif â€” fitur analisis produk dinonaktifkan"}
             </div>
           </div>
         </div>
       )}
-      </div>
+          </div>
+          </div>
+        </main>
       </div>
     </div>
   );
 }
 
 export default AdminPanel;
+

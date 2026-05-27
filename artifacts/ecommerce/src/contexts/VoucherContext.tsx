@@ -19,6 +19,10 @@ export interface Voucher {
   usedCount: number;
   isActive: boolean;
   description: string;
+  sellerId?: string;
+  sellerName?: string;
+  productId?: number;
+  productName?: string;
 }
 
 interface VoucherContextValue {

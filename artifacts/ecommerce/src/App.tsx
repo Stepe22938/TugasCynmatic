@@ -30,6 +30,7 @@ import { WishlistProvider } from "./contexts/WishlistContext";
 import { VoteProvider } from "./contexts/VoteContext";
 import { CurrencyProvider } from "./contexts/CurrencyContext";
 import { LanguageProvider } from "./contexts/LanguageContext";
+import { CollaborationProvider } from "./contexts/CollaborationContext";
 
 
 import { Navbar } from "./components/Navbar";
@@ -42,7 +43,7 @@ import { CheckoutPage } from "./pages/CheckoutPage";
 import { OrderHistoryPage } from "./pages/OrderHistoryPage";
 import { CheckoutSuccessPage } from "./pages/CheckoutSuccessPage";
 import { ProductDetailPage } from "./pages/ProductDetailPage";
-import { ProfilePage } from "./pages/ProfilePage";
+import { ProfileLayoutPage, ProfilePage } from "./pages/ProfilePage";
 import { SellerPage } from "./pages/SellerPage";
 import { AdminPanel } from "./pages/AdminPage";
 import { LivePage } from "./pages/LivePage";
@@ -147,6 +148,38 @@ function RoleRoute({ component: Component, roles }: { component: React.Component
   );
 }
 
+function FullScreenRoleRoute({ component: Component, roles }: { component: React.ComponentType; roles: string[] }) {
+  const { user, loading } = useAuth();
+  const [location, setLocation] = useLocation();
+
+  useEffect(() => {
+    if (!loading) {
+      if (!user) setLocation("/login");
+      else if (!roles.includes(user.role)) setLocation("/");
+    }
+  }, [loading, user, roles, setLocation]);
+
+  if (loading) return <FullPageLoader />;
+  if (!user || !roles.includes(user.role)) return null;
+
+  return (
+    <div className="flex flex-col min-h-screen bg-[#050505] text-foreground overflow-hidden">
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={location}
+          initial={{ opacity: 0, scale: 0.98 }}
+          animate={{ opacity: 1, scale: 1 }}
+          exit={{ opacity: 0, scale: 0.98 }}
+          transition={{ duration: 0.3, ease: "easeInOut" }}
+          className="w-full h-full flex-1"
+        >
+          <Component />
+        </motion.div>
+      </AnimatePresence>
+    </div>
+  );
+}
+
 function FullPageLoader() {
   return (
     <div className="fixed inset-0 bg-slate-950 z-[999] flex flex-col items-center justify-center">
@@ -203,6 +236,9 @@ function Router() {
       </Route>
       <Route path="/product/:id">
         <ProtectedRoute component={ProductDetailPage} />
+      </Route>
+      <Route path="/profile-layout">
+        <ProtectedRoute component={ProfileLayoutPage} />
       </Route>
       <Route path="/profile">
         <ProtectedRoute component={ProfilePage} />
@@ -294,10 +330,10 @@ function Router() {
 
       {/* Role-Specific Routes */}
       <Route path="/seller">
-        <RoleRoute component={SellerPage} roles={["seller", "admin"]} />
+        <FullScreenRoleRoute component={SellerPage} roles={["seller", "admin"]} />
       </Route>
       <Route path="/admin">
-        <RoleRoute component={AdminPanel} roles={["admin"]} />
+        <FullScreenRoleRoute component={AdminPanel} roles={["admin"]} />
       </Route>
       <Route path="/courier">
         <RoleRoute component={CourierPage} roles={["kurir", "admin"]} />
@@ -342,9 +378,11 @@ export default function App() {
                                               <CosmeticProvider>
                                                 <MusicProvider>
                                                   <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
+                                                  <CollaborationProvider>
                                                     <VoteProvider>
                                                       <Router />
                                                     </VoteProvider>
+                                                  </CollaborationProvider>
                                                   </WouterRouter>
                                                   <Toaster />
                                                   <GlobalMusicPlayer />

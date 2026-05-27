@@ -210,7 +210,7 @@ export function ProductCard({ product }: ProductCardProps) {
             onClick={(e) => { e.preventDefault(); e.stopPropagation(); setShowSellerModal(true); }}
           >
             <Store className="h-3 w-3" />
-            <span className="font-bold">{product.sellerName}</span>
+            <span className="font-bold">{sellerUser ? sellerUser.name : product.sellerName}</span>
             <div className="flex gap-1">
               {sellerUser?.isVerifiedSeller && (
                 <div className="flex items-center gap-0.5 bg-emerald-500/10 text-emerald-600 px-1.5 py-0.5 rounded-full border border-emerald-500/20">

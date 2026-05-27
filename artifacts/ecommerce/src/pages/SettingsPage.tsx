@@ -12,7 +12,7 @@ import {
   Store, Truck, ShieldAlert, LogOut, Wallet, ClipboardList, Heart, Gift, Users,
   Gamepad2, Trophy, Bot, Vote as VoteIcon, Info, Ticket, HelpCircle, ArrowLeft, Edit2,
   Package, ShoppingBag, ShoppingCart, User, CreditCard, ChevronLeft, Crown, Gavel,
-  MessageSquare, CheckCircle2
+  MessageSquare, CheckCircle2, Chrome, Server, Activity, Fingerprint
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { useToast } from "../hooks/use-toast";
@@ -23,11 +23,43 @@ import { useMyCrypto } from "../contexts/MyCryptoContext";
 import { useCurrency, CurrencyCode, CURRENCIES } from "../contexts/CurrencyContext";
 import { useLanguage } from "../contexts/LanguageContext";
 
+type ProfileLayoutMode = "arthur" | "simple" | "elegant" | "custom";
+
+interface CustomProfileLayoutConfig {
+  accent: string;
+  background: string;
+  radius: number;
+  compact: boolean;
+}
+
+interface LayoutMenuItem {
+  label: string;
+  desc: string;
+  icon: React.ComponentType<any>;
+  action?: () => void;
+  href?: string;
+  color: string;
+}
+
+const DEFAULT_CUSTOM_LAYOUT: CustomProfileLayoutConfig = {
+  accent: "#f97316",
+  background: "#101010",
+  radius: 28,
+  compact: false,
+};
+
+const PROFILE_LAYOUTS: { id: ProfileLayoutMode; label: string; desc: string; icon: React.ComponentType<any> }[] = [
+  { id: "arthur", label: "ArthurLayout", desc: "Default cinematic profile", icon: Crown },
+  { id: "simple", label: "Simple", desc: "Menu ringan ala DANA", icon: Smartphone },
+  { id: "elegant", label: "Elegant", desc: "Clean premium dashboard", icon: Sparkles },
+  { id: "custom", label: "Custom", desc: "Atur sendiri di editor", icon: Sliders },
+];
+
 
 export function SettingsPage() {
   const params = useParams<{ subpage?: string }>();
   const [, setLocation] = useLocation();
-  const { user, logout, updateUser } = useAuth();
+  const { user, logout, updateUser, loginWithGoogleCredential } = useAuth();
   const { toast } = useToast();
 
   const { isSultan } = useSultan();
@@ -36,17 +68,45 @@ export function SettingsPage() {
   const [editingProfile, setEditingProfile] = useState(false);
   const [profileNameInput, setProfileNameInput] = useState(user?.name ?? "");
   const [profileBioInput, setProfileBioInput] = useState(user?.bio ?? "BJIER");
+  const [customProfileLayout, setCustomProfileLayout] = useState<CustomProfileLayoutConfig>(DEFAULT_CUSTOM_LAYOUT);
 
   useEffect(() => {
     if (user) {
       setProfileNameInput(user.name);
       setProfileBioInput(user.bio || "BJIER");
+      try {
+        const stored = localStorage.getItem(`profile_custom_layout_${user.id}`);
+        setCustomProfileLayout(stored ? { ...DEFAULT_CUSTOM_LAYOUT, ...JSON.parse(stored) } : DEFAULT_CUSTOM_LAYOUT);
+      } catch {
+        setCustomProfileLayout(DEFAULT_CUSTOM_LAYOUT);
+      }
     }
   }, [user]);
 
   const getInitials = (name: string) => {
     if (!name) return "AT";
     return name.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2);
+  };
+
+  const normalizeProfileLayout = (layout?: string): ProfileLayoutMode => {
+    if (layout === "premium") return "arthur";
+    if (layout === "simple" || layout === "elegant" || layout === "custom" || layout === "arthur") return layout;
+    return "arthur";
+  };
+
+  const activeProfileLayout = normalizeProfileLayout(user?.profileLayout);
+
+  const setProfileLayoutMode = (layout: ProfileLayoutMode) => {
+    if (user) localStorage.setItem(`profile_layout_${user.id}`, layout);
+    updateUser({ profileLayout: layout });
+    toast({ title: "Layout settings diubah", description: `Sekarang memakai ${PROFILE_LAYOUTS.find((item) => item.id === layout)?.label}.` });
+  };
+
+  const updateCustomProfileLayout = (patch: Partial<CustomProfileLayoutConfig>) => {
+    if (!user) return;
+    const next = { ...customProfileLayout, ...patch };
+    setCustomProfileLayout(next);
+    localStorage.setItem(`profile_custom_layout_${user.id}`, JSON.stringify(next));
   };
 
   const formatJoinedDate = (iso: string) => {
@@ -96,6 +156,10 @@ export function SettingsPage() {
   const [ipProtected, setIpProtected] = useState(true);
   const [twoFactorEnabled, setTwoFactorEnabled] = useState(false);
   const [marketAlertsEnabled, setMarketAlertsEnabled] = useState(true);
+  const [googleAuthBusy, setGoogleAuthBusy] = useState(false);
+  const [adminSecurityStatus, setAdminSecurityStatus] = useState<any>(null);
+  const [adminSecurityError, setAdminSecurityError] = useState("");
+  const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID as string | undefined;
 
   // YouTube input state
   const [ytInput, setYtInput] = useState(user?.youtubeId || "");
@@ -147,6 +211,82 @@ export function SettingsPage() {
     logout();
     setLocation("/login");
   };
+
+  const startGoogleAuth = () => {
+    if (!googleClientId) {
+      toast({ title: "Google Auth belum aktif", description: "Isi VITE_GOOGLE_CLIENT_ID di environment frontend." });
+      return;
+    }
+
+    setGoogleAuthBusy(true);
+    const initialize = () => {
+      const google = (window as any).google;
+      if (!google?.accounts?.id) {
+        setGoogleAuthBusy(false);
+        toast({ title: "Google Auth gagal", description: "Google Identity script belum siap." });
+        return;
+      }
+
+      google.accounts.id.initialize({
+        client_id: googleClientId,
+        callback: async (response: { credential?: string }) => {
+          if (!response.credential) {
+            setGoogleAuthBusy(false);
+            return;
+          }
+          const result = await loginWithGoogleCredential(response.credential);
+          setGoogleAuthBusy(false);
+          toast({
+            title: result.ok ? "Google Auth tersambung" : "Google Auth gagal",
+            description: result.ok ? "Sesi akun sekarang memakai verifikasi Google." : result.error,
+          });
+        },
+      });
+      google.accounts.id.prompt(() => setGoogleAuthBusy(false));
+    };
+
+    if ((window as any).google?.accounts?.id) {
+      initialize();
+      return;
+    }
+
+    const script = document.createElement("script");
+    script.src = "https://accounts.google.com/gsi/client";
+    script.async = true;
+    script.defer = true;
+    script.onload = initialize;
+    script.onerror = () => {
+      setGoogleAuthBusy(false);
+      toast({ title: "Google Auth gagal", description: "Tidak bisa memuat Google Identity Services." });
+    };
+    document.head.appendChild(script);
+  };
+
+  const fetchAdminSecurityStatus = async () => {
+    if (user?.role !== "admin") return;
+    setAdminSecurityError("");
+    try {
+      const response = await fetch("/api/security/status", { headers: { "x-user-role": user.role } });
+      const contentType = response.headers.get("content-type") || "";
+      const raw = await response.text();
+
+      if (!contentType.includes("application/json")) {
+        throw new Error("API Security belum kebaca. Restart API server di port 3000 supaya route /api/security/status aktif.");
+      }
+
+      const data = JSON.parse(raw);
+      if (!response.ok) throw new Error(data.error || "Gagal membaca status security");
+      setAdminSecurityStatus(data);
+    } catch (error: any) {
+      setAdminSecurityError(error.message || "Gagal membaca status security");
+    }
+  };
+
+  useEffect(() => {
+    if (settingsSubPage === "security_admin" && user?.role === "admin") {
+      fetchAdminSecurityStatus();
+    }
+  }, [settingsSubPage, user?.role]);
 
   const formatWalletBalance = () => {
     const bal = user?.balance || 0;
@@ -291,6 +431,203 @@ export function SettingsPage() {
   ];
 
   if (!user) return null;
+
+  const avatarSrc = user.avatar || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(user.name)}&backgroundColor=ffffff&fontColor=f97316&fontSize=40`;
+  const profileStats = [
+    { label: "Friends", value: (user.friends || []).length },
+    { label: "Followers", value: (user.friendRequests || []).length + (user.friends || []).length },
+    { label: "Following", value: (user.sentRequests || []).length + (user.friends || []).length },
+  ];
+
+  const layoutPicker = (
+    <div className="bg-[#1c1c1e] rounded-[1.8rem] p-3 border border-white/5 space-y-3">
+      <div className="flex items-center justify-between px-1">
+        <div>
+          <p className="text-[10px] font-black uppercase tracking-[0.25em] text-white/35">Settings Layout</p>
+          <p className="text-xs font-semibold text-white/45 mt-1">Menu tetap sama, tampilannya yang berubah.</p>
+        </div>
+        {activeProfileLayout === "custom" && (
+          <button onClick={() => setSettingsSubPage("custom_layout_editor")} className="h-9 px-3 rounded-xl bg-white text-black text-[9px] font-black uppercase tracking-widest">
+            Editor
+          </button>
+        )}
+      </div>
+      <div className="grid grid-cols-2 gap-2">
+        {PROFILE_LAYOUTS.map((layout) => {
+          const Icon = layout.icon;
+          const active = activeProfileLayout === layout.id;
+          return (
+            <button
+              key={layout.id}
+              onClick={() => setProfileLayoutMode(layout.id)}
+              className={`flex items-center gap-3 rounded-2xl border p-3 text-left transition-all ${
+                active ? "bg-white text-black border-white" : "bg-white/[0.03] border-white/10 hover:bg-white/[0.06]"
+              }`}
+            >
+              <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${active ? "bg-black text-white" : "bg-white/5 text-white/60"}`}>
+                <Icon className="w-4.5 h-4.5" />
+              </div>
+              <div className="min-w-0">
+                <p className={`text-xs font-black truncate ${active ? "text-black" : "text-white"}`}>{layout.label}</p>
+                <p className={`text-[10px] font-semibold truncate ${active ? "text-black/55" : "text-white/35"}`}>{layout.desc}</p>
+              </div>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+
+  const layoutMenuItems: LayoutMenuItem[] = [
+    { label: "Security", desc: user.authProvider === "google" ? "Google Auth" : "Password Auth", icon: Lock, action: () => setSettingsSubPage("security"), color: "#34C759" },
+    ...(user.role === "admin" ? [{ label: "SecurityAdmin", desc: "Global anti-DDoS", icon: Server, action: () => setSettingsSubPage("security_admin"), color: "#FF3B30" }] : []),
+    { label: "Settings Layout", desc: PROFILE_LAYOUTS.find((item) => item.id === activeProfileLayout)?.label || "ArthurLayout", icon: Palette, action: () => setSettingsSubPage("profile_layout"), color: "#FF9F0A" },
+    { label: "Language", desc: languageCode.toUpperCase(), icon: Languages, action: () => setSettingsSubPage("language"), color: "#5E5CE6" },
+    { label: "Currency", desc: currencyFormat, icon: Coins, action: () => setSettingsSubPage("currency"), color: "#30D158" },
+    ...pageGroups.flatMap((group) =>
+      group.rows.map((row) => ({
+        label: row.label,
+        desc: row.desc,
+        icon: row.icon,
+        href: row.path,
+        color: row.color,
+      })),
+    ),
+    { label: "Logout", desc: "Akhiri sesi", icon: LogOut, action: handleLogout, color: "#FF3B30" },
+  ];
+
+  const renderLayoutMenuItem = (item: LayoutMenuItem, className: string, children: React.ReactNode) => {
+    if (item.href) {
+      return (
+        <Link key={`${item.label}-${item.href}`} href={item.href} className={className}>
+          {children}
+        </Link>
+      );
+    }
+
+    return (
+      <button key={item.label} onClick={item.action} className={className}>
+        {children}
+      </button>
+    );
+  };
+
+  const layoutSpecificMenu = (() => {
+    if (activeProfileLayout === "arthur") return null;
+
+    if (activeProfileLayout === "simple") {
+      return (
+        <div className="overflow-hidden rounded-[1.6rem] border border-gray-100 bg-white text-gray-900">
+          <div className="grid grid-cols-4 gap-y-5 px-3 py-5">
+            {layoutMenuItems.map((item) =>
+              renderLayoutMenuItem(
+                item,
+                "flex flex-col items-center gap-2 text-center",
+                <>
+                  <div className="flex h-9 w-9 items-center justify-center rounded-lg text-white shadow-sm" style={{ backgroundColor: item.color }}>
+                    <item.icon className="h-5 w-5" />
+                  </div>
+                  <span className="text-[12px] font-bold leading-tight text-gray-600">{item.label}</span>
+                </>,
+              ),
+            )}
+          </div>
+        </div>
+      );
+    }
+
+    if (activeProfileLayout === "elegant") {
+      const featuredItems = layoutMenuItems.slice(0, 4);
+      const remainingItems = layoutMenuItems.slice(4);
+
+      return (
+        <div className="space-y-4">
+          <div className="relative overflow-hidden rounded-[2rem] border border-white/10 bg-[#101010] p-5 shadow-2xl">
+            <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-orange-300/70 to-transparent" />
+            <div className="flex items-start justify-between gap-4">
+              <div className="space-y-2">
+                <p className="text-[10px] font-black uppercase tracking-[0.3em] text-orange-300">Elegant Control</p>
+                <h3 className="text-2xl font-black tracking-normal text-white">Settings Hub</h3>
+                <p className="max-w-xs text-xs font-semibold leading-5 text-white/45">Menu aplikasi yang sama, disusun lebih bersih buat akses cepat.</p>
+              </div>
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-orange-500/15 text-orange-200">
+                <Sparkles className="h-6 w-6" />
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            {featuredItems.map((item) =>
+              renderLayoutMenuItem(
+                item,
+                "min-h-[118px] rounded-[1.5rem] border border-white/10 bg-[#101010] p-4 text-left shadow-xl transition hover:bg-white/[0.06]",
+                <div className="flex h-full flex-col justify-between gap-4">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex h-11 w-11 items-center justify-center rounded-2xl" style={{ backgroundColor: `${item.color}22`, color: item.color, border: `1px solid ${item.color}35` }}>
+                      <item.icon className="h-5 w-5" />
+                    </div>
+                    <ChevronRight className="h-4 w-4 text-white/25" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-black text-white">{item.label}</p>
+                    <p className="mt-1 truncate text-xs font-semibold text-white/40">{item.desc}</p>
+                  </div>
+                </div>,
+              ),
+            )}
+          </div>
+
+          <div className="overflow-hidden rounded-[2rem] border border-white/10 bg-[#101010] shadow-2xl">
+            <div className="divide-y divide-white/[0.06]">
+              {remainingItems.map((item) =>
+                renderLayoutMenuItem(
+                  item,
+                  "flex w-full items-center gap-4 px-4 py-3.5 text-left transition hover:bg-white/[0.05]",
+                  <>
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl" style={{ backgroundColor: `${item.color}18`, color: item.color }}>
+                      <item.icon className="h-5 w-5" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-bold text-white">{item.label}</p>
+                      <p className="mt-0.5 truncate text-xs font-semibold text-white/35">{item.desc}</p>
+                    </div>
+                    <ChevronRight className="h-4 w-4 shrink-0 text-white/20" />
+                  </>,
+                ),
+              )}
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <div className="overflow-hidden border border-white/10 text-white shadow-2xl" style={{ backgroundColor: customProfileLayout.background, borderRadius: customProfileLayout.radius }}>
+        <div className="grid gap-2 p-3 sm:grid-cols-2">
+          {layoutMenuItems.map((item) =>
+            renderLayoutMenuItem(
+              item,
+              "flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.03] p-3 text-left hover:bg-white/[0.06]",
+              <>
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl" style={{ backgroundColor: `${item.color}22`, color: item.color, border: `1px solid ${item.color}35` }}>
+                  <item.icon className="h-5 w-5" />
+                </div>
+                <span className="min-w-0 text-left">
+                  <span className="block text-sm font-black text-white">{item.label}</span>
+                  <span className="block truncate text-xs font-semibold text-white/40">{item.desc}</span>
+                </span>
+              </>,
+            ),
+          )}
+        </div>
+        <div className="border-t border-white/10 p-3">
+          <button onClick={() => setSettingsSubPage("custom_layout_editor")} className="h-11 w-full rounded-xl text-[10px] font-black uppercase tracking-widest text-black" style={{ backgroundColor: customProfileLayout.accent }}>
+            Buka Editor Custom
+          </button>
+        </div>
+      </div>
+    );
+  })();
 
   return (
     <div className="min-h-screen bg-[#050505] text-white pb-32 relative overflow-hidden font-sans">
@@ -880,6 +1217,84 @@ export function SettingsPage() {
               }
 
               /* ── BRIGHTNESS SETTINGS ── */
+              case "security": {
+                return (
+                  <motion.div key="security-page" initial={{ opacity: 0, x: 40 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -40 }} transition={{ type: "spring", damping: 22, stiffness: 260 }} className="space-y-4">
+                    <button onClick={() => setSettingsSubPage("main")} className="flex items-center gap-2 text-white/50 hover:text-white transition-colors text-sm font-bold py-1 border-b border-white/5 pb-3 w-full">
+                      <ChevronRight className="w-5 h-5 rotate-180" style={{ color: getAccentColor() }} />
+                      <span className="text-[11px] font-black uppercase tracking-[0.2em]">Kembali</span>
+                    </button>
+                    <div className="bg-[#1c1c1e] rounded-[2.5rem] p-6 border border-white/5 space-y-6 shadow-2xl">
+                      <div className="flex items-start gap-4">
+                        <div className="w-12 h-12 rounded-2xl bg-[#34C759]/15 border border-[#34C759]/25 flex items-center justify-center"><ShieldCheck className="w-6 h-6 text-[#34C759]" /></div>
+                        <div className="min-w-0"><h3 className="text-xl font-bold uppercase tracking-tight text-white">Security</h3><p className="text-[10px] uppercase font-bold tracking-widest text-white/40 mt-1">Account auth center</p></div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="rounded-2xl bg-white/[0.03] border border-white/5 p-4"><p className="text-[9px] font-black uppercase tracking-widest text-white/30">Login Method</p><p className="mt-1 text-sm font-black text-white">{user.authProvider === "google" ? "Google" : "Password"}</p></div>
+                        <div className="rounded-2xl bg-white/[0.03] border border-white/5 p-4"><p className="text-[9px] font-black uppercase tracking-widest text-white/30">2FA</p><p className={`mt-1 text-sm font-black ${twoFactorEnabled ? "text-emerald-400" : "text-amber-400"}`}>{twoFactorEnabled ? "Aktif" : "Nonaktif"}</p></div>
+                      </div>
+                      <div className="bg-black/20 rounded-2xl border border-white/5 overflow-hidden divide-y divide-white/[0.06]">
+                        <div className="flex items-center gap-4 p-4">
+                          <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center flex-shrink-0"><Chrome className="w-5 h-5 text-black" /></div>
+                          <div className="flex-1 min-w-0"><p className="text-sm font-bold text-white">Google Auth</p><p className="text-xs text-white/40 mt-0.5">{googleClientId ? "Masuk atau tautkan sesi memakai akun Google terverifikasi." : "Butuh VITE_GOOGLE_CLIENT_ID untuk mengaktifkan tombol Google."}</p></div>
+                          <Button onClick={startGoogleAuth} disabled={googleAuthBusy || !googleClientId} className="h-10 rounded-xl bg-white hover:bg-white/90 text-black font-black uppercase tracking-widest text-[9px]">{googleAuthBusy ? "Membuka..." : user.authProvider === "google" ? "Re-auth" : "Aktifkan"}</Button>
+                        </div>
+                        <div className="flex items-center gap-4 p-4">
+                          <div className="w-10 h-10 rounded-xl bg-[#FF9F0A]/15 border border-[#FF9F0A]/25 flex items-center justify-center flex-shrink-0"><Lock className="w-5 h-5 text-[#FF9F0A]" /></div>
+                          <div className="flex-1"><p className="text-sm font-bold text-white">Two-Factor Auth</p><p className="text-xs text-white/40 mt-0.5">Lapisan verifikasi tambahan untuk aksi sensitif.</p></div>
+                          <SettingsToggle checked={twoFactorEnabled} onChange={() => setTwoFactorEnabled(!twoFactorEnabled)} />
+                        </div>
+                        <div className="flex items-center gap-4 p-4">
+                          <div className="w-10 h-10 rounded-xl bg-[#007AFF]/15 border border-[#007AFF]/25 flex items-center justify-center flex-shrink-0"><Fingerprint className="w-5 h-5 text-[#007AFF]" /></div>
+                          <div className="flex-1 min-w-0"><p className="text-sm font-bold text-white">Session Identity</p><p className="text-xs text-white/40 mt-0.5 font-mono truncate">{user.email}</p></div>
+                          <span className="text-[9px] px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 font-black uppercase tracking-widest">Verified</span>
+                        </div>
+                      </div>
+                    </div>
+                  </motion.div>
+                );
+              }
+
+              case "security_admin": {
+                if (user.role !== "admin") {
+                  return (
+                    <motion.div key="security-admin-denied" initial={{ opacity: 0, x: 40 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -40 }} className="space-y-4">
+                      <button onClick={() => setSettingsSubPage("main")} className="flex items-center gap-2 text-white/50 hover:text-white text-sm font-bold py-1 border-b border-white/5 pb-3 w-full"><ChevronRight className="w-5 h-5 rotate-180" style={{ color: getAccentColor() }} /><span className="text-[11px] font-black uppercase tracking-[0.2em]">Kembali</span></button>
+                      <div className="bg-[#1c1c1e] rounded-[2.5rem] p-8 border border-red-500/20 text-center space-y-3"><ShieldAlert className="w-12 h-12 text-red-400 mx-auto" /><h3 className="text-xl font-black uppercase text-white">Admin Only</h3><p className="text-xs text-white/45 font-semibold">SecurityAdmin cuma bisa dibuka akun admin.</p></div>
+                    </motion.div>
+                  );
+                }
+                const antiDdos = adminSecurityStatus?.antiDdos;
+                return (
+                  <motion.div key="security-admin-page" initial={{ opacity: 0, x: 40 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -40 }} transition={{ type: "spring", damping: 22, stiffness: 260 }} className="space-y-4">
+                    <button onClick={() => setSettingsSubPage("main")} className="flex items-center gap-2 text-white/50 hover:text-white transition-colors text-sm font-bold py-1 border-b border-white/5 pb-3 w-full"><ChevronRight className="w-5 h-5 rotate-180" style={{ color: getAccentColor() }} /><span className="text-[11px] font-black uppercase tracking-[0.2em]">Kembali</span></button>
+                    <div className="bg-[#1c1c1e] rounded-[2.5rem] p-6 border border-white/5 space-y-6 shadow-2xl">
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="flex items-start gap-4"><div className="w-12 h-12 rounded-2xl bg-red-500/15 border border-red-500/25 flex items-center justify-center"><Server className="w-6 h-6 text-red-300" /></div><div><h3 className="text-xl font-bold uppercase tracking-tight text-white">SecurityAdmin</h3><p className="text-[10px] uppercase font-bold tracking-widest text-white/40 mt-1">Global anti-DDoS control</p></div></div>
+                        <Button onClick={fetchAdminSecurityStatus} className="h-10 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-white font-black uppercase tracking-widest text-[9px]">Refresh</Button>
+                      </div>
+                      {adminSecurityError && <div className="rounded-2xl border border-red-500/20 bg-red-500/10 p-4 text-xs font-bold text-red-300">{adminSecurityError}</div>}
+                      <div className="grid grid-cols-2 gap-3">
+                        {[
+                          { label: "Active Clients", value: antiDdos?.activeClients ?? "-", icon: Activity },
+                          { label: "Blocked", value: antiDdos?.blockedRequests ?? "-", icon: ShieldAlert },
+                          { label: "Suspicious", value: antiDdos?.suspiciousRequests ?? "-", icon: Lock },
+                          { label: "Max / Min", value: antiDdos?.maxRequests ?? "-", icon: Zap },
+                        ].map((item) => (
+                          <div key={item.label} className="rounded-2xl bg-white/[0.03] border border-white/5 p-4"><div className="flex items-center justify-between"><p className="text-[9px] font-black uppercase tracking-widest text-white/30">{item.label}</p><item.icon className="w-4 h-4 text-white/35" /></div><p className="mt-2 text-2xl font-black text-white">{item.value}</p></div>
+                        ))}
+                      </div>
+                      <div className="bg-black/20 rounded-2xl border border-white/5 p-4 space-y-3">
+                        <div className="flex items-center justify-between text-xs"><span className="font-black uppercase tracking-widest text-white/35">Shield Mode</span><span className="font-black text-emerald-300 uppercase">{antiDdos?.mode || "Loading"}</span></div>
+                        <div className="flex items-center justify-between text-xs"><span className="font-black uppercase tracking-widest text-white/35">Window</span><span className="font-mono text-white/70">{antiDdos ? `${antiDdos.windowMs / 1000}s` : "-"}</span></div>
+                        <div className="flex items-center justify-between text-xs"><span className="font-black uppercase tracking-widest text-white/35">Block Time</span><span className="font-mono text-white/70">{antiDdos ? `${antiDdos.blockMs / 1000}s` : "-"}</span></div>
+                        <div className="flex items-center justify-between text-xs"><span className="font-black uppercase tracking-widest text-white/35">Last Blocked IP</span><span className="font-mono text-white/70">{antiDdos?.lastBlockedIp || "None"}</span></div>
+                      </div>
+                    </div>
+                  </motion.div>
+                );
+              }
+
               case "brightness": {
                 return (
                   <motion.div
@@ -1433,6 +1848,84 @@ export function SettingsPage() {
               }
 
               /* ── MAIN SETTINGS LIST ── */
+              case "profile_layout": {
+                return (
+                  <motion.div
+                    key="profile-layout-page"
+                    initial={{ opacity: 0, x: 40 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: -40 }}
+                    transition={{ type: "spring", damping: 22, stiffness: 260 }}
+                    className="space-y-4"
+                  >
+                    <button
+                      onClick={() => setSettingsSubPage("main")}
+                      className="flex items-center gap-2 text-white/50 hover:text-white transition-colors text-sm font-bold py-1 border-b border-white/5 pb-3 w-full"
+                    >
+                      <ChevronRight className="w-5 h-5 rotate-180" style={{ color: getAccentColor() }} />
+                      <span className="text-[11px] font-black uppercase tracking-[0.2em]">Kembali</span>
+                    </button>
+
+                    <div className="space-y-4">
+                      <div className="bg-[#1c1c1e] rounded-[2.5rem] p-6 border border-white/5 space-y-2">
+                        <div className="flex items-center gap-3">
+                          <div className="w-11 h-11 rounded-2xl bg-[#FF9F0A]/15 border border-[#FF9F0A]/25 flex items-center justify-center">
+                            <Palette className="w-5 h-5 text-[#FF9F0A]" />
+                          </div>
+                          <div>
+                            <h3 className="text-xl font-bold uppercase tracking-tight text-white">Settings Layout</h3>
+                            <p className="text-[10px] uppercase font-bold tracking-widest text-white/40 mt-1">Semua menu dan subpage tetap sama; hanya skin dan gaya menu yang berubah.</p>
+                          </div>
+                        </div>
+                      </div>
+                      {layoutPicker}
+                    </div>
+                  </motion.div>
+                );
+              }
+
+              case "custom_layout_editor": {
+                return (
+                  <motion.div key="custom-layout-editor" initial={{ opacity: 0, x: 40 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -40 }} transition={{ type: "spring", damping: 22, stiffness: 260 }} className="space-y-4">
+                    <button onClick={() => setSettingsSubPage("main")} className="flex items-center gap-2 text-white/50 hover:text-white transition-colors text-sm font-bold py-1 border-b border-white/5 pb-3 w-full">
+                      <ChevronRight className="w-5 h-5 rotate-180" style={{ color: getAccentColor() }} />
+                      <span className="text-[11px] font-black uppercase tracking-[0.2em]">Kembali</span>
+                    </button>
+                    <div className="bg-[#1c1c1e] rounded-[2.5rem] p-6 border border-white/5 space-y-6 shadow-2xl">
+                      <div className="flex items-start gap-4">
+                        <div className="w-12 h-12 rounded-2xl bg-orange-500/15 border border-orange-500/25 flex items-center justify-center"><Sliders className="w-6 h-6 text-orange-300" /></div>
+                        <div><h3 className="text-xl font-bold uppercase tracking-tight text-white">Custom Layout Editor</h3><p className="text-[10px] uppercase font-bold tracking-widest text-white/40 mt-1">Tersedia khusus layout Custom</p></div>
+                      </div>
+                      {activeProfileLayout !== "custom" && <div className="rounded-2xl border border-amber-500/20 bg-amber-500/10 p-4 text-xs font-bold text-amber-200">Aktifkan layout Custom dulu supaya hasil editor tampil di profile.</div>}
+                      <div className="border border-white/10 p-5 shadow-xl" style={{ backgroundColor: customProfileLayout.background, borderRadius: customProfileLayout.radius }}>
+                        <div className="flex items-center gap-4">
+                          <img src={avatarSrc} alt={user.name} className="w-16 h-16 rounded-2xl object-cover border border-white/15" />
+                          <div className="min-w-0"><p className="text-[10px] font-black uppercase tracking-[0.25em]" style={{ color: customProfileLayout.accent }}>Live Preview</p><h4 className="text-xl font-black text-white truncate">{user.name}</h4><p className="text-xs text-white/45 font-semibold truncate">{user.bio || "Custom profile bio"}</p></div>
+                        </div>
+                      </div>
+                      <div className="space-y-4">
+                        <div className="grid grid-cols-2 gap-3">
+                          <label className="rounded-2xl bg-white/[0.03] border border-white/5 p-4 space-y-3"><span className="block text-[10px] font-black uppercase tracking-widest text-white/35">Accent</span><input type="color" value={customProfileLayout.accent} onChange={(event) => updateCustomProfileLayout({ accent: event.target.value })} className="w-full h-11 rounded-xl bg-transparent cursor-pointer" /></label>
+                          <label className="rounded-2xl bg-white/[0.03] border border-white/5 p-4 space-y-3"><span className="block text-[10px] font-black uppercase tracking-widest text-white/35">Background</span><input type="color" value={customProfileLayout.background} onChange={(event) => updateCustomProfileLayout({ background: event.target.value })} className="w-full h-11 rounded-xl bg-transparent cursor-pointer" /></label>
+                        </div>
+                        <div className="rounded-2xl bg-white/[0.03] border border-white/5 p-4 space-y-3">
+                          <div className="flex justify-between text-xs font-bold"><span className="text-white/60">Corner Radius</span><span className="text-white/35">{customProfileLayout.radius}px</span></div>
+                          <input type="range" min="12" max="48" value={customProfileLayout.radius} onChange={(event) => updateCustomProfileLayout({ radius: Number(event.target.value) })} className="w-full accent-orange-500" />
+                        </div>
+                        <div className="flex items-center justify-between rounded-2xl bg-white/[0.03] border border-white/5 p-4">
+                          <div><p className="text-sm font-bold text-white">Compact Mode</p><p className="text-xs text-white/40 mt-0.5">Bikin jarak profile card lebih rapat.</p></div>
+                          <SettingsToggle checked={customProfileLayout.compact} onChange={() => updateCustomProfileLayout({ compact: !customProfileLayout.compact })} />
+                        </div>
+                        <div className="flex gap-3">
+                          <Button onClick={() => { updateCustomProfileLayout(DEFAULT_CUSTOM_LAYOUT); toast({ title: "Custom layout direset" }); }} className="flex-1 h-11 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-white font-black uppercase tracking-widest text-[9px]">Reset</Button>
+                          <Button onClick={() => { setProfileLayoutMode("custom"); toast({ title: "Custom layout aktif" }); }} className="flex-1 h-11 rounded-xl bg-white hover:bg-white/90 text-black font-black uppercase tracking-widest text-[9px]">Pakai Custom</Button>
+                        </div>
+                      </div>
+                    </div>
+                  </motion.div>
+                );
+              }
+
               default:
                 return (
                   <motion.div
@@ -1441,9 +1934,10 @@ export function SettingsPage() {
                     animate={{ opacity: 1, x: 0 }}
                     exit={{ opacity: 0, x: 40 }}
                     transition={{ type: "spring", damping: 22, stiffness: 260 }}
-                    className={`space-y-5 ${getTextSizeClass()}`}
+                    className={`space-y-5 ${getTextSizeClass()} settings-layout-${activeProfileLayout}`}
                   >
                     {/* Premium Profile Header Banner */}
+                    {true && (
                     <div className="relative rounded-[2.5rem] overflow-hidden border border-white/10 shadow-2xl p-6 sm:p-8 bg-[#0a0a0c] min-h-[220px] flex flex-col justify-between group">
                       {/* Banner Background (Animated Video or Static Shibuya Neon Cover) */}
                       {user.useAnimation && user.youtubeId ? (
@@ -1550,6 +2044,7 @@ export function SettingsPage() {
                         </div>
                       </div>
                     </div>
+                    )}
 
                     {/* Quick Actions Row */}
                     <div className="relative z-10 flex gap-2">
@@ -1569,6 +2064,36 @@ export function SettingsPage() {
 
                     {/* Header Title */}
                     <h2 className="text-4xl font-semibold text-white tracking-tight px-1 pt-2">{t("Setelan", "Settings")}</h2>
+
+                    {layoutPicker}
+
+                    {activeProfileLayout !== "arthur" && (
+                      <div className={`rounded-[1.6rem] border p-4 ${
+                        activeProfileLayout === "simple"
+                          ? "bg-white text-black border-white"
+                          : activeProfileLayout === "elegant"
+                          ? "bg-[#101010] border-white/10 text-white shadow-2xl"
+                          : "border-white/10 text-white"
+                      }`} style={activeProfileLayout === "custom" ? { backgroundColor: customProfileLayout.background, borderRadius: customProfileLayout.radius } : undefined}>
+                        <div className="flex items-center gap-3">
+                          <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
+                            activeProfileLayout === "simple" ? "bg-orange-500 text-white" : "bg-white/10 text-white"
+                          }`} style={activeProfileLayout === "custom" ? { backgroundColor: customProfileLayout.accent, color: "#000" } : undefined}>
+                            <Palette className="w-5 h-5" />
+                          </div>
+                          <div className="min-w-0">
+                            <p className={`text-sm font-black ${activeProfileLayout === "simple" ? "text-black" : "text-white"}`}>
+                              {PROFILE_LAYOUTS.find((item) => item.id === activeProfileLayout)?.label} aktif
+                            </p>
+                            <p className={`text-xs font-semibold ${activeProfileLayout === "simple" ? "text-black/55" : "text-white/40"}`}>
+                              Subpage dan menu tetap sama; hanya skin Settings yang berubah.
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {layoutSpecificMenu}
 
                     {/* Pill Search Bar */}
                     <div className="relative">
@@ -1596,9 +2121,10 @@ export function SettingsPage() {
                     {(() => {
                       const q = settingsSearchQuery.toLowerCase().trim();
                       const match = (label: string) => label.toLowerCase().includes(q);
+                      const showArthurSettingsList = activeProfileLayout === "arthur" || !!q;
 
                       // Primary System Groups Filter Flags
-                      const group1Labels = ["tentang telepon", "about phone", "pembaruan aplikasi sistem", "status keamanan", "keamanan", "pembaruan", "update", "sistem", "telepon", "hp"];
+                      const group1Labels = ["tentang telepon", "about phone", "pembaruan aplikasi sistem", "status keamanan", "security", "securityadmin", "google auth", "anti-ddos", "anti ddos", "keamanan", "pembaruan", "update", "sistem", "telepon", "hp"];
                       const group2Labels = ["wi-fi", "wifi", "bluetooth", "jaringan seluler", "jaringan", "seluler", "vpn", "internet", "koneksi"];
                       const group3Labels = ["tampilan", "kecerahan", "brightness", "mode gelap", "dark mode", "ukuran teks", "tema", "warna", "layar"];
                       const group4Labels = ["notifikasi", "push notifikasi", "email", "suara notifikasi", "getar", "alert", "pemberitahuan"];
@@ -1635,7 +2161,7 @@ export function SettingsPage() {
                       return (
                         <>
                           {/* ── SEGMENT A: CORE DEVICE SETTINGS ── */}
-                          {(!q || show1 || show2 || show3 || show4 || show5 || show6 || show7) && (
+                          {showArthurSettingsList && (!q || show1 || show2 || show3 || show4 || show5 || show6 || show7) && (
                             <div className="space-y-1 py-1">
                               <h3 className="text-[9px] font-black uppercase tracking-[0.3em] text-white/30 px-4">{t("Setelan Utama Perangkat", "System Hardware & Core Toggles")}</h3>
                               
@@ -1669,6 +2195,26 @@ export function SettingsPage() {
                                         <span className={`text-[10px] font-bold uppercase tracking-wider ${securityScanStatus === "safe" ? "text-emerald-400" : "text-amber-400"}`}>
                                           {securityScanStatus === "safe" ? t("Aman", "Secure") : t("Perlu Pindai", "Scan Required")}
                                         </span>
+                                        <ChevronRight className="w-4 h-4 text-white/25 flex-shrink-0" />
+                                      </div>
+                                    </button>
+                                  )}
+                                  {(!q || match("security") || match("google auth") || match("autentikasi")) && (
+                                    <button onClick={() => setSettingsSubPage("security")} className="w-full flex items-center gap-4 px-4 py-3.5 hover:bg-white/[0.04] transition-colors">
+                                      <div className="w-9 h-9 rounded-[0.65rem] bg-[#34C759] flex items-center justify-center flex-shrink-0"><Lock className="w-5 h-5 text-white" /></div>
+                                      <span className={`flex-1 text-left text-white font-normal ${getLabelTextSizeClass()}`}>Security</span>
+                                      <div className="flex items-center gap-1.5">
+                                        <span className="text-[10px] font-bold uppercase tracking-wider text-white/40">{user.authProvider === "google" ? "Google" : "Password"}</span>
+                                        <ChevronRight className="w-4 h-4 text-white/25 flex-shrink-0" />
+                                      </div>
+                                    </button>
+                                  )}
+                                  {user.role === "admin" && (!q || match("securityadmin") || match("anti-ddos") || match("anti ddos") || match("global security")) && (
+                                    <button onClick={() => setSettingsSubPage("security_admin")} className="w-full flex items-center gap-4 px-4 py-3.5 hover:bg-white/[0.04] transition-colors">
+                                      <div className="w-9 h-9 rounded-[0.65rem] bg-[#FF3B30] flex items-center justify-center flex-shrink-0"><Server className="w-5 h-5 text-white" /></div>
+                                      <span className={`flex-1 text-left text-white font-normal ${getLabelTextSizeClass()}`}>SecurityAdmin</span>
+                                      <div className="flex items-center gap-1.5">
+                                        <span className="text-[10px] font-bold uppercase tracking-wider text-red-300">Global</span>
                                         <ChevronRight className="w-4 h-4 text-white/25 flex-shrink-0" />
                                       </div>
                                     </button>
@@ -1815,6 +2361,16 @@ export function SettingsPage() {
                                       <SettingsToggle checked={!!user.useAnimation} onChange={() => { updateUser({ useAnimation: !user.useAnimation }); toast({ title: !user.useAnimation ? "Ambient Aktif" : "Ambient Mati" }); }} />
                                     </div>
                                   )}
+                                  {(!q || match("profile layout") || match("layout") || match("arthurlayout") || match("simple") || match("elegant") || match("custom")) && (
+                                    <button onClick={() => setSettingsSubPage("profile_layout")} className="w-full flex items-center gap-4 px-4 py-3.5 hover:bg-white/[0.04] transition-colors">
+                                      <div className="w-9 h-9 rounded-[0.65rem] bg-[#FF9F0A] flex items-center justify-center flex-shrink-0"><Palette className="w-5 h-5 text-white" /></div>
+                                      <div className="flex-1 text-left">
+                                        <p className="text-white text-[15px] font-normal">Settings Layout</p>
+                                        <p className="text-white/40 text-xs mt-0.5">{PROFILE_LAYOUTS.find((item) => item.id === activeProfileLayout)?.label}</p>
+                                      </div>
+                                      <ChevronRight className="w-4 h-4 text-white/25 flex-shrink-0" />
+                                    </button>
+                                  )}
                                   {(!q || match("vip soundtrack") || match("musik") || match("soundtrack")) && (
                                     <div className="flex items-center gap-4 px-4 py-3.5">
                                       <div className="w-9 h-9 rounded-[0.65rem] bg-[#FF2D55] flex items-center justify-center flex-shrink-0"><Music className="w-5 h-5 text-white" /></div>
@@ -1900,7 +2456,7 @@ export function SettingsPage() {
                           )}
 
                           {/* ── SEGMENT B: ALL WORKSPACE PAGES CATEGORIES ── */}
-                          {filteredPageGroups.map(group => {
+                          {showArthurSettingsList && filteredPageGroups.map(group => {
                             if (!group.visible) return null;
 
                             return (
@@ -1935,7 +2491,7 @@ export function SettingsPage() {
                           })}
 
                           {/* GROUP 8: Terminate Session */}
-                          <div className="bg-[#1c1c1e] rounded-[1.8rem] overflow-hidden">
+                          {showArthurSettingsList && <div className="bg-[#1c1c1e] rounded-[1.8rem] overflow-hidden">
                             {(!q || match("keluar dari akun") || match("keluar") || match("logout") || match("akun")) && (
                               <button onClick={handleLogout} className="w-full flex items-center gap-4 px-4 py-4 hover:bg-[#FF3B30]/5 transition-colors group">
                                 <div className="w-9 h-9 rounded-[0.65rem] bg-[#FF3B30]/15 border border-[#FF3B30]/20 flex items-center justify-center flex-shrink-0 group-hover:bg-[#FF3B30]/25 transition-colors"><LogOut className="w-5 h-5 text-[#FF3B30]" /></div>
@@ -1946,7 +2502,7 @@ export function SettingsPage() {
                                 <ChevronRight className="w-4 h-4 text-[#FF3B30]/30 flex-shrink-0" />
                               </button>
                             )}
-                          </div>
+                          </div>}
 
                           {/* No results state */}
                           {q && !anyVisible && (

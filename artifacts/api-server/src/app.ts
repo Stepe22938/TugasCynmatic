@@ -5,6 +5,7 @@ import path from "node:path";
 import router from "./routes";
 import aiRouter from "./routes/ai";
 import { logger } from "./lib/logger";
+import { antiDdos, securityHeaders } from "./middlewares/antiDdos";
 
 const app: Express = express();
 
@@ -23,6 +24,9 @@ app.use(
 );
 
 // CORS — allow all origins (frontend on port 5173, 3000, etc.)
+app.use(securityHeaders);
+app.use(antiDdos);
+
 app.use(cors({
   origin: true,
   credentials: true,

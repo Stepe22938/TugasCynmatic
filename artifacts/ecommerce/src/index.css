@@ -181,6 +181,30 @@
   opacity: 0.5;
 }
 
+/* Settings layout skins */
+.settings-layout-simple > div {
+  border-radius: 1.25rem !important;
+  box-shadow: none !important;
+}
+
+.settings-layout-simple button,
+.settings-layout-simple input {
+  border-radius: 1rem !important;
+}
+
+.settings-layout-elegant > div {
+  border-radius: 1.5rem !important;
+  border-color: rgba(255, 255, 255, 0.12) !important;
+}
+
+.settings-layout-elegant button {
+  border-radius: 0.85rem !important;
+}
+
+.settings-layout-custom > div {
+  border-radius: 2rem !important;
+}
+
 /* Shake animation for form errors */
 @keyframes shake {
   0%, 100% { transform: translateX(0); }

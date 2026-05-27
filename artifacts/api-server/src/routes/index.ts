@@ -13,6 +13,8 @@ import redeemCodesRouter from "./redeemCodes";
 import androidPackageRouter from "./androidPackage";
 import nftsRouter from "./nfts";
 import messagesRouter from "./messages";
+import collabsRouter from "./collabs";
+import securityRouter from "./security";
 
 const router: IRouter = Router();
 
@@ -30,5 +32,7 @@ router.use("/redeem-codes", redeemCodesRouter);
 router.use("/android-packages", androidPackageRouter);
 router.use("/nfts", nftsRouter);
 router.use("/messages", messagesRouter);
+router.use("/collabs", collabsRouter);
+router.use(securityRouter);
 
 export default router;

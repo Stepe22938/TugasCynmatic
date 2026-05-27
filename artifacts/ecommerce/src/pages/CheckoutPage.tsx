@@ -5,7 +5,7 @@
 import React, { useState, useEffect } from "react";
 import { useLocation, Link } from "wouter";
 import { ArrowLeft, User, MapPin, CreditCard, CheckCircle2, Smartphone, QrCode,
-         Loader2, ShoppingBag, Tag, X, Coins } from "lucide-react";
+         Loader2, ShoppingBag, Tag, X, Coins, Store } from "lucide-react";
 import { useCart } from "../contexts/CartContext";
 import { useOrderHistory } from "../contexts/OrderHistoryContext";
 import { useAuth } from "../contexts/AuthContext";
@@ -32,7 +32,7 @@ export function CheckoutPage() {
   const { decrementStock, allStoreProducts } = useProducts();
   const pay = usePaymentSettings();
   const { addNotification } = useNotifications();
-  const { validateVoucher, useVoucher: markVoucherUsed } = useVouchers();
+  const { vouchers, validateVoucher, useVoucher: markVoucherUsed } = useVouchers();
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const { balance, spend } = useWallet();
@@ -69,14 +69,22 @@ export function CheckoutPage() {
   const [appliedVoucher, setAppliedVoucher] = useState<{ code: string; discount: number } | null>(null);
   const [voucherError, setVoucherError]   = useState("");
   const [voucherLoading, setVoucherLoading] = useState(false);
+
+  // Seller Voucher state
+  const [sellerVoucherInput, setSellerVoucherInput] = useState("");
+  const [appliedSellerVoucher, setAppliedSellerVoucher] = useState<{ code: string; discount: number } | null>(null);
+  const [sellerVoucherError, setSellerVoucherError] = useState("");
+  const [sellerVoucherLoading, setSellerVoucherLoading] = useState(false);
+
   const [useCoins, setUseCoins] = useState(false);
 
   const currentCoins = user?.coins || 0;
 
   const discount   = appliedVoucher?.discount ?? 0;
-  const maxCoinsCanUse = Math.min(currentCoins, subtotal + SHIPPING_FEE - discount);
+  const sellerDiscount = appliedSellerVoucher?.discount ?? 0;
+  const maxCoinsCanUse = Math.min(currentCoins, subtotal + SHIPPING_FEE - discount - sellerDiscount);
   const coinDiscount = useCoins ? maxCoinsCanUse : 0;
-  const grandTotal = subtotal + SHIPPING_FEE - discount - coinDiscount;
+  const grandTotal = subtotal + SHIPPING_FEE - discount - sellerDiscount - coinDiscount;
 
   // 2. All Effects Next
   // WASD Map Control
@@ -138,6 +146,20 @@ export function CheckoutPage() {
     setVoucherLoading(true);
     setVoucherError("");
     await new Promise((r) => setTimeout(r, 400));
+    
+    const targetVoucher = vouchers.find((v: any) => v.code.toUpperCase() === code);
+    if (!targetVoucher) {
+      setVoucherError("Kode voucher tidak ditemukan.");
+      setVoucherLoading(false);
+      return;
+    }
+
+    if (targetVoucher.sellerId) {
+      setVoucherError("Kode ini adalah Voucher Seller, silakan masukkan di kolom Voucher Seller.");
+      setVoucherLoading(false);
+      return;
+    }
+
     const result = validateVoucher(code, subtotal);
     setVoucherLoading(false);
     if (result.ok) {
@@ -153,6 +175,66 @@ export function CheckoutPage() {
     setAppliedVoucher(null);
     setVoucherInput("");
     setVoucherError("");
+  };
+
+  const handleApplySellerVoucher = async () => {
+    const code = sellerVoucherInput.trim().toUpperCase();
+    if (!code) return;
+    setSellerVoucherLoading(true);
+    setSellerVoucherError("");
+    await new Promise((r) => setTimeout(r, 400));
+    
+    const targetVoucher = vouchers.find((v: any) => v.code.toUpperCase() === code);
+    if (!targetVoucher) {
+      setSellerVoucherError("Kode voucher seller tidak ditemukan.");
+      setSellerVoucherLoading(false);
+      return;
+    }
+
+    if (!targetVoucher.sellerId) {
+      setSellerVoucherError("Kode ini adalah Voucher Global, silakan masukkan di kolom Voucher Global.");
+      setSellerVoucherLoading(false);
+      return;
+    }
+
+    let targetSubtotal = subtotal;
+
+    // A. Specific Product Lock
+    if (targetVoucher.productId) {
+      const specificItems = checkoutItems.filter((it: any) => it.id === targetVoucher.productId);
+      if (specificItems.length === 0) {
+        setSellerVoucherError(`Voucher hanya berlaku untuk pembelian produk "${targetVoucher.productName}".`);
+        setSellerVoucherLoading(false);
+        return;
+      }
+      targetSubtotal = specificItems.reduce((sum, it) => sum + it.price * it.quantity, 0);
+    }
+    // B. Global Shop Lock
+    else {
+      const sellerItems = checkoutItems.filter((it: any) => it.sellerId === targetVoucher.sellerId);
+      if (sellerItems.length === 0) {
+        setSellerVoucherError(`Voucher hanya berlaku untuk produk dari toko "${targetVoucher.sellerName}".`);
+        setSellerVoucherLoading(false);
+        return;
+      }
+      targetSubtotal = sellerItems.reduce((sum, it) => sum + it.price * it.quantity, 0);
+    }
+
+    const result = validateVoucher(code, targetSubtotal);
+    setSellerVoucherLoading(false);
+    if (result.ok) {
+      setAppliedSellerVoucher({ code: result.voucher.code, discount: result.discount });
+      setSellerVoucherError("");
+      toast({ title: "Voucher Seller berhasil!", description: `Hemat ${formatPrice(result.discount)}` });
+    } else {
+      setSellerVoucherError(result.message);
+    }
+  };
+
+  const handleRemoveSellerVoucher = () => {
+    setAppliedSellerVoucher(null);
+    setSellerVoucherInput("");
+    setSellerVoucherError("");
   };
 
   const handleFormSubmit = (e: React.FormEvent) => {
@@ -189,6 +271,7 @@ export function CheckoutPage() {
     }
 
     if (appliedVoucher) markVoucherUsed(appliedVoucher.code);
+    if (appliedSellerVoucher) markVoucherUsed(appliedSellerVoucher.code);
     // REAL PAYMENT LOGIC: MyDompet
     if (payMethod === "mydompet") {
       const success = spend(grandTotal, `Pembelian ${orderNumber}`, "payment");
@@ -225,6 +308,8 @@ export function CheckoutPage() {
       paymentMethod: payMethod ?? "dana",
       voucherCode: appliedVoucher?.code,
       voucherDiscount: appliedVoucher?.discount,
+      sellerVoucherCode: appliedSellerVoucher?.code,
+      sellerVoucherDiscount: appliedSellerVoucher?.discount,
       coinDiscount: coinDiscount > 0 ? coinDiscount : undefined,
       status: (() => {
         // Find if any item is a pre-order not yet released
@@ -583,6 +668,53 @@ export function CheckoutPage() {
                 )}
               </div>
 
+              {/* ── Voucher Seller ───────────────────────────────────────── */}
+              <div className="bg-card border rounded-2xl p-5 space-y-3">
+                <div className="flex items-center gap-2">
+                  <Store className="h-4 w-4 text-primary" />
+                  <h2 className="font-bold text-sm">Voucher Seller</h2>
+                  <span className="text-xs text-muted-foreground">(opsional, kupon khusus toko)</span>
+                </div>
+
+                {appliedSellerVoucher ? (
+                  /* Applied state */
+                  <div className="flex items-center gap-3 p-3 bg-orange-50 border border-orange-200 rounded-xl">
+                    <CheckCircle2 className="h-5 w-5 text-orange-600 flex-shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-bold text-orange-800 tracking-wider">{appliedSellerVoucher.code}</p>
+                      <p className="text-xs text-orange-700">Hemat {formatPrice(appliedSellerVoucher.discount)}</p>
+                    </div>
+                    <button type="button" onClick={handleRemoveSellerVoucher}
+                      className="p-1 text-orange-600 hover:text-red-500 transition-colors rounded-lg hover:bg-red-50">
+                      <X className="h-4 w-4" />
+                    </button>
+                  </div>
+                ) : (
+                  /* Input state */
+                  <>
+                    <div className="flex gap-2">
+                      <input
+                        value={sellerVoucherInput}
+                        onChange={(e) => { setSellerVoucherInput(e.target.value.toUpperCase()); setSellerVoucherError(""); }}
+                        onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), handleApplySellerVoucher())}
+                        placeholder="Masukkan kupon seller"
+                        className="flex-1 px-3 py-2 text-sm border border-input rounded-xl bg-background focus:outline-none focus:ring-2 focus:ring-ring font-mono tracking-wider uppercase"
+                      />
+                      <Button type="button" onClick={handleApplySellerVoucher}
+                        disabled={!sellerVoucherInput.trim() || sellerVoucherLoading}
+                        variant="outline" className="px-4 border-primary text-primary hover:bg-primary/5 font-semibold text-sm flex-shrink-0">
+                        {sellerVoucherLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Pakai"}
+                      </Button>
+                    </div>
+                    {sellerVoucherError && (
+                      <p className="text-xs text-red-600 flex items-center gap-1">
+                        <X className="h-3 w-3" />{sellerVoucherError}
+                      </p>
+                    )}
+                  </>
+                )}
+              </div>
+
               <Button type="submit" className="w-full h-12 text-base font-semibold" disabled={pay.enabledMethods.length === 0}>
                 {pay.dummyMode ? "Lanjut ke Pembayaran" : "Bayar Sekarang"}
               </Button>
@@ -664,18 +796,39 @@ export function CheckoutPage() {
           <div className="bg-card border rounded-2xl p-5 sticky top-24 space-y-4">
             <h2 className="font-bold text-sm">Ringkasan Pesanan</h2>
             <div className="space-y-3 max-h-60 overflow-y-auto pr-1">
-              {checkoutItems.map((item) => (
-                <div key={item.id} className="flex gap-3 items-center">
-                  <img src={item.image} alt={item.name}
-                    className="w-12 h-12 rounded-lg object-cover bg-muted flex-shrink-0"
-                    onError={(e) => { (e.target as HTMLImageElement).src = "https://placehold.co/48x48?text=?"; }} />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs font-semibold truncate">{item.name}</p>
-                    <p className="text-xs text-muted-foreground">x{item.quantity}</p>
+              {checkoutItems.map((item) => {
+                const storeProduct = allStoreProducts.find((p) => p.id === item.id);
+                const discountPercent = storeProduct?.isFlashSale ? (storeProduct.discountPercent || 0) : 0;
+                const hasDiscount = discountPercent > 0;
+                const originalUnitPrice = storeProduct?.price || item.price;
+
+                return (
+                  <div key={item.id} className="flex gap-3 items-center">
+                    <img src={item.image} alt={item.name}
+                      className="w-12 h-12 rounded-lg object-cover bg-muted flex-shrink-0"
+                      onError={(e) => { (e.target as HTMLImageElement).src = "https://placehold.co/48x48?text=?"; }} />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-semibold truncate">{item.name}</p>
+                      <div className="flex items-center gap-2 mt-0.5">
+                        <p className="text-xs text-muted-foreground">x{item.quantity}</p>
+                        {hasDiscount && (
+                          <span className="text-[9px] font-black text-white bg-red-500 px-1.5 py-0.5 rounded-md uppercase tracking-tight">
+                            Diskon {discountPercent}%
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <div className="text-right flex-shrink-0">
+                      <p className="text-xs font-semibold">{formatPrice(item.price * item.quantity)}</p>
+                      {hasDiscount && (
+                        <p className="text-[9px] font-bold text-muted-foreground line-through">
+                          {formatPrice(originalUnitPrice * item.quantity)}
+                        </p>
+                      )}
+                    </div>
                   </div>
-                  <p className="text-xs font-semibold flex-shrink-0">{formatPrice(item.price * item.quantity)}</p>
-                </div>
-              ))}
+                );
+              })}
             </div>
             <div className="border-t pt-3 space-y-2 text-sm">
               <div className="flex justify-between text-muted-foreground">
@@ -689,9 +842,17 @@ export function CheckoutPage() {
               {appliedVoucher && (
                 <div className="flex justify-between text-green-700 font-semibold">
                   <span className="flex items-center gap-1">
-                    <Tag className="h-3.5 w-3.5" />{appliedVoucher.code}
+                    <Tag className="h-3.5 w-3.5" />{appliedVoucher.code} (Global)
                   </span>
                   <span>-{formatPrice(appliedVoucher.discount)}</span>
+                </div>
+              )}
+              {appliedSellerVoucher && (
+                <div className="flex justify-between text-orange-700 font-semibold">
+                  <span className="flex items-center gap-1">
+                    <Store className="h-3.5 w-3.5" />{appliedSellerVoucher.code} (Seller)
+                  </span>
+                  <span>-{formatPrice(appliedSellerVoucher.discount)}</span>
                 </div>
               )}
               {currentCoins > 0 && (

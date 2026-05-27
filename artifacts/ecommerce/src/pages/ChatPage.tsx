@@ -63,22 +63,78 @@ function MediaLightbox({ src, type, onClose }: { src: string; type: "image" | "v
 function MessageBubble({
   msg,
   isMe,
+  senderUser,
   onMediaClick,
 }: {
   msg: any;
   isMe: boolean;
+  senderUser: any;
   onMediaClick: (url: string, type: "image" | "video") => void;
 }) {
   const time = new Date(msg.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+
+  const getRoleBadge = (role?: string) => {
+    if (role === "admin") {
+      return (
+        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[8px] font-black uppercase tracking-widest bg-red-500/10 text-red-500 border border-red-500/20 shadow-[0_0_10px_rgba(239,68,68,0.15)]">
+          🛡️ Admin
+        </span>
+      );
+    }
+    if (role === "seller") {
+      return (
+        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[8px] font-black uppercase tracking-widest bg-orange-500/10 text-orange-500 border border-orange-500/20 shadow-[0_0_10px_rgba(249,115,22,0.15)]">
+          🏪 Penjual
+        </span>
+      );
+    }
+    if (role === "kurir") {
+      return (
+        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[8px] font-black uppercase tracking-widest bg-cyan-500/10 text-cyan-500 border border-cyan-500/20">
+          🚚 Kurir
+        </span>
+      );
+    }
+    return (
+      <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[8px] font-black uppercase tracking-widest bg-white/5 text-white/40 border border-white/10">
+        🛒 Pembeli
+      </span>
+    );
+  };
 
   return (
     <motion.div
       initial={{ opacity: 0, y: 8, scale: 0.97 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
       transition={{ type: "spring", damping: 28, stiffness: 400 }}
-      className={`flex ${isMe ? "justify-end" : "justify-start"} group`}
+      className={`flex gap-3 ${isMe ? "flex-row-reverse justify-start" : "flex-row justify-start"} group items-end mb-1`}
     >
-      <div className={`max-w-[75%] sm:max-w-[65%] ${isMe ? "items-end" : "items-start"} flex flex-col gap-1`}>
+      {/* Avatar */}
+      <div className="flex-shrink-0 mb-5 select-none">
+        {senderUser?.avatar ? (
+          <img
+            src={senderUser.avatar}
+            alt=""
+            className="w-8 h-8 rounded-xl object-cover border border-white/10 shadow-md"
+          />
+        ) : (
+          <div className="w-8 h-8 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-[10px] font-black text-white/40">
+            {senderUser?.name?.charAt(0).toUpperCase() || "?"}
+          </div>
+        )}
+      </div>
+
+      {/* Bubble Container */}
+      <div className={`max-w-[70%] sm:max-w-[60%] ${isMe ? "items-end" : "items-start"} flex flex-col gap-1`}>
+        {/* Sender Name + Role Tag */}
+        <div className="flex items-center gap-2 px-1 text-[10px] select-none">
+          <span className="font-bold text-white/60">
+            {senderUser?.name || "User"}
+          </span>
+          {senderUser?.isSultan && <span className="text-[10px]" title="Sultan Member">👑</span>}
+          {getRoleBadge(senderUser?.role)}
+        </div>
+
         {/* Media preview */}
         {msg.mediaUrl && (
           <div
@@ -118,20 +174,20 @@ function MessageBubble({
         {/* Text bubble */}
         {(msg.text || !msg.mediaUrl) && (
           <div
-            className={`px-4 py-2.5 rounded-2xl shadow-sm ${
+            className={`px-4 py-2.5 rounded-2xl shadow-md ${
               isMe
-                ? "bg-[#007AFF] text-white rounded-tr-sm"
-                : "bg-[#1c1c1e] text-white border border-white/[0.06] rounded-tl-sm"
+                ? "bg-gradient-to-br from-orange-500 to-orange-700 text-white rounded-tr-sm shadow-[0_4px_15px_rgba(249,115,22,0.15)] border border-orange-400/20"
+                : "bg-white/5 backdrop-blur-md text-white border border-white/10 rounded-tl-sm"
             }`}
           >
-            {msg.text && <p className="text-[14px] leading-relaxed break-words">{msg.text}</p>}
+            {msg.text && <p className="text-[14px] leading-relaxed break-words font-medium">{msg.text}</p>}
           </div>
         )}
 
         {/* Time + status */}
         <div className={`flex items-center gap-1 px-1 ${isMe ? "justify-end" : "justify-start"}`}>
-          <span className="text-[10px] text-white/25 font-medium">{time}</span>
-          {isMe && <CheckCheck className="w-3 h-3 text-[#007AFF]/60" />}
+          <span className="text-[9px] text-white/20 font-medium">{time}</span>
+          {isMe && <CheckCheck className="w-3 h-3 text-orange-500/60" />}
         </div>
       </div>
     </motion.div>
@@ -312,14 +368,19 @@ export function ChatPage() {
 
         {/* Messages */}
         <AnimatePresence initial={false}>
-          {chatMessages.map(msg => (
-            <MessageBubble
-              key={msg.id}
-              msg={msg}
-              isMe={msg.senderId === user.id}
-              onMediaClick={(url, type) => setLightbox({ url, type })}
-            />
-          ))}
+          {chatMessages.map(msg => {
+            const isMe = msg.senderId === user.id;
+            const senderUser = isMe ? user : allUsers.find(u => u.id === msg.senderId);
+            return (
+              <MessageBubble
+                key={msg.id}
+                msg={msg}
+                isMe={isMe}
+                senderUser={senderUser}
+                onMediaClick={(url, type) => setLightbox({ url, type })}
+              />
+            );
+          })}
         </AnimatePresence>
 
         {/* Upload progress indicator */}

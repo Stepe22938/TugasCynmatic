@@ -24,6 +24,10 @@ router.post("/sync", async (req, res) => {
       usedCount: data.usedCount || 0,
       isActive: !!data.isActive,
       description: data.description,
+      sellerId: data.sellerId || null,
+      sellerName: data.sellerName || null,
+      productId: data.productId ? Number(data.productId) : null,
+      productName: data.productName || null,
     }).onDuplicateKeyUpdate({
       set: {
         usedCount: data.usedCount,

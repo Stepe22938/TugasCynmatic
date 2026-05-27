@@ -36,6 +36,8 @@ router.post("/sync", async (req, res) => {
       paymentMethod: data.paymentMethod,
       voucherCode: data.voucherCode,
       voucherDiscount: data.voucherDiscount,
+      sellerVoucherCode: data.sellerVoucherCode || null,
+      sellerVoucherDiscount: data.sellerVoucherDiscount || null,
       coinDiscount: data.coinDiscount,
       messages: data.messages || [],
       problemReport: data.problemReport,

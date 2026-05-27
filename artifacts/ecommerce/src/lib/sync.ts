@@ -185,3 +185,23 @@ export const fetchAllRedeemCodesFromVPS = async () => {
   } catch (error) { }
   return null;
 };
+
+export const syncCollabToVPS = async (collab: any) => {
+  try {
+    const res = await fetch(`${API_BASE}/collabs/sync`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(collab)
+    });
+    return res.ok;
+  } catch (error) { return false; }
+};
+
+export const fetchAllCollabsFromVPS = async () => {
+  try {
+    const res = await fetch(`${API_BASE}/collabs`);
+    if (res.ok) return await res.json();
+  } catch (error) { }
+  return null;
+};
+

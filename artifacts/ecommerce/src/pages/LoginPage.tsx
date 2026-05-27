@@ -2,7 +2,7 @@
  * LoginPage.tsx
  * Royal Sultan Experience - Elite Authentication.
  */
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Link, useLocation } from "wouter";
 import { 
   Crown, Eye, EyeOff, LogIn, Sun, Moon, 
@@ -18,7 +18,7 @@ import { Label } from "../components/ui/label";
 import { motion, AnimatePresence } from "framer-motion";
 
 export function LoginPage() {
-  const { login, user } = useAuth();
+  const { login, loginWithGoogleCredential, user } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const [, setLocation] = useLocation();
 
@@ -27,7 +27,11 @@ export function LoginPage() {
   const [showPass, setShowPass] = useState(false);
   const [error, setError]       = useState("");
   const [loading, setLoading]   = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
+  const [googleReady, setGoogleReady] = useState(false);
   const [dbStatus, setDbStatus] = useState<'checking' | 'connected' | 'error'>('checking');
+  const googleButtonRef = useRef<HTMLDivElement | null>(null);
+  const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID as string | undefined;
 
   useEffect(() => {
     if (user) setLocation("/");
@@ -45,6 +49,50 @@ export function LoginPage() {
     };
     checkDB();
   }, []);
+
+  useEffect(() => {
+    if (!googleClientId || !googleButtonRef.current) return;
+
+    const existing = document.querySelector<HTMLScriptElement>('script[src="https://accounts.google.com/gsi/client"]');
+    const initializeGoogle = () => {
+      const google = (window as any).google;
+      if (!google?.accounts?.id || !googleButtonRef.current) return;
+
+      google.accounts.id.initialize({
+        client_id: googleClientId,
+        callback: async (response: { credential?: string }) => {
+          if (!response.credential) return;
+          setError("");
+          setGoogleLoading(true);
+          const result = await loginWithGoogleCredential(response.credential);
+          setGoogleLoading(false);
+          if (!result.ok) setError(result.error || "Login Google gagal.");
+          else setLocation("/");
+        },
+      });
+      google.accounts.id.renderButton(googleButtonRef.current, {
+        theme: "outline",
+        size: "large",
+        type: "standard",
+        shape: "pill",
+        width: 356,
+        text: "signin_with",
+      });
+      setGoogleReady(true);
+    };
+
+    if (existing) {
+      initializeGoogle();
+      return;
+    }
+
+    const script = document.createElement("script");
+    script.src = "https://accounts.google.com/gsi/client";
+    script.async = true;
+    script.defer = true;
+    script.onload = initializeGoogle;
+    document.head.appendChild(script);
+  }, [googleClientId, loginWithGoogleCredential, setLocation]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -214,6 +262,24 @@ export function LoginPage() {
             >
               {loading ? "MEMVERIFIKASI..." : "MASUK SEKARANG"}
             </Button>
+
+            <div className="space-y-3">
+              <div className="flex items-center gap-3">
+                <div className="h-px flex-1 bg-gray-200 dark:bg-white/10" />
+                <span className="text-[10px] font-black uppercase tracking-widest text-gray-400 dark:text-white/30">atau</span>
+                <div className="h-px flex-1 bg-gray-200 dark:bg-white/10" />
+              </div>
+
+              {googleClientId ? (
+                <div className="flex min-h-11 justify-center">
+                  <div ref={googleButtonRef} className={googleLoading || !googleReady ? "opacity-60 pointer-events-none" : ""} />
+                </div>
+              ) : (
+                <div className="rounded-xl border border-amber-400/20 bg-amber-500/10 px-4 py-3 text-center text-[10px] font-bold uppercase tracking-widest text-amber-700 dark:text-amber-300">
+                  Google Auth belum dikonfigurasi
+                </div>
+              )}
+            </div>
           </form>
         </motion.div>
 

@@ -14,6 +14,8 @@ export interface User {
   email: string;
   role: UserRole;
   avatar?: string;
+  authProvider?: "password" | "google";
+  googleSub?: string;
   isVerifiedSeller?: boolean;
   isVerifiedReseller?: boolean;
   coins?: number;
@@ -44,7 +46,7 @@ export interface User {
   useAnimation?: boolean;
   createdAt?: string;
   publicIp?: string;
-  profileLayout?: "premium" | "simple";
+  profileLayout?: "arthur" | "simple" | "elegant" | "custom" | "premium";
   referralCode?: string;
   referredBy?: string;
   localIp?: string;
@@ -64,6 +66,7 @@ interface AuthContextType {
   allUsers: User[];
   loading: boolean;
   login: (email: string, password: string) => Promise<{ ok: boolean; error?: string }>;
+  loginWithGoogleCredential: (credential: string) => Promise<{ ok: boolean; error?: string }>;
   register: (name: string, email: string, password: string, referralCode?: string) => Promise<{ ok: boolean; error?: string }>;
   logout: () => void;
   updateUser: (data: Partial<User>) => void;
@@ -517,6 +520,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const loginWithGoogleCredential = async (credential: string) => {
+    try {
+      const response = await fetch(`${API_BASE}/users/google-login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ credential }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        return { ok: false, error: data.error || "Login Google gagal" };
+      }
+
+      localStorage.setItem(SESSION_KEY, data.id);
+      setUser(toPublic({ ...data, authProvider: "google" } as StoredUser));
+      return { ok: true };
+    } catch (e: any) {
+      console.error("[GOOGLE AUTH] Frontend error:", e);
+      return { ok: false, error: "Tidak bisa menghubungi server Google Auth." };
+    }
+  };
+
   const logout = () => {
     localStorage.removeItem(SESSION_KEY);
     setUser(null);
@@ -524,6 +550,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const updateUser = (data: Partial<User>) => {
     if (!user) return;
+    setUser(toPublic({ ...(user as StoredUser), ...data }));
     mutateUsers(prev => prev.map(u => u.id === user.id ? { ...u, ...data } : u));
   };
 
@@ -690,7 +717,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const toggleLayout = () => {
     if (!user) return;
-    const next = user.profileLayout === "premium" ? "simple" : "premium";
+    const next = user.profileLayout === "arthur" || user.profileLayout === "premium" ? "simple" : "arthur";
     updateUser({ profileLayout: next });
   };
 
@@ -759,7 +786,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   return (
     <AuthContext.Provider value={{ 
-      user, allUsers: publicUsers, loading, login, register, logout, updateUser, updateCustomization, updateName, updateAvatar, 
+      user, allUsers: publicUsers, loading, login, loginWithGoogleCredential, register, logout, updateUser, updateCustomization, updateName, updateAvatar, 
       toggleBan, sendFriendRequest, acceptFriendRequest, rejectFriendRequest, removeFriend,
       addCoins, updateBalance, updateCryptoBalance, addWalletTransaction, updateUserRole, updateUserPassword, toggleVerifiedSeller, toggleVerifiedReseller, toggleLayout, fetchFreshUser,
       migrateToVPS

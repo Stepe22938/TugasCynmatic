@@ -1,11 +1,14 @@
 /**
  * ProfilePage.tsx
- * Unified command and settings center for TokoArthur.
- * Directly renders the fully-featured settings experience.
+ * Profile and Settings share the same settings experience; layout switching happens inside SettingsPage.
  */
 import React from "react";
 import { SettingsPage } from "./SettingsPage";
 
 export function ProfilePage() {
+  return <SettingsPage />;
+}
+
+export function ProfileLayoutPage() {
   return <SettingsPage />;
 }

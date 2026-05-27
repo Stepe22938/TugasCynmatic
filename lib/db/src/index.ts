@@ -148,7 +148,76 @@ pool.getConnection()
         console.log("   → Premium NFTs seeded successfully!");
       }
 
-      console.log("✅ Users, Products, Android Packages & NFTs table schemas are fully verified & up to date.");
+      // ─── SELF-HEALING VOUCHERS TABLE COLUMNS ──────────────────────────────
+      console.log("📡 Running self-healing schema check on vouchers table...");
+      const vouchersNewCols = [
+        { name: "sellerId", type: "VARCHAR(255) NULL" },
+        { name: "sellerName", type: "VARCHAR(255) NULL" },
+        { name: "productId", type: "INT NULL" },
+        { name: "productName", type: "VARCHAR(255) NULL" },
+      ];
+      for (const col of vouchersNewCols) {
+        const [hasCol]: any = await conn.execute(`SHOW COLUMNS FROM vouchers LIKE '${col.name}'`);
+        if (hasCol.length === 0) {
+          console.log(`🛠️  Column '${col.name}' is missing. Altering table vouchers...`);
+          await conn.execute(`ALTER TABLE vouchers ADD COLUMN ${col.name} ${col.type}`);
+          console.log(`   → Column '${col.name}' added successfully to vouchers!`);
+        }
+      }
+
+      // ─── SELF-HEALING ORDERS TABLE COLUMNS ───────────────────────────────
+      console.log("📡 Running self-healing schema check on orders table...");
+      const ordersNewCols = [
+        { name: "sellerVoucherCode", type: "VARCHAR(100) NULL" },
+        { name: "sellerVoucherDiscount", type: "INT NULL" },
+      ];
+      for (const col of ordersNewCols) {
+        const [hasCol]: any = await conn.execute(`SHOW COLUMNS FROM orders LIKE '${col.name}'`);
+        if (hasCol.length === 0) {
+          console.log(`🛠️  Column '${col.name}' is missing. Altering table orders...`);
+          await conn.execute(`ALTER TABLE orders ADD COLUMN ${col.name} ${col.type}`);
+          console.log(`   → Column '${col.name}' added successfully to orders!`);
+        }
+      }
+
+      // ─── SELF-HEALING COLLAB REQUESTS TABLE ─────────────────────────────
+      console.log("📡 Running self-healing schema check on collab_requests table...");
+      await conn.execute(`
+        CREATE TABLE IF NOT EXISTS collab_requests (
+          id VARCHAR(255) PRIMARY KEY,
+          fromSellerId VARCHAR(255) NOT NULL,
+          fromSellerName VARCHAR(255) NOT NULL,
+          toSellerId VARCHAR(255) NOT NULL,
+          toSellerName VARCHAR(255) NOT NULL,
+          type VARCHAR(50) NOT NULL,
+          message TEXT NOT NULL,
+          status VARCHAR(50) NOT NULL DEFAULT 'pending',
+          createdAt VARCHAR(255) NOT NULL,
+          responseAt VARCHAR(255) NULL,
+          productId INT NULL,
+          productName VARCHAR(255) NULL,
+          productPrice DECIMAL(15,2) NULL,
+          productImage VARCHAR(500) NULL,
+          proposedPrice DECIMAL(15,2) NULL,
+          proposedQuantity INT NULL,
+          commissionPercent INT NULL,
+          feedbackMessage TEXT NULL
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+      `);
+      console.log("   → Collab requests table is fully verified!");
+
+      // ─── SELF-HEALING AI SETTINGS TABLE ──────────────────────────────────
+      console.log("📡 Running self-healing schema check on ai_settings table...");
+      await conn.execute(`
+        CREATE TABLE IF NOT EXISTS ai_settings (
+          id VARCHAR(255) PRIMARY KEY,
+          openrouterKey TEXT NULL,
+          openrouterModel VARCHAR(255) NULL
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+      `);
+      console.log("   → Ai settings table is fully verified!");
+
+      console.log("✅ Users, Products, Android Packages, NFTs, Vouchers, Orders, Collab Requests & AI Settings table schemas are fully verified & up to date.");
     } catch (schemaErr: any) {
       console.warn("⚠️  Self-healing schema migration check failed (non-blocking):", schemaErr.message);
     } finally {

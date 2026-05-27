@@ -297,7 +297,7 @@ export function ProductDetailPage() {
           >
             <Store className="h-4 w-4" />
             <div className="flex items-center gap-2">
-              <span>{t("Dijual oleh", "Sold by")} <span className="font-semibold text-foreground group-hover:text-primary transition-colors">{product.sellerName}</span></span>
+              <span>{t("Dijual oleh", "Sold by")} <span className="font-semibold text-foreground group-hover:text-primary transition-colors">{sellerUser ? sellerUser.name : product.sellerName}</span></span>
               <div className="flex gap-2">
                 {sellerUser?.isVerifiedSeller && (
                   <div className="flex items-center gap-1.5 bg-emerald-500/10 text-emerald-600 px-2.5 py-1 rounded-full border border-emerald-500/20 shadow-sm animate-in fade-in zoom-in">
@@ -420,6 +420,7 @@ export function ProductDetailPage() {
             description={product.description + " " + product.longDescription}
             price={product.price}
             category={product.category}
+            productId={product.id}
           />
         </div>
       </div>

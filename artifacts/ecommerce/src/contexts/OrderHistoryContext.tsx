@@ -70,6 +70,8 @@ export interface PurchasedOrder {
   paymentMethod?: "dana" | "qris" | "mydompet";
   voucherCode?: string;
   voucherDiscount?: number;
+  sellerVoucherCode?: string;
+  sellerVoucherDiscount?: number;
   coinDiscount?: number;
   status: OrderStatus;
   messages: OrderMessage[];
@@ -97,7 +99,7 @@ export function OrderHistoryProvider({ children }: { children: ReactNode }) {
   const [allOrders, setAllOrders] = useState<PurchasedOrder[]>([]);
   const [allReviews, setAllReviews] = useState<Review[]>([]);
 
-  // Initial Fetch from VPS
+  // Initial Fetch from VPS & Polling every 10s
   useEffect(() => {
     const init = async () => {
       const orders = await fetchAllOrdersFromVPS();
@@ -146,6 +148,8 @@ export function OrderHistoryProvider({ children }: { children: ReactNode }) {
       }
     };
     init();
+    const interval = setInterval(init, 3000);
+    return () => clearInterval(interval);
   }, []);
 
   const addOrder = (order: PurchasedOrder) => {
