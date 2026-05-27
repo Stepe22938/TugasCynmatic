@@ -286,3 +286,19 @@ export const aiSettings = mysqlTable("ai_settings", {
   openrouterKey: text("openrouterKey"),
   openrouterModel: varchar("openrouterModel", { length: 255 }),
 });
+
+// ============================================================
+// GACHA REWARDS TABLE — Luck Royale / Mystery Draw prizes
+// ============================================================
+export const gachaRewards = mysqlTable("gacha_rewards", {
+  id: int("id").primaryKey().autoincrement(),
+  name: varchar("name", { length: 255 }).notNull(),
+  type: varchar("type", { length: 50 }).notNull(), // "coins" | "points" | "item" | "custom_badge"
+  value: varchar("value", { length: 255 }).notNull(),
+  tier: varchar("tier", { length: 50 }).notNull(), // "mythic" | "legendary" | "epic" | "rare" | "common"
+  chance: decimal("chance", { precision: 5, scale: 2 }).notNull(),
+  image: varchar("image", { length: 500 }),
+  isActive: boolean("isActive").default(true),
+  eventType: varchar("eventType", { length: 50 }).default("royale"), // "mystery" | "royale" | "faded"
+  createdAt: timestamp("createdAt").defaultNow(),
+});

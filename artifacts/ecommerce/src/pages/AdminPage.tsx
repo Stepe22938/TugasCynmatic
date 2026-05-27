@@ -10,7 +10,7 @@ import {
   ShieldCheck, Package, Users, CheckCircle2, XCircle, Trash2, Clock,
   ChevronDown, ChevronLeft, Menu, ToggleLeft, ToggleRight, Bot, Eye, EyeOff, KeyRound,
   CreditCard, Smartphone, QrCode, Tag, Radio, Plus, X, Search, Coins, Ban, Globe, ArrowRight, Gift, Crown,
-  History, Wallet, AlertTriangle, Activity, ShoppingBag, Vote, BarChart3, ListTodo, Palette, Database, Server, Zap, Cpu, Loader2, ArrowLeft
+  History, Wallet, AlertTriangle, Activity, ShoppingBag, Vote, BarChart3, ListTodo, Palette, Database, Server, Zap, Cpu, Loader2, ArrowLeft, Trophy
 } from "lucide-react";
 import { useAuth, User, UserRole } from "../contexts/AuthContext";
 import { useCosmetics, Cosmetic } from "../contexts/CosmeticContext";
@@ -26,9 +26,10 @@ import { formatPrice } from "../utils/formatPrice";
 import { Button } from "../components/ui/button";
 import { useToast } from "../hooks/use-toast";
 import { useSultan } from "../contexts/MySultanContext";
+import { AdminGachaPanel } from "../components/AdminGachaPanel";
 import { useVote } from "../contexts/VoteContext";
 
-type Tab = "products" | "users" | "coins" | "ip_list" | "tickets" | "vouchers" | "redeem" | "live" | "sultan" | "voting" | "settings" | "cosmetics" | "database" | "android";
+type Tab = "products" | "users" | "coins" | "ip_list" | "tickets" | "vouchers" | "redeem" | "live" | "sultan" | "voting" | "settings" | "cosmetics" | "database" | "android" | "gacha";
 
 const STATUS_BADGE: Record<SellerProduct["status"], string> = {
   pending:  "bg-amber-600/10 text-amber-500 border-amber-500/20", 
@@ -387,7 +388,7 @@ function UserRow({ user, currentUser, onRoleChange, onBanToggle, onUpdateBalance
                   size="lg" 
                   className="flex-1 md:flex-none h-14 px-8 rounded-2xl bg-rose-600/20 hover:bg-rose-600 text-rose-500 hover:text-white border border-rose-500/30 font-black uppercase tracking-widest text-[10px] shadow-2xl transition-all" 
                   onClick={() => { 
-                    if (window.confirm(`âš ï¸ Apakah Anda yakin ingin me-reset saldo ${selectedCrypto} user ini menjadi 0.000000?`)) {
+                    if (window.confirm(`âš ï¸  Apakah Anda yakin ingin me-reset saldo ${selectedCrypto} user ini menjadi 0.000000?`)) {
                       onUpdateCrypto(user.id, selectedCrypto, "reset"); 
                       setEditingCrypto(false); 
                       setCryptoAmountInput("0");
@@ -538,7 +539,7 @@ function APIKeyInput({ label, value, onChange, placeholder }: { label: string; v
   );
 }
 
-// â”€â”€â”€ Voucher row â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ————————————————————————————————————————————————————————————————
 function VoucherRow({ voucher, onToggle, onDelete }: { voucher: Voucher; onToggle: () => void; onDelete: () => void }) {
   return (
     <div className={`glass-card rounded-[2.5rem] p-8 transition-all duration-700 border border-white/5 ${voucher.isActive ? "bg-white/5 shadow-2xl hover:border-orange-500/20" : "bg-white/5 opacity-40 grayscale"}`}>
@@ -943,7 +944,7 @@ export function DatabaseExplorer() {
 
   return (
     <div className="space-y-8">
-      {/* â”€â”€ Connection Info Header â”€â”€ */}
+      {/* —————————————————————————————————————————————————————————————————————— */}
       <div className="glass-card bg-gradient-to-br from-[#0a0a0b] via-[#111] to-[#0a0a0b] text-white rounded-[2.5rem] p-8 border border-white/5 shadow-2xl relative overflow-hidden group">
         <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:opacity-10 transition-all duration-1000">
           <Server className="h-40 w-40 text-orange-500" />
@@ -973,7 +974,7 @@ export function DatabaseExplorer() {
               <div>
                 <p className="text-[8px] font-black text-white/40 uppercase tracking-widest leading-none">Database Host IP</p>
                 <p className="text-xs font-mono font-black text-white italic mt-1">
-                  {hideDbIp ? "â€¢â€¢â€¢.â€¢â€¢â€¢.â€¢â€¢â€¢.â€¢â€¢â€¢" : (dbInfo?.host || "185.128.227.237")}
+                  {hideDbIp ? "•••.•••.•••.•••" : (dbInfo?.host || "185.128.227.237")}
                 </p>
               </div>
               <button 
@@ -995,7 +996,7 @@ export function DatabaseExplorer() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-        {/* â”€â”€ Sidebar: Tables Navigator â”€â”€ */}
+        {/* —————————————————————————————————————————————————————————————————————— */}
         <div className="lg:col-span-1 space-y-4">
           <h4 className="text-[10px] font-black text-white/40 uppercase tracking-[0.3em] ml-4 flex items-center gap-2">
             <ListTodo className="h-3.5 w-3.5" /> Database Tables
@@ -1039,7 +1040,7 @@ export function DatabaseExplorer() {
           </button>
         </div>
 
-        {/* â”€â”€ Main View: Data Explorer â”€â”€ */}
+        {/* —————————————————————————————————————————————————————————————————————— */}
         <div className="lg:col-span-3 space-y-6">
           {/* Search bar & Metadata */}
           <div className="glass-card border border-white/5 rounded-[2rem] p-6 flex flex-col sm:flex-row gap-4 items-center justify-between shadow-xl">
@@ -1120,7 +1121,7 @@ export function DatabaseExplorer() {
                           if (h.toLowerCase().includes("ip")) {
                             return (
                               <td key={h} className="px-6 py-4 font-mono font-bold text-blue-400">
-                                {hideDbIp ? "â€¢â€¢â€¢.â€¢â€¢â€¢.â€¢â€¢â€¢.â€¢â€¢â€¢" : String(val)}
+                                {hideDbIp ? "•••.•••.•••.•••" : String(val)}
                               </td>
                             );
                           }
@@ -1141,7 +1142,7 @@ export function DatabaseExplorer() {
         </div>
       </div>
 
-      {/* â”€â”€ JSON/Complex Object Modal Viewer â”€â”€ */}
+      {/* —————————————————————————————————————————————————————————————————————— */}
       {selectedJson && (
         <div className="fixed inset-0 z-[120] flex items-center justify-center p-6 bg-black/90 backdrop-blur-xl">
           <div className="glass-card border-orange-500/20 bg-[#050505] rounded-[3rem] p-10 w-full max-w-2xl shadow-2xl relative animate-in zoom-in duration-300">
@@ -1170,7 +1171,7 @@ export function DatabaseExplorer() {
         </div>
       )}
 
-      {/* â”€â”€ Old Migration View (Hidden by default, triggered by button) â”€â”€ */}
+      {/* —————————————————————————————————————————————————————————————————————— */}
       {showMigration && (
         <div className="animate-in fade-in slide-in-from-top-4 duration-500 border-t border-white/5 pt-8">
           <div className="flex items-center justify-between mb-4">
@@ -1814,7 +1815,7 @@ export function DatabaseMigrationWizard({ hideDbIp = true, setHideDbIp }: { hide
               <Button 
                 size="lg"
                 onClick={async () => {
-                  if (!window.confirm("âš ï¸ Hapus SEMUA user KECUALI alrizalarkan@gmail.com dari VPS? Tindakan ini TIDAK BISA DIBATALKAN!")) return;
+                  if (!window.confirm("⚠️ Hapus SEMUA user KECUALI alrizalarkan@gmail.com dari VPS? Tindakan ini TIDAK BISA DIBATALKAN!")) return;
                   try {
                     const res = await fetch('/api/users/reset-all', { 
                       method: 'POST', 
@@ -1823,7 +1824,7 @@ export function DatabaseMigrationWizard({ hideDbIp = true, setHideDbIp }: { hide
                     });
                     const data = await res.json();
                     if (data.success) {
-                      toast({ title: "âœ… Berhasil!", description: data.message + " Refresh halaman untuk melihat perubahan." });
+                      toast({ title: "✅ Berhasil!", description: data.message + " Refresh halaman untuk melihat perubahan." });
                       setTimeout(() => window.location.reload(), 2000);
                     } else {
                       toast({ variant: "destructive", title: "Gagal", description: data.error || "Unknown error" });
@@ -1834,7 +1835,7 @@ export function DatabaseMigrationWizard({ hideDbIp = true, setHideDbIp }: { hide
                 }}
                 className="rounded-2xl px-12 h-16 bg-rose-600 hover:bg-rose-700 text-white font-black uppercase tracking-widest text-[11px] shadow-2xl shadow-rose-600/40 italic border-0"
               >
-                ðŸ—‘ï¸ Hapus Semua User (Kecuali Alrizalarkan)
+                🗑️ Hapus Semua User (Kecuali Alrizalarkan)
               </Button>
             </div>
           )}
@@ -1971,7 +1972,7 @@ npm run start`}
               <input 
                 type="text" 
                 readOnly 
-                value={hideDbIp ? "â€¢â€¢â€¢.â€¢â€¢â€¢.â€¢â€¢â€¢.â€¢â€¢â€¢" : "185.128.227.237"} 
+                value={hideDbIp ? "•••.•••.•••.•••" : "185.128.227.237"} 
                 className="w-full pl-4 pr-10 py-2.5 bg-muted/50 border rounded-xl text-sm font-mono" 
               />
               {setHideDbIp && (
@@ -2096,9 +2097,9 @@ export function AdminPanel() {
   const handleUpdateCrypto = (uid: string, cryptoType: "BTC" | "ETH", action: "add" | "reset", amount?: number) => {
     updateCryptoBalance(uid, cryptoType, action, amount);
     if (action === "reset") {
-      toast({ title: `âœ… Saldo ${cryptoType} pengguna berhasil di-reset.` });
+      toast({ title: `✅ Saldo ${cryptoType} pengguna berhasil di-reset.` });
     } else {
-      toast({ title: `âœ… Saldo ${cryptoType} pengguna berhasil ditambahkan.` });
+      toast({ title: `✅ Saldo ${cryptoType} pengguna berhasil ditambahkan.` });
     }
   };
   const handleSaveKeys = () => {
@@ -2208,11 +2209,12 @@ export function AdminPanel() {
     { id: "cosmetics", icon: Palette,      label: "Cosmetics" },
     { id: "voting",   icon: Vote,         label: "Voting" },
     { id: "settings", icon: ToggleRight,  label: "Pengaturan" },
+    { id: "gacha",    icon: Trophy,       label: "Gacha & Luck Royale" },
   ];
 
   return (
     <div className="min-h-screen bg-[#050505] flex">
-      {/* â”€â”€ SIDEBAR â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+      {/* —————————————————————————————————————————————————————————————————————— */}
       <aside
         className={`relative flex-shrink-0 flex flex-col border-r border-white/[0.06] bg-[#0a0a0b]/95 backdrop-blur-xl transition-all duration-500 ease-in-out ${
           sidebarCollapsed ? "w-[72px]" : "w-[260px]"
@@ -2309,7 +2311,7 @@ export function AdminPanel() {
         </div>
       </aside>
 
-      {/* â”€â”€ MAIN CONTENT â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+      {/* —————————————————————————————————————————————————————————————————————— */}
       <div className="flex-1 flex flex-col min-h-screen overflow-hidden">
         {/* Top Header Bar */}
         <header className="sticky top-0 z-20 border-b border-white/[0.06] bg-[#050505]/90 backdrop-blur-xl">
@@ -2361,7 +2363,7 @@ export function AdminPanel() {
           <div className="max-w-5xl mx-auto">
           <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
 
-      {/* â”€â”€ Tab Produk â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+      {/* —————————————————————————————————————————————————————————————————————— */}
       {tab === "products" && (
         <div>
           <div className="flex gap-2 mb-4 flex-wrap">
@@ -2380,7 +2382,7 @@ export function AdminPanel() {
         </div>
       )}
 
-      {/* â”€â”€ Tab Pengguna â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+      {/* —————————————————————————————————————————————————————————————————————— */}
       {tab === "users" && (
         <div className="space-y-4">
           <div className="glass-card border-white/5 rounded-[2.5rem] p-6 shadow-2xl space-y-6">
@@ -2427,7 +2429,7 @@ export function AdminPanel() {
                           const res = await fetch(`/api/users/${id}`, { method: 'DELETE' });
                           const data = await res.json();
                           if (data.success) {
-                            toast({ title: `âœ… User "${name}" berhasil dihapus!` });
+                            toast({ title: `✅ User "${name}" berhasil dihapus!` });
                             setTimeout(() => window.location.reload(), 1000);
                           } else {
                             toast({ variant: 'destructive', title: 'Gagal hapus user', description: data.error });
@@ -2448,7 +2450,7 @@ export function AdminPanel() {
         <UserDetailView user={selectedUser} onClose={() => setSelectedUser(null)} />
       )}
 
-      {/* â”€â”€ Tab Koin â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+      {/* —————————————————————————————————————————————————————————————————————— */}
       {tab === "coins" && (
         <div className="space-y-6">
           <div className="glass-card bg-gradient-to-br from-amber-600/10 to-orange-600/5 border border-white/5 rounded-[2.5rem] p-10 shadow-2xl">
@@ -2546,7 +2548,7 @@ export function AdminPanel() {
         </div>
       )}
 
-      {/* â”€â”€ Tab IP List â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+      {/* —————————————————————————————————————————————————————————————————————— */}
       {tab === "ip_list" && (
         <div className="space-y-4">
           <div className="flex items-center justify-between">
@@ -2592,14 +2594,14 @@ export function AdminPanel() {
                       </td>
                       <td className="px-4 py-3 font-mono text-xs">
                         {u.publicIp ? (
-                          hideUserIps ? "â€¢â€¢â€¢.â€¢â€¢â€¢.â€¢â€¢â€¢.â€¢â€¢â€¢" : u.publicIp
+                          hideUserIps ? "•••.•••.•••.•••" : u.publicIp
                         ) : (
                           <span className="text-muted-foreground italic">Belum tercatat</span>
                         )}
                       </td>
                       <td className="px-4 py-3 font-mono text-[10px]">
                         {u.localIp ? (
-                          hideUserIps ? "â€¢â€¢â€¢.â€¢â€¢â€¢.â€¢â€¢â€¢.â€¢â€¢â€¢" : u.localIp
+                          hideUserIps ? "•••.•••.•••.•••" : u.localIp
                         ) : (
                           <span className="text-muted-foreground italic">Belum tercatat</span>
                         )}
@@ -2613,7 +2615,7 @@ export function AdminPanel() {
         </div>
       )}
 
-      {/* â”€â”€ Tab Tiket â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+      {/* —————————————————————————————————————————————————————————————————————— */}
       {tab === "tickets" && (
         <div className="space-y-4">
           <div className="flex items-center justify-between">
@@ -2665,7 +2667,7 @@ export function AdminPanel() {
         </div>
       )}
 
-      {/* â”€â”€ Tab Voucher â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+      {/* —————————————————————————————————————————————————————————————————————— */}
       {tab === "vouchers" && (
         <div className="space-y-4">
           {/* Header */}
@@ -2722,7 +2724,7 @@ export function AdminPanel() {
                   </div>
                 )}
                 <div className="space-y-1">
-                  <label className="text-xs font-semibold text-muted-foreground">Maks. Penggunaan (0=âˆž)</label>
+                  <label className="text-xs font-semibold text-muted-foreground">Maks. Penggunaan (0=∞)</label>
                   <input value={vMaxUses} onChange={(e) => setVMaxUses(e.target.value)} type="number" min="0"
                     placeholder="0"
                     className="w-full px-3 py-2 text-sm border rounded-xl bg-background focus:outline-none focus:ring-2 focus:ring-ring" />
@@ -2756,7 +2758,7 @@ export function AdminPanel() {
         </div>
       )}
 
-      {/* â”€â”€ Tab Redeem â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+      {/* —————————————————————————————————————————————————————————————————————— */}
       {tab === "redeem" && (
         <div className="space-y-4">
           <div className="flex items-center justify-between">
@@ -2795,7 +2797,7 @@ export function AdminPanel() {
                     className="w-full px-3 py-2 text-sm border rounded-xl bg-background focus:outline-none focus:ring-2 focus:ring-ring" />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-xs font-semibold text-muted-foreground">Batas Penggunaan (0=âˆž)</label>
+                  <label className="text-xs font-semibold text-muted-foreground">Batas Penggunaan (0=∞)</label>
                   <input value={rMaxUses} onChange={(e) => setRMaxUses(e.target.value)} type="number" min="0"
                     placeholder="1"
                     className="w-full px-3 py-2 text-sm border rounded-xl bg-background focus:outline-none focus:ring-2 focus:ring-ring" />
@@ -2846,7 +2848,7 @@ export function AdminPanel() {
         </div>
       )}
 
-      {/* â”€â”€ Tab Live â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+      {/* —————————————————————————————————————————————————————————————————————— */}
       {tab === "live" && (
         <div className="space-y-5">
           {/* Admin's own live session */}
@@ -2874,7 +2876,7 @@ export function AdminPanel() {
                     toast({ title: "Live dihentikan." });
                   } else {
                     startLive(user!.id, user!.name);
-                    toast({ title: "Live dimulai! ðŸ”´" });
+                    toast({ title: "Live dimulai! 🔴" });
                   }
                 }}
                 className="flex-shrink-0 transition-transform active:scale-90"
@@ -2956,17 +2958,17 @@ export function AdminPanel() {
         </div>
       )}
 
-      {/* â”€â”€ Tab Sultan â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+      {/* —————————————————————————————————————————————————————————————————————— */}
       {tab === "sultan" && (
         <SultanAdminTab />
       )}
 
-      {/* â”€â”€ Tab Voting â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+      {/* —————————————————————————————————————————————————————————————————————— */}
       {tab === "voting" && (
         <VotingAdminTab />
       )}
 
-      {/* â”€â”€ Tab Cosmetics â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+      {/* —————————————————————————————————————————————————————————————————————— */}
       {tab === "cosmetics" && (
         <div className="space-y-6">
           <div className="bg-card border-2 border-dashed border-indigo-200 rounded-[2.5rem] p-8">
@@ -3012,7 +3014,7 @@ export function AdminPanel() {
                   </div>
                   <div>
                     <p className="text-sm font-bold">{c.name}</p>
-                    <p className="text-[10px] text-muted-foreground font-black uppercase">{c.rarity} Â· {formatPrice(c.price)}</p>
+                    <p className="text-[10px] text-muted-foreground font-black uppercase">{c.rarity} · {formatPrice(c.price)}</p>
                   </div>
                 </div>
                 <button onClick={() => deleteCosmetic(c.id)} className="p-2 text-red-500 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -3024,21 +3026,21 @@ export function AdminPanel() {
         </div>
       )}
 
-      {/* â”€â”€ Tab Sistem Database â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+      {/* —————————————————————————————————————————————————————————————————————— */}
       {tab === "database" && (
         <div className="space-y-6">
           <DatabaseExplorer />
         </div>
       )}
 
-      {/* â”€â”€ Tab Android Package â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+      {/* —————————————————————————————————————————————————————————————————————— */}
       {tab === "android" && (
         <div className="space-y-6">
           <AndroidPackagePanel />
         </div>
       )}
 
-      {/* â”€â”€ Tab Pengaturan â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+      {/* —————————————————————————————————————————————————————————————————————— */}
       {tab === "settings" && (
         <div className="space-y-4">
 
@@ -3057,7 +3059,7 @@ export function AdminPanel() {
               </button>
             </div>
             <div className={`mt-3 text-xs font-semibold px-3 py-1.5 rounded-lg inline-block ${autoApprove ? "bg-green-100 text-green-700" : "bg-muted text-muted-foreground"}`}>
-              {autoApprove ? "Aktif â€” produk langsung masuk toko" : "Nonaktif â€” produk perlu disetujui manual"}
+              {autoApprove ? "Aktif — produk langsung masuk toko" : "Nonaktif — produk perlu disetujui manual"}
             </div>
           </div>
 
@@ -3111,11 +3113,11 @@ export function AdminPanel() {
                 </button>
               </div>
               <div className={`mt-2 text-xs font-semibold px-3 py-1.5 rounded-lg inline-block ${pay.dummyMode ? "bg-amber-100 text-amber-700" : "bg-muted text-muted-foreground"}`}>
-                {pay.dummyMode ? "âš  Mode Demo aktif â€” tidak ada pembayaran nyata" : "Mode Produksi â€” gunakan gateway sungguhan"}
+                {pay.dummyMode ? "⚠️ Mode Demo aktif — tidak ada pembayaran nyata" : "Mode Produksi — gunakan gateway sungguhan"}
               </div>
             </div>
             <div className="text-xs text-muted-foreground bg-muted/30 rounded-xl px-3 py-2">
-              Metode aktif: {[pay.danaEnabled && "DANA", pay.qrisEnabled && "QRIS"].filter(Boolean).join(", ") || "â€”"}
+              Metode aktif: {[pay.danaEnabled && "DANA", pay.qrisEnabled && "QRIS"].filter(Boolean).join(", ") || "—"}
             </div>
           </div>
 
@@ -3152,6 +3154,11 @@ export function AdminPanel() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* —————————————————————————————————————————————————————————————————————— */}
+      {tab === "gacha" && (
+        <AdminGachaPanel />
       )}
           </div>
           </div>

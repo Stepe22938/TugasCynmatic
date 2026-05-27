@@ -58,6 +58,7 @@ import { AuctionPage } from "./pages/AuctionPage";
 import { MyDompetPage } from "./pages/MyDompetPage";
 import { MyRedeemPage } from "./pages/MyRedeemPage";
 import { MyMusicPage } from "./pages/MyMusicPage";
+import { GachaPage } from "./pages/GachaPage";
 import { AIChatPage } from "./pages/AIChatPage";
 import { FlashSalePage } from "./pages/FlashSalePage";
 import { LeaderboardPage } from "./pages/LeaderboardPage";
@@ -272,6 +273,9 @@ function Router() {
       </Route>
       <Route path="/minigames">
         <ProtectedRoute component={MiniGamesPage} />
+      </Route>
+      <Route path="/gacha">
+        <ProtectedRoute component={GachaPage} />
       </Route>
       <Route path="/auction">
         <ProtectedRoute component={AuctionPage} />

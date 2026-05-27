@@ -140,6 +140,26 @@ function GameDashboard({ onSelect }: { onSelect: (g: GameType) => void }) {
 
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      {/* Premium Luck Royale Gacha Banner */}
+      <Link href="/gacha" className="sm:col-span-2">
+        <div className="bg-gradient-to-r from-purple-950 via-slate-900 to-indigo-950 border border-purple-500/20 rounded-3xl shadow-xl p-5 hover:shadow-[0_0_25px_rgba(168,85,247,0.25)] hover:border-purple-500/40 transition-all cursor-pointer group relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-purple-500/10 rounded-full blur-2xl pointer-events-none" />
+          <div className="flex items-center gap-4 relative z-10">
+            <div className="bg-gradient-to-br from-purple-600 to-pink-600 p-3.5 rounded-2xl text-white shadow-lg group-hover:scale-110 transition-transform">
+              <Sparkles className="h-6 w-6 animate-pulse" />
+            </div>
+            <div className="flex-1">
+              <span className="bg-amber-500 text-black text-[8px] font-black px-2 py-0.5 rounded-full uppercase tracking-widest leading-none mb-1 inline-block">EVENT SPESIAL</span>
+              <h3 className="font-black text-white text-base tracking-tight">LUCK ROYALE GACHA</h3>
+              <p className="text-xs text-purple-200/70">Gunakan TokoCoins untuk memenangkan item eksklusif Sultan & Mythic!</p>
+            </div>
+            <div className="flex items-center gap-1 font-bold text-xs text-amber-400 group-hover:translate-x-1 transition-transform">
+              MAIN <Play className="h-3 w-3 fill-amber-400 text-amber-400" />
+            </div>
+          </div>
+        </div>
+      </Link>
+
       {games.map(game => (
         <div 
           key={game.id} 

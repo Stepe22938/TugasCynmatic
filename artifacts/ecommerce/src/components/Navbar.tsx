@@ -70,6 +70,7 @@ export function Navbar() {
   const navItems = [
     { path: "/", label: "Home", icon: Package },
     { path: "/flashsale", label: "Flash Sale", icon: Zap, pulse: true },
+    { path: "/gacha", label: "Luck Royale", icon: Gem, pulse: true },
     { path: "/orders", label: t("Pesanan", "Orders"), icon: ClipboardList },
   ];
 

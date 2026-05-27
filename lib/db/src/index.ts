@@ -215,9 +215,61 @@ pool.getConnection()
           openrouterModel VARCHAR(255) NULL
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
       `);
-      console.log("   → Ai settings table is fully verified!");
+      // ─── SELF-HEALING GACHA REWARDS TABLE ──────────────────────────────────
+      console.log("📡 Running self-healing schema check on gacha_rewards table...");
+      await conn.execute(`
+        CREATE TABLE IF NOT EXISTS gacha_rewards (
+          id INT PRIMARY KEY AUTO_INCREMENT,
+          name VARCHAR(255) NOT NULL,
+          type VARCHAR(50) NOT NULL,
+          value VARCHAR(255) NOT NULL,
+          tier VARCHAR(50) NOT NULL,
+          chance DECIMAL(5,2) NOT NULL,
+          image VARCHAR(500) NULL,
+          isActive TINYINT(1) DEFAULT 1,
+          eventType VARCHAR(50) DEFAULT 'royale',
+          createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+      `);
+      // Run manual ALTER TABLE to ensure eventType exists in existing table (self-healing migration)
+      try {
+        await conn.execute(`
+          ALTER TABLE gacha_rewards ADD COLUMN IF NOT EXISTS eventType VARCHAR(50) DEFAULT 'royale'
+        `);
+      } catch (err: any) {
+        console.warn("⚠️ Non-blocking alter table warning (eventType):", err.message);
+      }
+      console.log("   → Gacha rewards table is fully verified!");
 
-      console.log("✅ Users, Products, Android Packages, NFTs, Vouchers, Orders, Collab Requests & AI Settings table schemas are fully verified & up to date.");
+      const [existingRewards]: any = await conn.execute("SELECT COUNT(*) as count FROM gacha_rewards");
+      if (existingRewards[0].count === 0) {
+        console.log("🌱 Seeding initial gacha rewards...");
+        await conn.execute(`
+          INSERT INTO gacha_rewards (name, type, value, tier, chance, image, isActive, eventType) VALUES
+          ('FLAMING HOLLOWFACE BUNDLE (Mythic)', 'item', 'FLAMING BUNDLE', 'mythic', 0.50, 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=500', 1, 'mystery'),
+          ('Sultan Gold Badge Effect (Legendary)', 'custom_badge', 'sultan_gold', 'legendary', 1.50, 'https://images.unsplash.com/photo-1535303311164-664fc9ec6532?w=500', 1, 'mystery'),
+          ('Arthur Cyber Emote (Epic)', 'item', 'CYBER EMOTE', 'epic', 5.00, 'https://images.unsplash.com/photo-1560253023-3ec5d502959f?w=500', 1, 'faded'),
+          ('10,000 Koin Toko (Rare)', 'coins', '10000', 'rare', 10.00, 'https://images.unsplash.com/photo-1621416894569-0f39ed31d247?w=500', 1, 'faded'),
+          ('1,000 Koin Toko (Common)', 'coins', '1000', 'common', 33.00, 'https://images.unsplash.com/photo-1621416894569-0f39ed31d247?w=500', 1, 'royale'),
+          ('500 Koin Toko (Common)', 'coins', '500', 'common', 50.00, 'https://images.unsplash.com/photo-1621416894569-0f39ed31d247?w=500', 1, 'royale')
+        `);
+        console.log("   → Gacha rewards seeded successfully!");
+      } else {
+        // Self-healing migration to seed categories for existing data if they are all default 'royale'
+        try {
+          const [allRoyale]: any = await conn.execute("SELECT COUNT(*) as count FROM gacha_rewards WHERE eventType = 'royale'");
+          const [totalCount]: any = await conn.execute("SELECT COUNT(*) as count FROM gacha_rewards");
+          if (allRoyale[0].count === totalCount[0].count && totalCount[0].count > 0) {
+            console.log("🛠️ Distributing default rewards into gacha categories...");
+            await conn.execute("UPDATE gacha_rewards SET eventType = 'mystery' WHERE tier = 'mythic' OR type = 'custom_badge'");
+            await conn.execute("UPDATE gacha_rewards SET eventType = 'faded' WHERE tier IN ('epic', 'rare')");
+          }
+        } catch (err: any) {
+          console.warn("⚠️ Non-blocking category redistribution warning:", err.message);
+        }
+      }
+
+      console.log("✅ Users, Products, Android Packages, NFTs, Vouchers, Orders, Collab Requests, AI Settings & Gacha Rewards table schemas are fully verified & up to date.");
     } catch (schemaErr: any) {
       console.warn("⚠️  Self-healing schema migration check failed (non-blocking):", schemaErr.message);
     } finally {
