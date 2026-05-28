@@ -16,6 +16,7 @@ import messagesRouter from "./messages";
 import collabsRouter from "./collabs";
 import securityRouter from "./security";
 import gachaRouter from "./gacha";
+import aiRouter from "./ai";
 
 const router: IRouter = Router();
 
@@ -35,6 +36,7 @@ router.use("/nfts", nftsRouter);
 router.use("/messages", messagesRouter);
 router.use("/collabs", collabsRouter);
 router.use("/gacha", gachaRouter);
+router.use(aiRouter);
 router.use(securityRouter);
 
 export default router;

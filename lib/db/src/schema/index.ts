@@ -283,8 +283,11 @@ export const collabRequests = mysqlTable("collab_requests", {
 // ============================================================
 export const aiSettings = mysqlTable("ai_settings", {
   id: varchar("id", { length: 255 }).primaryKey(), // "global"
+  aiProvider: varchar("aiProvider", { length: 50 }).default("openrouter"),
   openrouterKey: text("openrouterKey"),
   openrouterModel: varchar("openrouterModel", { length: 255 }),
+  obscuraKey: text("obscuraKey"),
+  obscuraModel: varchar("obscuraModel", { length: 255 }),
 });
 
 // ============================================================
@@ -300,5 +303,36 @@ export const gachaRewards = mysqlTable("gacha_rewards", {
   image: varchar("image", { length: 500 }),
   isActive: boolean("isActive").default(true),
   eventType: varchar("eventType", { length: 50 }).default("royale"), // "mystery" | "royale" | "faded"
+  createdAt: timestamp("createdAt").defaultNow(),
+});
+
+// ============================================================
+// AI ANALYSIS HISTORY TABLE — Sentiment, tags & summaries logs
+// ============================================================
+export const aiAnalysisHistory = mysqlTable("ai_analysis_history", {
+  id: varchar("id", { length: 255 }).primaryKey(),
+  ticketId: varchar("ticketId", { length: 255 }).notNull(),
+  userId: varchar("userId", { length: 255 }).notNull(),
+  userName: varchar("userName", { length: 255 }).notNull(),
+  sentiment: varchar("sentiment", { length: 50 }).notNull(),
+  tags: json("tags").notNull(),
+  summary: text("summary").notNull(),
+  description: text("description").notNull(),
+  aiResponse: text("aiResponse"),
+  createdAt: timestamp("createdAt").defaultNow(),
+});
+
+// ============================================================
+// AI COMPANION MODELS TABLE — Admin-managed list of AI models
+// available for side-by-side comparison in the AI Companion page
+// ============================================================
+export const aiCompanionModels = mysqlTable("ai_companion_models", {
+  id: varchar("id", { length: 255 }).primaryKey(),
+  name: varchar("name", { length: 100 }).notNull(),       // Display name e.g. "GPT-4o Mini"
+  modelId: varchar("modelId", { length: 255 }).notNull(), // OpenRouter model ID e.g. "openai/gpt-4o-mini"
+  description: text("description"),                        // Short description shown in UI
+  color: varchar("color", { length: 30 }).default("#6366f1"), // Accent hex color for the card
+  isEnabled: boolean("isEnabled").default(true),
+  sortOrder: int("sortOrder").default(0),
   createdAt: timestamp("createdAt").defaultNow(),
 });

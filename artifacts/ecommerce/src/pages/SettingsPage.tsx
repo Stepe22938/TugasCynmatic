@@ -167,6 +167,30 @@ export function SettingsPage() {
   // Update progress tracker
   const [updateProgress, setUpdateProgress] = useState(0);
 
+  // AI Analysis History states at top-level
+  const [aiHistories, setAiHistories] = useState<any[]>([]);
+  const [loadingAiHistories, setLoadingAiHistories] = useState(true);
+  const [aiHistoryFilterQuery, setAiHistoryFilterQuery] = useState("");
+  const [selectedAiHistory, setSelectedAiHistory] = useState<any | null>(null);
+
+  useEffect(() => {
+    if (settingsSubPage === "ai_history" && user) {
+      setLoadingAiHistories(true);
+      fetch(user.role === "admin" ? "/api/ai/analysis-history" : `/api/ai/analysis-history?userId=${user.id}`)
+        .then((res) => res.json())
+        .then((data) => {
+          if (Array.isArray(data)) {
+            setAiHistories(data);
+          }
+          setLoadingAiHistories(false);
+        })
+        .catch((err) => {
+          console.error("Gagal memuat riwayat analisis:", err);
+          setLoadingAiHistories(false);
+        });
+    }
+  }, [settingsSubPage, user]);
+
   const setSettingsSubPage = (page: string) => {
     if (page === "main") {
       setLocation("/settings");
@@ -481,6 +505,7 @@ export function SettingsPage() {
   const layoutMenuItems: LayoutMenuItem[] = [
     { label: "Security", desc: user.authProvider === "google" ? "Google Auth" : "Password Auth", icon: Lock, action: () => setSettingsSubPage("security"), color: "#34C759" },
     ...(user.role === "admin" ? [{ label: "SecurityAdmin", desc: "Global anti-DDoS", icon: Server, action: () => setSettingsSubPage("security_admin"), color: "#FF3B30" }] : []),
+    { label: t("Riwayat AI Analisis", "AI Analysis History"), desc: t("Log audit sentimen & teks", "Sentiment & text audit logs"), icon: Bot, action: () => setSettingsSubPage("ai_history"), color: "#8A2BE2" },
     { label: "Settings Layout", desc: PROFILE_LAYOUTS.find((item) => item.id === activeProfileLayout)?.label || "ArthurLayout", icon: Palette, action: () => setSettingsSubPage("profile_layout"), color: "#FF9F0A" },
     { label: "Language", desc: languageCode.toUpperCase(), icon: Languages, action: () => setSettingsSubPage("language"), color: "#5E5CE6" },
     { label: "Currency", desc: currencyFormat, icon: Coins, action: () => setSettingsSubPage("currency"), color: "#30D158" },
@@ -1217,6 +1242,246 @@ export function SettingsPage() {
               }
 
               /* ── BRIGHTNESS SETTINGS ── */
+              case "ai_history": {
+                const filtered = aiHistories.filter((h) => {
+                  const q = aiHistoryFilterQuery.toLowerCase().trim();
+                  if (!q) return true;
+                  return (
+                    h.userName.toLowerCase().includes(q) ||
+                    h.ticketId.toLowerCase().includes(q) ||
+                    h.sentiment.toLowerCase().includes(q) ||
+                    h.summary.toLowerCase().includes(q)
+                  );
+                });
+
+                return (
+                  <motion.div
+                    key="ai-history-page"
+                    initial={{ opacity: 0, x: 40 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: -40 }}
+                    transition={{ type: "spring", damping: 22, stiffness: 260 }}
+                    className="space-y-4"
+                  >
+                    <button
+                      onClick={() => setSettingsSubPage("main")}
+                      className="flex items-center gap-2 text-white/50 hover:text-white transition-colors text-sm font-bold py-1 border-b border-white/5 pb-3 w-full"
+                    >
+                      <ChevronRight className="w-5 h-5 rotate-180" style={{ color: getAccentColor() }} />
+                      <span className="text-[11px] font-black uppercase tracking-[0.2em]">{t("Kembali", "Back")}</span>
+                    </button>
+
+                    <div className="bg-[#1c1c1e] rounded-[2.5rem] p-6 border border-white/5 space-y-6 shadow-2xl relative overflow-hidden">
+                      <div className="flex items-start gap-4">
+                        <div className="w-12 h-12 rounded-2xl bg-indigo-500/15 border border-indigo-500/25 flex items-center justify-center">
+                          <Bot className="w-6 h-6 text-indigo-400" />
+                        </div>
+                        <div className="min-w-0">
+                          <h3 className="text-xl font-bold uppercase tracking-tight text-white">{t("Riwayat Analisis AI", "AI Analysis History")}</h3>
+                          <p className="text-[10px] uppercase font-bold tracking-widest text-white/40 mt-1">{t("LOG AUDIT TEKSTUAL & SENTIMEN PELANGGAN", "CUSTOMER SENTIMENT & TEXT AUDIT LOGS")}</p>
+                        </div>
+                      </div>
+
+                      {/* Search box inside the panel */}
+                      <div className="relative">
+                        <input
+                          type="text"
+                          value={aiHistoryFilterQuery}
+                          onChange={(e) => setAiHistoryFilterQuery(e.target.value)}
+                          placeholder={t("Cari pelanggan, tiket, atau sentimen...", "Search client, ticket, or sentiment...")}
+                          className="w-full h-10 bg-white/[0.03] border border-white/5 rounded-xl px-4 text-xs text-white placeholder:text-white/30 focus:outline-none focus:border-white/20 transition-colors"
+                        />
+                      </div>
+
+                      {loadingAiHistories ? (
+                        <div className="py-12 text-center text-white/40 text-xs font-bold animate-pulse">
+                          {t("Memuat riwayat analisis...", "Loading analysis history...")}
+                        </div>
+                      ) : filtered.length === 0 ? (
+                        <div className="py-12 text-center border border-dashed border-white/5 rounded-2xl">
+                          <Bot className="w-8 h-8 text-white/20 mx-auto mb-2 animate-bounce" />
+                          <p className="text-xs text-white/40 font-bold italic">{t("Tidak ada log riwayat ditemukan", "No history logs found")}</p>
+                        </div>
+                      ) : (
+                        <div className="space-y-3 max-h-[480px] overflow-y-auto pr-1 no-scrollbar">
+                          {filtered.map((log) => {
+                            const parsedTags = typeof log.tags === "string" ? JSON.parse(log.tags) : log.tags || [];
+                            return (
+                              <div
+                                key={log.id}
+                                onClick={() => setSelectedAiHistory(log)}
+                                className="group bg-white/[0.02] border border-white/5 hover:border-white/10 rounded-2xl p-4 text-left transition-all cursor-pointer hover:bg-white/[0.04]"
+                              >
+                                <div className="flex justify-between items-start gap-3">
+                                  <div className="min-w-0">
+                                    <div className="flex items-center gap-2">
+                                      <span className="font-extrabold text-xs text-white group-hover:text-indigo-400 transition-colors truncate">
+                                        {log.userName}
+                                      </span>
+                                      <span className="text-[9px] text-white/30 font-mono">
+                                        #{log.ticketId.replace("ticket-", "")}
+                                      </span>
+                                    </div>
+                                    <p className="text-[10px] text-white/50 font-medium truncate mt-1">
+                                      {log.description}
+                                    </p>
+
+                                    {/* AI Message/Response directly on the card! */}
+                                    {log.aiResponse && (
+                                      <div className="mt-2.5 bg-indigo-500/10 border border-indigo-500/20 rounded-xl p-2.5 text-[10px] leading-relaxed text-white/80 italic shadow-sm relative overflow-hidden">
+                                        <div className="absolute top-1 right-2 text-[7px] bg-indigo-500/20 text-indigo-300 px-1 py-0.2 rounded font-extrabold uppercase tracking-wider">
+                                          AI DRAF
+                                        </div>
+                                        <p className="line-clamp-2 pr-6">
+                                          {log.aiResponse}
+                                        </p>
+                                      </div>
+                                    )}
+                                  </div>
+                                  <span
+                                    className={`text-[8px] font-black uppercase tracking-wider px-2 py-0.5 rounded border whitespace-nowrap flex-shrink-0 ${
+                                      log.sentiment === "Marah"
+                                        ? "bg-red-500/10 text-red-400 border-red-500/20"
+                                        : log.sentiment === "Puas"
+                                        ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
+                                        : "bg-blue-500/10 text-blue-400 border-blue-500/20"
+                                    }`}
+                                  >
+                                    {log.sentiment}
+                                  </span>
+                                </div>
+
+                                <div className="flex justify-between items-center mt-3 pt-3 border-t border-white/[0.04]">
+                                  <div className="flex flex-wrap gap-1.5 min-w-0">
+                                    {parsedTags.slice(0, 3).map((tag: string, i: number) => (
+                                      <span key={i} className="bg-white/5 text-white/40 border border-white/5 text-[8px] font-bold px-1.5 py-0.5 rounded">
+                                        {tag}
+                                      </span>
+                                    ))}
+                                  </div>
+                                  <span className="text-[9px] text-white/20 font-bold flex-shrink-0">
+                                    {new Date(log.createdAt).toLocaleDateString("id-ID", { day: "numeric", month: "short" })}
+                                  </span>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Detailed Analysis History Modal */}
+                    <AnimatePresence>
+                      {selectedAiHistory && (() => {
+                        const parsedTags = typeof selectedAiHistory.tags === "string" ? JSON.parse(selectedAiHistory.tags) : selectedAiHistory.tags || [];
+                        return (
+                          <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-[9999] flex items-center justify-center p-4">
+                            <motion.div
+                              initial={{ opacity: 0, scale: 0.95, y: 10 }}
+                              animate={{ opacity: 1, scale: 1, y: 0 }}
+                              exit={{ opacity: 0, scale: 0.95, y: 10 }}
+                              className="bg-[#1c1c1e] rounded-[2.5rem] border border-white/5 p-6 w-full max-w-lg shadow-2xl relative space-y-5 overflow-hidden text-left"
+                            >
+                              <button
+                                onClick={() => setSelectedAiHistory(null)}
+                                className="absolute top-5 right-5 w-8 h-8 rounded-full bg-white/5 text-white/60 hover:bg-white/10 flex items-center justify-center transition-all border border-white/10"
+                              >
+                                <X className="h-4.5 w-4.5" />
+                              </button>
+
+                              <div className="space-y-1">
+                                <div className="flex items-center gap-2">
+                                  <span className="text-[9px] bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 px-2 py-0.5 rounded font-black uppercase tracking-wider">
+                                    {t("Detail Analisis AI", "AI Analysis Details")}
+                                  </span>
+                                  <span className="text-[9px] text-white/30 font-mono">
+                                    ID: #{selectedAiHistory.ticketId}
+                                  </span>
+                                </div>
+                                <h4 className="text-lg font-black text-white mt-1">
+                                  {selectedAiHistory.userName}
+                                </h4>
+                              </div>
+
+                              <div className="space-y-4 divide-y divide-white/[0.06] text-xs leading-relaxed text-white/70 max-h-[360px] overflow-y-auto pr-1 no-scrollbar">
+                                {/* Section 1: Original Description */}
+                                <div className="space-y-1.5 pb-3">
+                                  <p className="text-[9px] font-black text-white/30 uppercase tracking-widest">{t("Deskripsi Masalah", "Problem Description")}</p>
+                                  <p className="bg-black/20 border border-white/5 rounded-xl p-3 font-medium text-white/80 whitespace-pre-wrap">
+                                    {selectedAiHistory.description}
+                                  </p>
+                                </div>
+
+                                {/* Section 2: Sentiment Verdict */}
+                                <div className="space-y-2 py-3.5 flex items-center justify-between">
+                                  <div>
+                                    <p className="text-[9px] font-black text-white/30 uppercase tracking-widest">{t("Sentimen Pengguna", "User Sentiment")}</p>
+                                    <p className="text-white font-bold mt-1 text-sm">{selectedAiHistory.sentiment}</p>
+                                  </div>
+                                  <span
+                                    className={`text-[10px] font-black uppercase tracking-wider px-3 py-1 rounded-full border ${
+                                      selectedAiHistory.sentiment === "Marah"
+                                        ? "bg-red-500/10 text-red-400 border-red-500/20 shadow-lg shadow-red-500/10"
+                                        : selectedAiHistory.sentiment === "Puas"
+                                        ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20 shadow-lg shadow-emerald-500/10"
+                                        : "bg-blue-500/10 text-blue-400 border-blue-500/20 shadow-lg shadow-blue-500/10"
+                                    }`}
+                                  >
+                                    {selectedAiHistory.sentiment}
+                                  </span>
+                                </div>
+
+                                {/* Section 3: AI Classifier Tags */}
+                                <div className="space-y-1.5 py-3.5">
+                                  <p className="text-[9px] font-black text-white/30 uppercase tracking-widest">{t("Tag Klasifikasi AI", "AI Classifier Tags")}</p>
+                                  <div className="flex flex-wrap gap-1.5 mt-1">
+                                    {parsedTags.map((tag: string, i: number) => (
+                                      <span key={i} className="bg-white/5 text-white/80 border border-white/5 text-[9px] font-bold px-2 py-0.5 rounded-lg">
+                                        {tag}
+                                      </span>
+                                    ))}
+                                  </div>
+                                </div>
+
+                                {/* Section 4: AI Context Summary */}
+                                <div className="space-y-1.5 pt-3.5">
+                                  <p className="text-[9px] font-black text-white/30 uppercase tracking-widest">{t("Hasil Audit Ringkasan AI", "AI Context Audit Summary")}</p>
+                                  <p className="bg-[#1c1c1e] border border-white/5 rounded-2xl p-4 font-semibold text-white/90 leading-relaxed shadow-inner">
+                                    {selectedAiHistory.summary}
+                                  </p>
+                                </div>
+
+                                {/* Section 5: AI Auto Response Draft Message */}
+                                {selectedAiHistory.aiResponse && (
+                                  <div className="space-y-2 pt-3.5">
+                                    <p className="text-[9px] font-black text-[#8A2BE2] uppercase tracking-widest flex items-center gap-1.5">
+                                      <Bot className="w-3.5 h-3.5" style={{ color: getAccentColor() }} /> {t("Rekomendasi Balasan AI", "AI Recommended Auto-Response")}
+                                    </p>
+                                    <div className="relative bg-gradient-to-br from-indigo-500/10 via-purple-500/5 to-transparent border border-indigo-500/20 rounded-2xl p-4 shadow-lg text-white/85 leading-relaxed">
+                                      <div className="absolute top-3 right-3 text-[8px] bg-indigo-500/20 text-indigo-300 px-1.5 py-0.5 rounded font-black uppercase tracking-wider">
+                                        {t("Draf Balasan", "Draft Reply")}
+                                      </div>
+                                      <p className="font-semibold text-xs leading-relaxed whitespace-pre-wrap italic">
+                                        {selectedAiHistory.aiResponse}
+                                      </p>
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+
+                              <div className="flex justify-between items-center text-[10px] text-white/30 font-bold pt-4 border-t border-white/[0.06]">
+                                <span>{t("Diaudit Pada:", "Audited On:")}</span>
+                                <span className="font-mono">{new Date(selectedAiHistory.createdAt).toLocaleString("id-ID")}</span>
+                              </div>
+                            </motion.div>
+                          </div>
+                        );
+                      })()}
+                    </AnimatePresence>
+                  </motion.div>
+                );
+              }
+
               case "security": {
                 return (
                   <motion.div key="security-page" initial={{ opacity: 0, x: 40 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -40 }} transition={{ type: "spring", damping: 22, stiffness: 260 }} className="space-y-4">
@@ -2195,6 +2460,15 @@ export function SettingsPage() {
                                         <span className={`text-[10px] font-bold uppercase tracking-wider ${securityScanStatus === "safe" ? "text-emerald-400" : "text-amber-400"}`}>
                                           {securityScanStatus === "safe" ? t("Aman", "Secure") : t("Perlu Pindai", "Scan Required")}
                                         </span>
+                                        <ChevronRight className="w-4 h-4 text-white/25 flex-shrink-0" />
+                                      </div>
+                                    </button>
+                                  )}
+                                  {(!q || match("riwayat ai analisis") || match("ai") || match("analisis") || match("riwayat")) && (
+                                    <button onClick={() => setSettingsSubPage("ai_history")} className="w-full flex items-center gap-4 px-4 py-3.5 hover:bg-white/[0.04] transition-colors">
+                                      <div className="w-9 h-9 rounded-[0.65rem] bg-[#8A2BE2] flex items-center justify-center flex-shrink-0"><Bot className="w-5 h-5 text-white" /></div>
+                                      <span className={`flex-1 text-left text-white font-normal ${getLabelTextSizeClass()}`}>{t("Riwayat AI Analisis", "AI Analysis History")}</span>
+                                      <div className="flex items-center gap-1.5">
                                         <ChevronRight className="w-4 h-4 text-white/25 flex-shrink-0" />
                                       </div>
                                     </button>

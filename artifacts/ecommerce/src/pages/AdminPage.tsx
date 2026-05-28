@@ -3,14 +3,14 @@
  * Panel Admin: produk, pengguna, voucher, live, pengaturan.
  * v2.1 - Force Refresh
  */
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Link } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ShieldCheck, Package, Users, CheckCircle2, XCircle, Trash2, Clock,
   ChevronDown, ChevronLeft, Menu, ToggleLeft, ToggleRight, Bot, Eye, EyeOff, KeyRound,
   CreditCard, Smartphone, QrCode, Tag, Radio, Plus, X, Search, Coins, Ban, Globe, ArrowRight, Gift, Crown,
-  History, Wallet, AlertTriangle, Activity, ShoppingBag, Vote, BarChart3, ListTodo, Palette, Database, Server, Zap, Cpu, Loader2, ArrowLeft, Trophy
+  History, Wallet, AlertTriangle, Activity, ShoppingBag, Vote, BarChart3, ListTodo, Palette, Database, Server, Zap, Cpu, Loader2, ArrowLeft, Trophy, Edit2
 } from "lucide-react";
 import { useAuth, User, UserRole } from "../contexts/AuthContext";
 import { useCosmetics, Cosmetic } from "../contexts/CosmeticContext";
@@ -2031,6 +2031,110 @@ export function AdminPanel() {
 
   const [draftOpenrouter,      setDraftOpenrouter]      = useState(ai.openrouterKey);
   const [draftOpenrouterModel, setDraftOpenrouterModel] = useState(ai.openrouterModel);
+  const [draftAIProvider,      setDraftAIProvider]      = useState(ai.aiProvider);
+  const [draftObscura,         setDraftObscura]         = useState(ai.obscuraKey);
+  const [draftObscuraModel,    setDraftObscuraModel]    = useState(ai.obscuraModel);
+
+  useEffect(() => {
+    setDraftAIProvider(ai.aiProvider);
+    setDraftOpenrouter(ai.openrouterKey);
+    setDraftOpenrouterModel(ai.openrouterModel);
+    setDraftObscura(ai.obscuraKey);
+    setDraftObscuraModel(ai.obscuraModel);
+  }, [ai.aiProvider, ai.openrouterKey, ai.openrouterModel, ai.obscuraKey, ai.obscuraModel]);
+
+  // AI Companion Models state
+  const [companionModels, setCompanionModels]         = useState<any[]>([]);
+  const [companionModelsLoading, setCompanionModelsLoading] = useState(false);
+  const [showCompanionForm, setShowCompanionForm]     = useState(false);
+  const [companionFormName, setCompanionFormName]     = useState("");
+  const [companionFormModelId, setCompanionFormModelId] = useState("");
+  const [companionFormDesc, setCompanionFormDesc]     = useState("");
+  const [companionFormColor, setCompanionFormColor]   = useState("#6366f1");
+  const [companionFormEnabled, setCompanionFormEnabled] = useState(true);
+  const [companionEditId, setCompanionEditId]         = useState<string | null>(null);
+
+  const fetchCompanionModels = async () => {
+    setCompanionModelsLoading(true);
+    try {
+      const res = await fetch("/api/ai/companion-models");
+      if (!res.ok) {
+        const errText = await res.text();
+        throw new Error(errText || `HTTP ${res.status}`);
+      }
+      const data = await res.json();
+      setCompanionModels(Array.isArray(data) ? data : []);
+    } catch (err: any) {
+      toast({
+        title: "Gagal memuat model AI",
+        description: err?.message || "Endpoint AI Companion belum siap. Restart backend lalu coba lagi.",
+        variant: "destructive"
+      });
+    }
+    setCompanionModelsLoading(false);
+  };
+
+  const handleSaveCompanionModel = async () => {
+    if (!companionFormName.trim() || !companionFormModelId.trim()) {
+      toast({ title: "Nama dan Model ID wajib diisi", variant: "destructive" }); return;
+    }
+    try {
+      const res = await fetch("/api/ai/companion-models", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: companionEditId || undefined,
+          name: companionFormName.trim(),
+          modelId: companionFormModelId.trim(),
+          description: companionFormDesc.trim() || null,
+          color: companionFormColor,
+          isEnabled: companionFormEnabled,
+        }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(async () => ({ error: await res.text() }));
+        throw new Error(err.error || `HTTP ${res.status}`);
+      }
+      toast({ title: companionEditId ? "Model diperbarui" : "Model ditambahkan" });
+      setShowCompanionForm(false);
+      setCompanionFormName(""); setCompanionFormModelId(""); setCompanionFormDesc("");
+      setCompanionFormColor("#6366f1"); setCompanionFormEnabled(true); setCompanionEditId(null);
+      fetchCompanionModels();
+    } catch (err: any) {
+      toast({
+        title: "Gagal menyimpan model",
+        description: err?.message || "Cek backend/API companion models.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleDeleteCompanionModel = async (id: string) => {
+    try {
+      await fetch(`/api/ai/companion-models/${id}`, { method: "DELETE" });
+      toast({ title: "Model dihapus" });
+      fetchCompanionModels();
+    } catch {
+      toast({ title: "Gagal menghapus", variant: "destructive" });
+    }
+  };
+
+  const handleToggleCompanionModel = async (model: any) => {
+    try {
+      await fetch("/api/ai/companion-models", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...model, isEnabled: !model.isEnabled }),
+      });
+      fetchCompanionModels();
+    } catch { }
+  };
+
+  useEffect(() => {
+    if (tab === "settings" && companionModels.length === 0 && !companionModelsLoading) {
+      fetchCompanionModels();
+    }
+  }, [tab]);
 
   // Voucher form state
   const [showVoucherForm, setShowVoucherForm] = useState(false);
@@ -2102,10 +2206,40 @@ export function AdminPanel() {
       toast({ title: `✅ Saldo ${cryptoType} pengguna berhasil ditambahkan.` });
     }
   };
-  const handleSaveKeys = () => {
-    ai.setOpenrouterKey(draftOpenrouter.trim());
-    ai.setOpenrouterModel(draftOpenrouterModel.trim());
-    toast({ title: "Pengaturan AI disimpan." });
+  const handleSaveKeys = async () => {
+    const nextSettings = {
+      aiProvider: draftAIProvider,
+      openrouterKey: draftOpenrouter.trim(),
+      openrouterModel: draftOpenrouterModel.trim(),
+      obscuraKey: draftObscura.trim(),
+      obscuraModel: draftObscuraModel.trim(),
+    };
+
+    try {
+      const res = await fetch("/api/ai/settings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(nextSettings),
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(async () => ({ error: await res.text() }));
+        throw new Error(err.error || `HTTP ${res.status}`);
+      }
+
+      ai.setAIProvider(nextSettings.aiProvider);
+      ai.setOpenrouterKey(nextSettings.openrouterKey);
+      ai.setOpenrouterModel(nextSettings.openrouterModel);
+      ai.setObscuraKey(nextSettings.obscuraKey);
+      ai.setObscuraModel(nextSettings.obscuraModel);
+      toast({ title: "Pengaturan AI disimpan ke server." });
+    } catch (err: any) {
+      toast({
+        title: "Gagal menyimpan pengaturan AI",
+        description: err?.message || "Cek koneksi API server.",
+        variant: "destructive"
+      });
+    }
   };
 
   const handleAddVoucher = () => {
@@ -3125,12 +3259,20 @@ export function AdminPanel() {
           <div className="bg-card border rounded-2xl p-5 shadow-sm space-y-5">
             <div className="flex items-center gap-2">
               <Bot className="h-5 w-5 text-primary" />
-              <h3 className="font-bold">Pengaturan AI Analisis Produk (OpenRouter)</h3>
+              <h3 className="font-bold">Pengaturan AI Provider</h3>
             </div>
             <p className="text-xs text-muted-foreground -mt-2">
-              Masukkan API key OpenRouter untuk mengaktifkan AI produk checker.
+              Pilih provider dan masukkan API key untuk AI Chat, produk checker, dan AI Companion.
             </p>
             <div className="space-y-4 p-4 bg-muted/30 rounded-xl border">
+              <div className="grid grid-cols-2 gap-2">
+                <button type="button" onClick={() => setDraftAIProvider("openrouter")} className={`px-3 py-2 rounded-xl border text-xs font-bold transition-all ${draftAIProvider === "openrouter" ? "bg-primary text-primary-foreground border-primary" : "bg-background text-muted-foreground border-input"}`}>
+                  OpenRouter
+                </button>
+                <button type="button" onClick={() => setDraftAIProvider("obscura")} className={`px-3 py-2 rounded-xl border text-xs font-bold transition-all ${draftAIProvider === "obscura" ? "bg-primary text-primary-foreground border-primary" : "bg-background text-muted-foreground border-input"}`}>
+                  ObscuraWorks
+                </button>
+              </div>
               <APIKeyInput label="OpenRouter API Key" value={draftOpenrouter} onChange={setDraftOpenrouter} placeholder="sk-or-..." />
               <div className="space-y-1.5">
                 <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">OpenRouter Model</label>
@@ -3144,6 +3286,16 @@ export function AdminPanel() {
                   <button type="button" className="text-primary hover:underline font-mono" onClick={() => setDraftOpenrouterModel("google/gemini-flash-1.5")}>google/gemini-flash-1.5</button>.
                 </p>
               </div>
+              <APIKeyInput label="ObscuraWorks API Key" value={draftObscura} onChange={setDraftObscura} placeholder="API key dari obscuraworks.org" />
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">ObscuraWorks Model (opsional)</label>
+                <input type="text" value={draftObscuraModel} onChange={(e) => setDraftObscuraModel(e.target.value)}
+                  placeholder="kosongkan jika endpoint default"
+                  className="w-full px-3 py-2 text-sm border border-input rounded-xl bg-background focus:outline-none focus:ring-2 focus:ring-ring font-mono" />
+                <p className="text-[11px] text-muted-foreground">
+                  ObscuraWorks memakai header <code className="bg-muted px-1 rounded">X-API-Key</code> dan endpoint <code className="bg-muted px-1 rounded">/v2/ai/generate</code>.
+                </p>
+              </div>
               <Button size="sm" onClick={handleSaveKeys} className="w-full sm:w-auto">Simpan Pengaturan</Button>
             </div>
             
@@ -3152,6 +3304,93 @@ export function AdminPanel() {
                 ? `âœ“ AI aktif â€” menggunakan OpenRouter`
                 : "AI tidak aktif â€” fitur analisis produk dinonaktifkan"}
             </div>
+          </div>
+
+          {/* AI Companion Models Manager */}
+          <div className="bg-card border rounded-2xl p-5 shadow-sm space-y-4">
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <Bot className="h-5 w-5 text-violet-500" />
+                <h3 className="font-bold">Model AI Companion</h3>
+              </div>
+              <div className="flex gap-2">
+                <Button size="sm" variant="outline" onClick={fetchCompanionModels} className="text-[10px] h-8">Refresh</Button>
+                <Button size="sm" onClick={() => { setShowCompanionForm(true); setCompanionEditId(null); setCompanionFormName(""); setCompanionFormModelId(""); setCompanionFormDesc(""); setCompanionFormColor("#6366f1"); setCompanionFormEnabled(true); }} className="text-[10px] h-8 bg-violet-600 hover:bg-violet-500">
+                  <Plus className="h-3.5 w-3.5 mr-1" /> Tambah
+                </Button>
+              </div>
+            </div>
+            <p className="text-xs text-muted-foreground -mt-2">Kelola model AI yang tersedia di AI Companion Battle Arena. Klik Refresh untuk memuat data dari server.</p>
+
+            {companionModelsLoading ? (
+              <div className="py-4 text-center text-xs text-muted-foreground animate-pulse">Memuat model...</div>
+            ) : companionModels.length === 0 ? (
+              <div className="py-6 text-center border border-dashed rounded-xl">
+                <p className="text-xs text-muted-foreground">Belum ada model — klik Refresh untuk memuat default atau tambahkan manual.</p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {companionModels.map((m: any) => (
+                  <div key={m.id} className="flex items-center gap-3 p-3 bg-muted/30 border rounded-xl">
+                    <div className="w-3 h-8 rounded-full flex-shrink-0" style={{ backgroundColor: m.color }} />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-bold truncate">{m.name}</p>
+                      <p className="text-[10px] font-mono text-muted-foreground truncate">{m.modelId}</p>
+                      {m.description && <p className="text-[10px] text-muted-foreground truncate">{m.description}</p>}
+                    </div>
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      <button onClick={() => handleToggleCompanionModel(m)} className={`text-[9px] font-black uppercase tracking-wider px-2 py-1 rounded-lg border transition-all ${m.isEnabled ? "bg-emerald-100 text-emerald-700 border-emerald-200" : "bg-muted text-muted-foreground border-border"}`}>
+                        {m.isEnabled ? "Aktif" : "Nonaktif"}
+                      </button>
+                      <button onClick={() => { setCompanionEditId(m.id); setCompanionFormName(m.name); setCompanionFormModelId(m.modelId); setCompanionFormDesc(m.description || ""); setCompanionFormColor(m.color || "#6366f1"); setCompanionFormEnabled(m.isEnabled ?? true); setShowCompanionForm(true); }} className="p-1.5 hover:bg-muted rounded-lg transition-colors text-muted-foreground hover:text-foreground">
+                        <Edit2 className="h-3.5 w-3.5" />
+                      </button>
+                      <button onClick={() => handleDeleteCompanionModel(m.id)} className="p-1.5 hover:bg-red-100 rounded-lg transition-colors text-muted-foreground hover:text-red-600">
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {showCompanionForm && (
+              <div className="space-y-3 p-4 bg-muted/30 border rounded-xl">
+                <p className="text-xs font-bold uppercase tracking-wider">{companionEditId ? "Edit Model" : "Tambah Model Baru"}</p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Nama Tampilan</label>
+                    <input type="text" value={companionFormName} onChange={e => setCompanionFormName(e.target.value)} placeholder="GPT-4o Mini" className="w-full px-3 py-2 text-sm border rounded-xl bg-background focus:outline-none focus:ring-2 focus:ring-ring" />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">OpenRouter Model ID</label>
+                    <input type="text" value={companionFormModelId} onChange={e => setCompanionFormModelId(e.target.value)} placeholder="openai/gpt-4o-mini" className="w-full px-3 py-2 text-sm border rounded-xl bg-background focus:outline-none focus:ring-2 focus:ring-ring font-mono" />
+                  </div>
+                  <div className="space-y-1 sm:col-span-2">
+                    <label className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Deskripsi (opsional)</label>
+                    <input type="text" value={companionFormDesc} onChange={e => setCompanionFormDesc(e.target.value)} placeholder="Deskripsi singkat model ini" className="w-full px-3 py-2 text-sm border rounded-xl bg-background focus:outline-none focus:ring-2 focus:ring-ring" />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Warna Aksen</label>
+                    <div className="flex items-center gap-2">
+                      <input type="color" value={companionFormColor} onChange={e => setCompanionFormColor(e.target.value)} className="w-10 h-10 rounded-xl border cursor-pointer" />
+                      <input type="text" value={companionFormColor} onChange={e => setCompanionFormColor(e.target.value)} className="flex-1 px-3 py-2 text-sm border rounded-xl bg-background font-mono focus:outline-none" />
+                    </div>
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Status</label>
+                    <button onClick={() => setCompanionFormEnabled((v: boolean) => !v)} className={`flex items-center gap-2 w-full px-3 py-2 rounded-xl border text-sm font-semibold transition-all ${companionFormEnabled ? "bg-emerald-50 border-emerald-200 text-emerald-700" : "bg-muted border-border text-muted-foreground"}`}>
+                      {companionFormEnabled ? <ToggleRight className="h-4 w-4" /> : <ToggleLeft className="h-4 w-4" />}
+                      {companionFormEnabled ? "Aktif" : "Nonaktif"}
+                    </button>
+                  </div>
+                </div>
+                <div className="flex gap-2 pt-1">
+                  <Button size="sm" onClick={handleSaveCompanionModel} className="bg-violet-600 hover:bg-violet-500">Simpan</Button>
+                  <Button size="sm" variant="outline" onClick={() => setShowCompanionForm(false)}>Batal</Button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}

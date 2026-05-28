@@ -35,7 +35,7 @@ export function AIProductChecker({ productName, description, price, category, pr
   const [loading, setLoading] = useState(false);
   const [result,  setResult]  = useState<AIResult | null>(null);
   const [error,   setError]   = useState<string | null>(null);
-  const { isAIEnabled, openrouterKey, openrouterModel } = useAISettings();
+  const { isAIEnabled, aiProvider, openrouterKey, openrouterModel, obscuraKey, obscuraModel } = useAISettings();
   const [, setLocation] = useLocation();
 
   const handleCheck = async () => {
@@ -48,11 +48,11 @@ export function AIProductChecker({ productName, description, price, category, pr
     try {
       const base = import.meta.env.BASE_URL?.replace(/\/$/, "") ?? "";
       const apiKey = openrouterKey;
-      const model  = openrouterModel || undefined;
+      const model  = aiProvider === "obscura" ? obscuraModel || undefined : openrouterModel || undefined;
       const res = await fetch(`${base}/api/ai/check-product`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: productName, description, price, category, apiKey, model, productId }),
+        body: JSON.stringify({ name: productName, description, price, category, apiKey, obscuraKey, aiProvider, model, productId }),
         signal: controller.signal
       });
       clearTimeout(timeoutId);

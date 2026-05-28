@@ -3,7 +3,6 @@ import cors from "cors";
 import pinoHttp from "pino-http";
 import path from "node:path";
 import router from "./routes";
-import aiRouter from "./routes/ai";
 import { logger } from "./lib/logger";
 import { antiDdos, securityHeaders } from "./middlewares/antiDdos";
 
@@ -39,8 +38,6 @@ app.use(express.urlencoded({ extended: true, limit: "50mb" }));
 app.use("/uploads", express.static(path.resolve(process.cwd(), "uploads")));
 
 // ─── AI ROUTES (public, no auth) ──────────────────────────────────────────
-app.use("/api", aiRouter);
-
 // ─── ALL OTHER ROUTES (products, users, orders, etc.) ─────────────────────
 app.use("/api", router);
 

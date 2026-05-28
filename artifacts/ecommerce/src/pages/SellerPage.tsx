@@ -344,7 +344,7 @@ function ProductForm({ onSuccess, isAdmin, product }: { onSuccess: () => void; i
   const [aiPrompt, setAiPrompt] = useState("");
   const [aiGenerating, setAiGenerating] = useState(false);
   const [aiDraftReady, setAiDraftReady] = useState(false);
-  const { isAIEnabled, openrouterKey, openrouterModel } = useAISettings();
+  const { isAIEnabled, aiProvider, openrouterKey, openrouterModel, obscuraKey, obscuraModel } = useAISettings();
 
   const set = (field: keyof FormState) =>
     (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) =>
@@ -410,11 +410,11 @@ function ProductForm({ onSuccess, isAdmin, product }: { onSuccess: () => void; i
     try {
       const base = import.meta.env.BASE_URL?.replace(/\/$/, "") ?? "";
       const apiKey = openrouterKey;
-      const model = openrouterModel || undefined;
+      const model = aiProvider === "obscura" ? obscuraModel || undefined : openrouterModel || undefined;
       const res = await fetch(`${base}/api/ai/generate-product`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt: aiPrompt, apiKey, model })
+        body: JSON.stringify({ prompt: aiPrompt, apiKey, obscuraKey, aiProvider, model })
       });
       if (!res.ok) {
         const err = await res.json();

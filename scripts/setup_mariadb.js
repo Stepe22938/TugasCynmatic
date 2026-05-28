@@ -259,6 +259,37 @@ async function run() {
     `);
     console.log('✅ Table: redeem_codes');
 
+    // 10b. AI ANALYSIS HISTORY TABLE
+    await conn.execute(`
+      CREATE TABLE IF NOT EXISTS ai_analysis_history (
+        id          VARCHAR(255) PRIMARY KEY,
+        ticketId    VARCHAR(255) NOT NULL,
+        userId      VARCHAR(255) NOT NULL,
+        userName    VARCHAR(255) NOT NULL,
+        sentiment   VARCHAR(50) NOT NULL,
+        tags        JSON NOT NULL,
+        summary     TEXT NOT NULL,
+        description TEXT NOT NULL,
+        createdAt   TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+    `);
+    console.log('✅ Table: ai_analysis_history');
+
+    // 10c. AI COMPANION MODELS TABLE
+    await conn.execute(`
+      CREATE TABLE IF NOT EXISTS ai_companion_models (
+        id          VARCHAR(255) PRIMARY KEY,
+        name        VARCHAR(100) NOT NULL,
+        modelId     VARCHAR(255) NOT NULL,
+        description TEXT NULL,
+        color       VARCHAR(30) DEFAULT '#6366f1',
+        isEnabled   BOOLEAN DEFAULT TRUE,
+        sortOrder   INT DEFAULT 0,
+        createdAt   TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+    `);
+    console.log('Table: ai_companion_models');
+
     // 11. Seed default accounts (only use columns guaranteed present in ALL schema versions)
     console.log('\n👤 Seeding default accounts...');
 

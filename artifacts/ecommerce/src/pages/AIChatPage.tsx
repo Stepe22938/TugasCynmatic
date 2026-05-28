@@ -68,7 +68,7 @@ interface ChatSession {
 export function AIChatPage() {
   const { user } = useAuth();
   const { isCryptoMember } = useMyCrypto();
-  const { isAIEnabled, openrouterKey, openrouterModel } = useAISettings();
+  const { isAIEnabled, aiProvider, openrouterKey, openrouterModel, obscuraKey, obscuraModel } = useAISettings();
   const [, setLocation] = useLocation();
   const { toast } = useToast();
 
@@ -154,7 +154,9 @@ export function AIChatPage() {
         body: JSON.stringify({
           messages: updatedMessages.map(({ role, content }) => ({ role, content })),
           apiKey: openrouterKey,
-          model: openrouterModel
+          obscuraKey,
+          aiProvider,
+          model: aiProvider === "obscura" ? obscuraModel : openrouterModel
         })
       });
 
@@ -218,7 +220,9 @@ export function AIChatPage() {
         body: JSON.stringify({
           messages: updatedMessages.map(({ role, content }) => ({ role, content })),
           apiKey: openrouterKey,
-          model: openrouterModel
+          obscuraKey,
+          aiProvider,
+          model: aiProvider === "obscura" ? obscuraModel : openrouterModel
         })
       });
 
@@ -366,8 +370,17 @@ export function AIChatPage() {
             </div>
           </div>
           
-          <div className="text-[9px] font-semibold uppercase tracking-widest text-white/60 bg-white/5 border border-white/10 px-3 py-1.5 rounded-xl shadow-lg">
-            {openrouterModel || "GPT-4o Mini"}
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setLocation("/ai-companion")}
+              className="hidden sm:flex items-center gap-2 text-[9px] font-black uppercase tracking-widest text-violet-200 bg-violet-500/10 border border-violet-400/20 px-3 py-1.5 rounded-xl shadow-lg hover:bg-violet-500/15 hover:border-violet-300/35 transition-all"
+            >
+              <Sparkles className="h-3.5 w-3.5" />
+              Battle Arena
+            </button>
+            <div className="text-[9px] font-semibold uppercase tracking-widest text-white/60 bg-white/5 border border-white/10 px-3 py-1.5 rounded-xl shadow-lg">
+              {openrouterModel || "GPT-4o Mini"}
+            </div>
           </div>
         </header>
 
@@ -423,6 +436,13 @@ export function AIChatPage() {
                       subtitle="AI Crypto & Signals" 
                       icon={TrendingUp} 
                       color="from-blue-600/10 to-indigo-900/10 border-blue-500/10 hover:border-blue-500/30" 
+                    />
+                    <PremiumCard 
+                      href="/ai-companion" 
+                      title="AI Companion" 
+                      subtitle="Multi-Model Battle" 
+                      icon={Sparkles} 
+                      color="from-violet-600/10 to-purple-900/10 border-violet-500/10 hover:border-violet-500/30" 
                     />
                 </div>
               </div>

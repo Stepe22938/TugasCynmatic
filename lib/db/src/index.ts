@@ -54,6 +54,22 @@ pool.getConnection()
           id INT PRIMARY KEY AUTO_INCREMENT
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
       `);
+      const companionModelColumns = [
+        "ALTER TABLE ai_companion_models ADD COLUMN IF NOT EXISTS name VARCHAR(100) NOT NULL",
+        "ALTER TABLE ai_companion_models ADD COLUMN IF NOT EXISTS modelId VARCHAR(255) NOT NULL",
+        "ALTER TABLE ai_companion_models ADD COLUMN IF NOT EXISTS description TEXT NULL",
+        "ALTER TABLE ai_companion_models ADD COLUMN IF NOT EXISTS color VARCHAR(30) DEFAULT '#6366f1'",
+        "ALTER TABLE ai_companion_models ADD COLUMN IF NOT EXISTS isEnabled TINYINT(1) DEFAULT 1",
+        "ALTER TABLE ai_companion_models ADD COLUMN IF NOT EXISTS sortOrder INT DEFAULT 0",
+        "ALTER TABLE ai_companion_models ADD COLUMN IF NOT EXISTS createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP",
+      ];
+      for (const query of companionModelColumns) {
+        try {
+          await conn.execute(query);
+        } catch (err: any) {
+          console.warn("AI companion models column check warning:", err.message);
+        }
+      }
 
       const productsAlterColumns = [
         "ADD COLUMN IF NOT EXISTS name            VARCHAR(255)    NULL",
@@ -211,10 +227,49 @@ pool.getConnection()
       await conn.execute(`
         CREATE TABLE IF NOT EXISTS ai_settings (
           id VARCHAR(255) PRIMARY KEY,
+          aiProvider VARCHAR(50) DEFAULT 'openrouter',
           openrouterKey TEXT NULL,
-          openrouterModel VARCHAR(255) NULL
+          openrouterModel VARCHAR(255) NULL,
+          obscuraKey TEXT NULL,
+          obscuraModel VARCHAR(255) NULL
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
       `);
+
+      // ─── SELF-HEALING AI ANALYSIS HISTORY TABLE ────────────────────────────
+      console.log("📡 Running self-healing schema check on ai_analysis_history table...");
+      const aiSettingsColumns = [
+        { name: "aiProvider", type: "VARCHAR(50) DEFAULT 'openrouter'" },
+        { name: "obscuraKey", type: "TEXT NULL" },
+        { name: "obscuraModel", type: "VARCHAR(255) NULL" },
+      ];
+      for (const col of aiSettingsColumns) {
+        const [hasCol]: any = await conn.execute(`SHOW COLUMNS FROM ai_settings LIKE '${col.name}'`);
+        if (hasCol.length === 0) {
+          await conn.execute(`ALTER TABLE ai_settings ADD COLUMN ${col.name} ${col.type}`);
+        }
+      }
+
+      await conn.execute(`
+        CREATE TABLE IF NOT EXISTS ai_analysis_history (
+          id          VARCHAR(255) PRIMARY KEY,
+          ticketId    VARCHAR(255) NOT NULL,
+          userId      VARCHAR(255) NOT NULL,
+          userName    VARCHAR(255) NOT NULL,
+          sentiment   VARCHAR(50) NOT NULL,
+          tags        JSON NOT NULL,
+          summary     TEXT NOT NULL,
+          description TEXT NOT NULL,
+          aiResponse  TEXT NULL,
+          createdAt   TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+      `);
+      try {
+        await conn.execute(`
+          ALTER TABLE ai_analysis_history ADD COLUMN IF NOT EXISTS aiResponse TEXT NULL
+        `);
+      } catch (err: any) {
+        console.warn("⚠️ Non-blocking alter table warning (aiResponse):", err.message);
+      }
       // ─── SELF-HEALING GACHA REWARDS TABLE ──────────────────────────────────
       console.log("📡 Running self-healing schema check on gacha_rewards table...");
       await conn.execute(`
@@ -269,7 +324,23 @@ pool.getConnection()
         }
       }
 
-      console.log("✅ Users, Products, Android Packages, NFTs, Vouchers, Orders, Collab Requests, AI Settings & Gacha Rewards table schemas are fully verified & up to date.");
+      // ─── SELF-HEALING AI COMPANION MODELS TABLE ──────────────────────────
+      console.log("📡 Running self-healing schema check on ai_companion_models table...");
+      await conn.execute(`
+        CREATE TABLE IF NOT EXISTS ai_companion_models (
+          id VARCHAR(255) PRIMARY KEY,
+          name VARCHAR(100) NOT NULL,
+          modelId VARCHAR(255) NOT NULL,
+          description TEXT NULL,
+          color VARCHAR(30) DEFAULT '#6366f1',
+          isEnabled TINYINT(1) DEFAULT 1,
+          sortOrder INT DEFAULT 0,
+          createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+      `);
+      console.log("   → ai_companion_models table is fully verified!");
+
+      console.log("✅ Users, Products, Android Packages, NFTs, Vouchers, Orders, Collab Requests, AI Settings, Gacha Rewards & AI Companion Models table schemas are fully verified & up to date.");
     } catch (schemaErr: any) {
       console.warn("⚠️  Self-healing schema migration check failed (non-blocking):", schemaErr.message);
     } finally {

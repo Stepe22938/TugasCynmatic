@@ -60,6 +60,7 @@ import { MyRedeemPage } from "./pages/MyRedeemPage";
 import { MyMusicPage } from "./pages/MyMusicPage";
 import { GachaPage } from "./pages/GachaPage";
 import { AIChatPage } from "./pages/AIChatPage";
+import { AICompanionPage } from "./pages/AICompanionPage";
 import { FlashSalePage } from "./pages/FlashSalePage";
 import { LeaderboardPage } from "./pages/LeaderboardPage";
 import { MySultanPage } from "./pages/MySultanPage";
@@ -181,6 +182,60 @@ function FullScreenRoleRoute({ component: Component, roles }: { component: React
   );
 }
 
+function FullScreenProtectedRoute({ component: Component }: { component: React.ComponentType }) {
+  const { user, loading } = useAuth();
+  const [location, setLocation] = useLocation();
+  
+  useEffect(() => {
+    if (!loading && !user) setLocation("/login");
+  }, [loading, user, setLocation]);
+
+  useEffect(() => {
+    const originalRestoration = 'scrollRestoration' in window.history ? window.history.scrollRestoration : 'auto';
+    if ('scrollRestoration' in window.history) {
+      window.history.scrollRestoration = 'manual';
+    }
+    
+    const forceScroll = () => {
+      window.scrollTo(0, 0);
+      if (document.body) document.body.scrollTop = 0;
+      if (document.documentElement) document.documentElement.scrollTop = 0;
+    };
+    
+    forceScroll();
+    const t1 = setTimeout(forceScroll, 20);
+    const t2 = setTimeout(forceScroll, 80);
+    
+    return () => {
+      clearTimeout(t1);
+      clearTimeout(t2);
+      if ('scrollRestoration' in window.history) {
+        window.history.scrollRestoration = originalRestoration;
+      }
+    };
+  }, [location]);
+
+  if (loading) return <FullPageLoader />;
+  if (!user) return null;
+
+  return (
+    <div className="flex flex-col h-screen w-screen bg-[#f3f4f6] text-foreground overflow-hidden">
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={location}
+          initial={{ opacity: 0, scale: 0.99 }}
+          animate={{ opacity: 1, scale: 1 }}
+          exit={{ opacity: 0, scale: 0.99 }}
+          transition={{ duration: 0.2 }}
+          className="w-full h-full flex-1"
+        >
+          <Component />
+        </motion.div>
+      </AnimatePresence>
+    </div>
+  );
+}
+
 function FullPageLoader() {
   return (
     <div className="fixed inset-0 bg-slate-950 z-[999] flex flex-col items-center justify-center">
@@ -254,10 +309,10 @@ function Router() {
         <ProtectedRoute component={TopUpPage} />
       </Route>
       <Route path="/tickets">
-        <ProtectedRoute component={TicketDashboardPage} />
+        <FullScreenProtectedRoute component={TicketDashboardPage} />
       </Route>
       <Route path="/ticket/:id">
-        <ProtectedRoute component={TicketPage} />
+        <FullScreenProtectedRoute component={TicketPage} />
       </Route>
       <Route path="/exchange">
         <ProtectedRoute component={ExchangePage} />
@@ -347,6 +402,9 @@ function Router() {
       <Route path="/live" component={LiveRoute} />
       <Route path="/aichat">
         <ProtectedRoute component={AIChatPage} />
+      </Route>
+      <Route path="/ai-companion">
+        <ProtectedRoute component={AICompanionPage} />
       </Route>
 
       <Route component={NotFound} />
