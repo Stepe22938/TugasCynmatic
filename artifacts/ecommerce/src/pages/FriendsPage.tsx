@@ -7,7 +7,7 @@ import { Link } from "wouter";
 import { 
   ChevronLeft, Search, UserPlus, UserMinus, Coins, ShoppingBag,
   Crown, Shield, Truck, User as UserIcon, Star, Sparkles, Check, X as CloseIcon, Clock, MessageSquare,
-  TrendingUp
+  TrendingUp, Users, PlusCircle, Send, Loader2, UserRoundPlus, LogOut
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { useAuth, User, UserRole } from "../contexts/AuthContext";
@@ -32,6 +32,25 @@ const ROLE_COLOR: Record<UserRole, string> = {
   admin: "bg-red-100 text-red-700",
   kurir: "bg-teal-100 text-teal-700",
 };
+
+interface FriendGroup {
+  id: string;
+  name: string;
+  ownerId: string;
+  memberIds: string[];
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+interface GroupMessage {
+  id: string;
+  groupId: string;
+  senderId: string;
+  text: string | null;
+  mediaUrl?: string | null;
+  mediaType?: "image" | "video" | null;
+  createdAt: string;
+}
 
 /** Komponen terpisah untuk menghindari Hook Violation */
 function FriendProfileCard({ 
@@ -285,8 +304,17 @@ export function FriendsPage() {
   const allOrders = getAllOrders();
   const { toast } = useToast();
   const [search, setSearch] = useState("");
-  const [tab, setTab] = useState<"friends" | "followers" | "following" | "discover">("friends");
+  const [tab, setTab] = useState<"friends" | "followers" | "following" | "discover" | "groups">("friends");
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [groups, setGroups] = useState<FriendGroup[]>([]);
+  const [activeGroup, setActiveGroup] = useState<FriendGroup | null>(null);
+  const [groupMessages, setGroupMessages] = useState<GroupMessage[]>([]);
+  const [groupInput, setGroupInput] = useState("");
+  const [groupName, setGroupName] = useState("");
+  const [selectedGroupMembers, setSelectedGroupMembers] = useState<string[]>([]);
+  const [showCreateGroup, setShowCreateGroup] = useState(false);
+  const [groupLoading, setGroupLoading] = useState(false);
+  const [sendingGroupMessage, setSendingGroupMessage] = useState(false);
 
   const allUsers = contextAllUsers;
   const myFriends = user?.friends || [];
@@ -306,6 +334,9 @@ export function FriendsPage() {
     !myRequests.includes(u.id) && 
     !mySent.includes(u.id)
   );
+  const groupFiltered = groups.filter(g =>
+    !search || g.name.toLowerCase().includes(search.toLowerCase()) || g.memberIds.some(id => allUsers.find(u => u.id === id)?.name.toLowerCase().includes(search.toLowerCase()))
+  );
 
   const filtered = useMemo(() => {
     let base = [];
@@ -318,6 +349,133 @@ export function FriendsPage() {
       !search || u.name.toLowerCase().includes(search.toLowerCase()) || u.email.toLowerCase().includes(search.toLowerCase())
     );
   }, [tab, search, friendUsers, followerUsers, followingUsers, discoverUsers]);
+
+  const fetchGroups = async () => {
+    if (!user?.id) return;
+    try {
+      const res = await fetch(`/api/messages/groups/${encodeURIComponent(user.id)}`);
+      if (!res.ok) return;
+      const data = await res.json();
+      setGroups(Array.isArray(data) ? data : []);
+      setActiveGroup(prev => {
+        if (!prev) return null;
+        return data.find((g: FriendGroup) => g.id === prev.id) || null;
+      });
+    } catch (err) {
+      console.error("[FriendsPage] fetch groups failed:", err);
+    }
+  };
+
+  const fetchGroupMessages = async (groupId: string) => {
+    if (!user?.id) return;
+    try {
+      const res = await fetch(`/api/messages/groups/${encodeURIComponent(groupId)}/messages?userId=${encodeURIComponent(user.id)}`);
+      if (!res.ok) return;
+      const data = await res.json();
+      setGroupMessages(Array.isArray(data) ? data : []);
+    } catch (err) {
+      console.error("[FriendsPage] fetch group messages failed:", err);
+    }
+  };
+
+  useEffect(() => {
+    fetchGroups();
+  }, [user?.id]);
+
+  useEffect(() => {
+    if (!activeGroup?.id) return;
+    fetchGroupMessages(activeGroup.id);
+    const interval = window.setInterval(() => fetchGroupMessages(activeGroup.id), 2500);
+    return () => window.clearInterval(interval);
+  }, [activeGroup?.id, user?.id]);
+
+  const createGroup = async () => {
+    if (!user?.id || !groupName.trim()) return;
+    if (selectedGroupMembers.length === 0) {
+      toast({ title: "Pilih member dulu", description: "Minimal tambah 1 teman ke grup.", variant: "destructive" });
+      return;
+    }
+
+    setGroupLoading(true);
+    try {
+      const res = await fetch("/api/messages/groups", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: groupName.trim(), ownerId: user.id, memberIds: selectedGroupMembers }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Gagal membuat grup");
+      setGroups(prev => [data.group, ...prev.filter(g => g.id !== data.group.id)]);
+      setActiveGroup(data.group);
+      setTab("groups");
+      setShowCreateGroup(false);
+      setGroupName("");
+      setSelectedGroupMembers([]);
+      toast({ title: "Grup dibuat", description: `${data.group.name} siap dipakai chat bareng.` });
+    } catch (err: any) {
+      toast({ title: "Gagal bikin grup", description: err.message, variant: "destructive" });
+    } finally {
+      setGroupLoading(false);
+    }
+  };
+
+  const addMembersToActiveGroup = async (memberIds: string[]) => {
+    if (!user?.id || !activeGroup || memberIds.length === 0) return;
+    try {
+      const res = await fetch(`/api/messages/groups/${encodeURIComponent(activeGroup.id)}/members`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId: user.id, memberIds }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Gagal tambah member");
+      setGroups(prev => prev.map(g => g.id === data.group.id ? data.group : g));
+      setActiveGroup(data.group);
+      toast({ title: "Member ditambah", description: "Teman baru sudah masuk grup." });
+    } catch (err: any) {
+      toast({ title: "Gagal tambah member", description: err.message, variant: "destructive" });
+    }
+  };
+
+  const leaveActiveGroup = async () => {
+    if (!user?.id || !activeGroup) return;
+    try {
+      await fetch(`/api/messages/groups/${encodeURIComponent(activeGroup.id)}/leave`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId: user.id }),
+      });
+      setGroups(prev => prev.filter(g => g.id !== activeGroup.id));
+      setActiveGroup(null);
+      setGroupMessages([]);
+      toast({ title: "Keluar grup", description: "Kamu sudah keluar dari grup." });
+    } catch {
+      toast({ title: "Gagal keluar grup", variant: "destructive" });
+    }
+  };
+
+  const sendGroupMessage = async () => {
+    if (!user?.id || !activeGroup || !groupInput.trim() || sendingGroupMessage) return;
+    const text = groupInput.trim();
+    setGroupInput("");
+    setSendingGroupMessage(true);
+    try {
+      const res = await fetch(`/api/messages/groups/${encodeURIComponent(activeGroup.id)}/send`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ senderId: user.id, text }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Gagal kirim pesan");
+      setGroupMessages(prev => [...prev, data.message]);
+      fetchGroups();
+    } catch (err: any) {
+      setGroupInput(text);
+      toast({ title: "Gagal kirim", description: err.message, variant: "destructive" });
+    } finally {
+      setSendingGroupMessage(false);
+    }
+  };
 
   const getUserStats = (userId: string, role: UserRole) => {
     // If Admin or Seller, show SALES stats to look pro
@@ -445,7 +603,7 @@ export function FriendsPage() {
           </div>
           
           <div className="flex gap-3 overflow-x-auto pb-2 custom-scrollbar">
-            {(["friends", "followers", "following", "discover"] as const).map(t => (
+            {(["friends", "groups", "followers", "following", "discover"] as const).map(t => (
               <button
                 key={t}
                 onClick={() => { setTab(t); setSelectedUser(null); }}
@@ -456,6 +614,7 @@ export function FriendsPage() {
                 }`}
               >
                 {t === "friends" ? `Mutuals (${friendUsers.length})` : 
+                 t === "groups" ? `Groups (${groups.length})` :
                  t === "followers" ? `Inbound (${followerUsers.length})` : 
                  t === "following" ? `Outbound (${followingUsers.length})` : 
                  "Discovery"}
@@ -464,8 +623,195 @@ export function FriendsPage() {
           </div>
         </div>
 
+        {tab === "groups" && (
+          <div className="grid grid-cols-1 lg:grid-cols-[320px_1fr] gap-5">
+            <div className="glass-card bg-white/5 border-white/5 rounded-[2.5rem] p-5 shadow-2xl backdrop-blur-2xl space-y-4">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-[10px] font-black uppercase tracking-[0.3em] text-white/30">Group Channel</p>
+                  <h2 className="text-xl font-black text-white italic">Groups</h2>
+                </div>
+                <button
+                  onClick={() => setShowCreateGroup(v => !v)}
+                  className="h-11 w-11 rounded-2xl bg-violet-600 text-white flex items-center justify-center shadow-xl shadow-violet-600/25 hover:bg-violet-500 transition-all"
+                >
+                  <PlusCircle className="h-5 w-5" />
+                </button>
+              </div>
+
+              {showCreateGroup && (
+                <div className="rounded-[1.75rem] border border-violet-500/20 bg-violet-500/5 p-4 space-y-3">
+                  <input
+                    value={groupName}
+                    onChange={e => setGroupName(e.target.value)}
+                    placeholder="Nama grup..."
+                    className="w-full rounded-2xl border border-white/10 bg-black/35 px-4 py-3 text-xs font-bold text-white outline-none placeholder:text-white/20 focus:border-violet-400/50"
+                  />
+                  <div className="max-h-52 overflow-y-auto space-y-2 pr-1">
+                    {friendUsers.length === 0 ? (
+                      <p className="text-[10px] font-bold text-white/25 text-center py-5">Tambah teman dulu buat bikin grup.</p>
+                    ) : friendUsers.map(friend => {
+                      const selected = selectedGroupMembers.includes(friend.id);
+                      return (
+                        <button
+                          key={friend.id}
+                          onClick={() => setSelectedGroupMembers(prev => selected ? prev.filter(id => id !== friend.id) : [...prev, friend.id])}
+                          className={`w-full flex items-center gap-3 rounded-2xl border px-3 py-2.5 text-left transition-all ${
+                            selected ? "border-violet-400/35 bg-violet-500/15" : "border-white/5 bg-white/[0.025] hover:bg-white/[0.05]"
+                          }`}
+                        >
+                          <div className="h-9 w-9 rounded-xl bg-white/10 flex items-center justify-center overflow-hidden">
+                            {friend.avatar ? <img src={friend.avatar} className="h-full w-full object-cover" alt="" /> : <span className="text-[10px] font-black text-white/60">{friend.name.slice(0, 2).toUpperCase()}</span>}
+                          </div>
+                          <span className="flex-1 min-w-0 truncate text-xs font-black text-white/75">{friend.name}</span>
+                          {selected && <Check className="h-4 w-4 text-violet-300" />}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <Button onClick={createGroup} disabled={groupLoading || !groupName.trim()} className="w-full rounded-2xl bg-violet-600 hover:bg-violet-500 font-black uppercase tracking-widest text-[10px]">
+                    {groupLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Users className="mr-2 h-4 w-4" />}
+                    Buat Grup
+                  </Button>
+                </div>
+              )}
+
+              <div className="space-y-2">
+                {groupFiltered.length === 0 ? (
+                  <div className="rounded-[2rem] border border-white/5 bg-black/20 py-12 text-center">
+                    <Users className="mx-auto mb-4 h-12 w-12 text-white/10" />
+                    <p className="text-[10px] font-black uppercase tracking-[0.25em] text-white/20">Belum ada grup</p>
+                  </div>
+                ) : groupFiltered.map(group => {
+                  const isActive = activeGroup?.id === group.id;
+                  const previewMembers = group.memberIds.map(id => allUsers.find(u => u.id === id)?.name || "User").slice(0, 3).join(", ");
+                  return (
+                    <button
+                      key={group.id}
+                      onClick={() => setActiveGroup(group)}
+                      className={`w-full rounded-[1.5rem] border p-4 text-left transition-all ${
+                        isActive ? "border-violet-400/35 bg-violet-500/15" : "border-white/5 bg-white/[0.025] hover:bg-white/[0.055]"
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="h-11 w-11 rounded-2xl bg-violet-500/15 border border-violet-400/20 flex items-center justify-center">
+                          <Users className="h-5 w-5 text-violet-300" />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-sm font-black text-white">{group.name}</p>
+                          <p className="truncate text-[10px] font-semibold text-white/30">{previewMembers}</p>
+                        </div>
+                        <span className="rounded-full bg-white/5 px-2 py-1 text-[9px] font-black text-white/35">{group.memberIds.length}</span>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="glass-card bg-white/5 border-white/5 rounded-[2.5rem] min-h-[620px] shadow-2xl backdrop-blur-2xl overflow-hidden flex flex-col">
+              {!activeGroup ? (
+                <div className="flex flex-1 flex-col items-center justify-center text-center p-8">
+                  <Users className="h-20 w-20 text-white/5 mb-5" />
+                  <p className="text-sm font-black uppercase tracking-[0.25em] text-white/25">Pilih atau buat grup</p>
+                  <p className="mt-2 max-w-sm text-xs font-semibold text-white/25">Chat bareng teman, tambah member, dan ngobrol model grup WhatsApp langsung dari Friend Page.</p>
+                </div>
+              ) : (
+                <>
+                  <div className="flex items-center justify-between gap-4 border-b border-white/5 bg-black/20 px-5 py-4">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="h-12 w-12 rounded-2xl bg-violet-500/15 border border-violet-400/25 flex items-center justify-center">
+                        <Users className="h-5 w-5 text-violet-300" />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="truncate text-base font-black text-white">{activeGroup.name}</p>
+                        <p className="truncate text-[10px] font-bold uppercase tracking-widest text-white/30">{activeGroup.memberIds.length} member</p>
+                      </div>
+                    </div>
+                    <button onClick={leaveActiveGroup} className="rounded-xl border border-red-500/15 bg-red-500/5 px-3 py-2 text-[9px] font-black uppercase tracking-widest text-red-300 hover:bg-red-500/10">
+                      <LogOut className="inline h-3.5 w-3.5 mr-1" /> Keluar
+                    </button>
+                  </div>
+
+                  <div className="border-b border-white/5 px-5 py-3 bg-black/10">
+                    <div className="flex items-center gap-2 overflow-x-auto pb-1">
+                      {activeGroup.memberIds.map(id => {
+                        const member = allUsers.find(u => u.id === id);
+                        return (
+                          <span key={id} className="flex items-center gap-2 rounded-full border border-white/5 bg-white/[0.03] px-2 py-1 text-[10px] font-bold text-white/45 whitespace-nowrap">
+                            <span className="h-5 w-5 rounded-full bg-white/10 overflow-hidden flex items-center justify-center text-[8px]">
+                              {member?.avatar ? <img src={member.avatar} className="h-full w-full object-cover" alt="" /> : (member?.name || "?").slice(0, 1)}
+                            </span>
+                            {member?.name || "User"}
+                          </span>
+                        );
+                      })}
+                      {friendUsers.filter(f => !activeGroup.memberIds.includes(f.id)).slice(0, 4).map(friend => (
+                        <button
+                          key={friend.id}
+                          onClick={() => addMembersToActiveGroup([friend.id])}
+                          className="flex items-center gap-1 rounded-full border border-violet-400/20 bg-violet-500/10 px-2 py-1 text-[9px] font-black text-violet-200 whitespace-nowrap hover:bg-violet-500/15"
+                        >
+                          <UserRoundPlus className="h-3 w-3" /> {friend.name}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="flex-1 overflow-y-auto p-5 space-y-3">
+                    {groupMessages.length === 0 ? (
+                      <div className="py-20 text-center">
+                        <MessageSquare className="mx-auto mb-4 h-12 w-12 text-white/8" />
+                        <p className="text-[10px] font-black uppercase tracking-[0.25em] text-white/20">Belum ada chat</p>
+                      </div>
+                    ) : groupMessages.map(message => {
+                      const sender = allUsers.find(u => u.id === message.senderId);
+                      const isMe = message.senderId === user.id;
+                      return (
+                        <div key={message.id} className={`flex ${isMe ? "justify-end" : "justify-start"}`}>
+                          <div className={`max-w-[75%] rounded-2xl px-4 py-3 ${isMe ? "bg-violet-600 text-white rounded-tr-sm" : "bg-white/7 border border-white/6 text-white/85 rounded-tl-sm"}`}>
+                            {!isMe && <p className="mb-1 text-[9px] font-black uppercase tracking-widest text-violet-300">{sender?.name || "User"}</p>}
+                            <p className="text-sm font-medium leading-relaxed break-words">{message.text}</p>
+                            <p className={`mt-1 text-[9px] font-semibold ${isMe ? "text-white/45" : "text-white/25"}`}>
+                              {new Date(message.createdAt).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })}
+                            </p>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  <div className="border-t border-white/5 bg-black/20 p-4">
+                    <div className="flex items-center gap-2">
+                      <input
+                        value={groupInput}
+                        onChange={e => setGroupInput(e.target.value)}
+                        onKeyDown={e => {
+                          if (e.key === "Enter" && !e.shiftKey) {
+                            e.preventDefault();
+                            sendGroupMessage();
+                          }
+                        }}
+                        placeholder={`Kirim pesan ke ${activeGroup.name}...`}
+                        className="h-12 flex-1 rounded-2xl border border-white/8 bg-black/35 px-4 text-sm font-semibold text-white outline-none placeholder:text-white/18 focus:border-violet-400/35"
+                      />
+                      <button
+                        onClick={sendGroupMessage}
+                        disabled={!groupInput.trim() || sendingGroupMessage}
+                        className="h-12 w-12 rounded-2xl bg-violet-600 text-white flex items-center justify-center shadow-xl shadow-violet-600/20 disabled:bg-white/5 disabled:text-white/20"
+                      >
+                        {sendingGroupMessage ? <Loader2 className="h-5 w-5 animate-spin" /> : <Send className="h-5 w-5" />}
+                      </button>
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* Selected User Profile Card */}
-        {selectedUser && (
+        {tab !== "groups" && selectedUser && (
           <FriendProfileCard 
             selectedUser={selectedUser}
             onClose={() => setSelectedUser(null)}
@@ -481,7 +827,7 @@ export function FriendsPage() {
         )}
 
         {/* Network Node List */}
-        <div className="space-y-4">
+        {tab !== "groups" && <div className="space-y-4">
           {filtered.length === 0 ? (
             <div className="glass-card bg-white/5 border-white/5 rounded-[3rem] py-24 text-center">
               <UserIcon className="h-16 w-16 text-white/5 mx-auto mb-6" />
@@ -637,7 +983,7 @@ export function FriendsPage() {
               })}
             </div>
           )}
-        </div>
+        </div>}
       </div>
     </div>
   );

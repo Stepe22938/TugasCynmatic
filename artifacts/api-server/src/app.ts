@@ -41,4 +41,10 @@ app.use("/uploads", express.static(path.resolve(process.cwd(), "uploads")));
 // ─── ALL OTHER ROUTES (products, users, orders, etc.) ─────────────────────
 app.use("/api", router);
 
+app.use((err: any, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
+  logger.error({ err }, "Unhandled route error");
+  if (res.headersSent) return;
+  res.status(500).json({ error: err?.message || "Internal Server Error" });
+});
+
 export default app;

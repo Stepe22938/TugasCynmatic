@@ -26,6 +26,7 @@ import { RedeemProvider } from "./contexts/RedeemContext";
 import { MusicProvider } from "./contexts/MusicContext";
 import { SultanProvider } from "./contexts/MySultanContext";
 import { MyCryptoProvider } from "./contexts/MyCryptoContext";
+import { MyAIProvider } from "./contexts/MyAIContext";
 import { WishlistProvider } from "./contexts/WishlistContext";
 import { VoteProvider } from "./contexts/VoteContext";
 import { CurrencyProvider } from "./contexts/CurrencyContext";
@@ -35,6 +36,7 @@ import { CollaborationProvider } from "./contexts/CollaborationContext";
 
 import { Navbar } from "./components/Navbar";
 import { GlobalMusicPlayer } from "./components/GlobalMusicPlayer";
+import { AIUsagePanel } from "./components/AIUsagePanel";
 import { LoginPage } from "./pages/LoginPage";
 import { RegisterPage } from "./pages/RegisterPage";
 import { HomePage } from "./pages/HomePage";
@@ -61,6 +63,8 @@ import { MyMusicPage } from "./pages/MyMusicPage";
 import { GachaPage } from "./pages/GachaPage";
 import { AIChatPage } from "./pages/AIChatPage";
 import { AICompanionPage } from "./pages/AICompanionPage";
+import { AICharactersPage } from "./pages/AICharactersPage";
+import { AISubscriptionPage } from "./pages/AISubscriptionPage";
 import { FlashSalePage } from "./pages/FlashSalePage";
 import { LeaderboardPage } from "./pages/LeaderboardPage";
 import { MySultanPage } from "./pages/MySultanPage";
@@ -406,6 +410,12 @@ function Router() {
       <Route path="/ai-companion">
         <ProtectedRoute component={AICompanionPage} />
       </Route>
+      <Route path="/characters">
+        <ProtectedRoute component={AICharactersPage} />
+      </Route>
+      <Route path="/ai-subscribe">
+        <ProtectedRoute component={AISubscriptionPage} />
+      </Route>
 
       <Route component={NotFound} />
     </Switch>
@@ -428,6 +438,7 @@ export default function App() {
                         <LiveProvider>
                           <SultanProvider>
                             <MyCryptoProvider>
+                              <MyAIProvider>
                               <NotificationProvider>
                               <ProductsProvider>
                                 <WishlistProvider>
@@ -446,6 +457,7 @@ export default function App() {
                                                     </VoteProvider>
                                                   </CollaborationProvider>
                                                   </WouterRouter>
+                                                  <AIUsagePanel />
                                                   <Toaster />
                                                   <GlobalMusicPlayer />
                                                 </MusicProvider>
@@ -459,6 +471,7 @@ export default function App() {
                                 </WishlistProvider>
                               </ProductsProvider>
                             </NotificationProvider>
+                              </MyAIProvider>
                           </MyCryptoProvider>
                         </SultanProvider>
                       </LiveProvider>

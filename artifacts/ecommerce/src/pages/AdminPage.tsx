@@ -2034,6 +2034,8 @@ export function AdminPanel() {
   const [draftAIProvider,      setDraftAIProvider]      = useState(ai.aiProvider);
   const [draftObscura,         setDraftObscura]         = useState(ai.obscuraKey);
   const [draftObscuraModel,    setDraftObscuraModel]    = useState(ai.obscuraModel);
+  const [draftAIChatLimit,     setDraftAIChatLimit]     = useState(String(ai.aiChatDailyLimit ?? 20));
+  const [draftAICompanionLimit,setDraftAICompanionLimit]= useState(String(ai.aiCompanionDailyLimit ?? 10));
 
   useEffect(() => {
     setDraftAIProvider(ai.aiProvider);
@@ -2041,7 +2043,9 @@ export function AdminPanel() {
     setDraftOpenrouterModel(ai.openrouterModel);
     setDraftObscura(ai.obscuraKey);
     setDraftObscuraModel(ai.obscuraModel);
-  }, [ai.aiProvider, ai.openrouterKey, ai.openrouterModel, ai.obscuraKey, ai.obscuraModel]);
+    setDraftAIChatLimit(String(ai.aiChatDailyLimit ?? 20));
+    setDraftAICompanionLimit(String(ai.aiCompanionDailyLimit ?? 10));
+  }, [ai.aiProvider, ai.openrouterKey, ai.openrouterModel, ai.obscuraKey, ai.obscuraModel, ai.aiChatDailyLimit, ai.aiCompanionDailyLimit]);
 
   // AI Companion Models state
   const [companionModels, setCompanionModels]         = useState<any[]>([]);
@@ -2052,6 +2056,8 @@ export function AdminPanel() {
   const [companionFormDesc, setCompanionFormDesc]     = useState("");
   const [companionFormColor, setCompanionFormColor]   = useState("#6366f1");
   const [companionFormEnabled, setCompanionFormEnabled] = useState(true);
+  const [companionFormReleased, setCompanionFormReleased] = useState(false);
+  const [companionFormAccess, setCompanionFormAccess] = useState<"free" | "pro" | "dev">("pro");
   const [companionEditId, setCompanionEditId]         = useState<string | null>(null);
 
   const fetchCompanionModels = async () => {
@@ -2089,6 +2095,8 @@ export function AdminPanel() {
           description: companionFormDesc.trim() || null,
           color: companionFormColor,
           isEnabled: companionFormEnabled,
+          isReleased: companionFormReleased,
+          accessLevel: companionFormAccess,
         }),
       });
       if (!res.ok) {
@@ -2098,7 +2106,7 @@ export function AdminPanel() {
       toast({ title: companionEditId ? "Model diperbarui" : "Model ditambahkan" });
       setShowCompanionForm(false);
       setCompanionFormName(""); setCompanionFormModelId(""); setCompanionFormDesc("");
-      setCompanionFormColor("#6366f1"); setCompanionFormEnabled(true); setCompanionEditId(null);
+      setCompanionFormColor("#6366f1"); setCompanionFormEnabled(true); setCompanionFormReleased(false); setCompanionFormAccess("pro"); setCompanionEditId(null);
       fetchCompanionModels();
     } catch (err: any) {
       toast({
@@ -2213,6 +2221,8 @@ export function AdminPanel() {
       openrouterModel: draftOpenrouterModel.trim(),
       obscuraKey: draftObscura.trim(),
       obscuraModel: draftObscuraModel.trim(),
+      aiChatDailyLimit: Math.max(0, Math.floor(Number(draftAIChatLimit) || 0)),
+      aiCompanionDailyLimit: Math.max(0, Math.floor(Number(draftAICompanionLimit) || 0)),
     };
 
     try {
@@ -2232,6 +2242,8 @@ export function AdminPanel() {
       ai.setOpenrouterModel(nextSettings.openrouterModel);
       ai.setObscuraKey(nextSettings.obscuraKey);
       ai.setObscuraModel(nextSettings.obscuraModel);
+      ai.setAIChatDailyLimit(nextSettings.aiChatDailyLimit);
+      ai.setAICompanionDailyLimit(nextSettings.aiCompanionDailyLimit);
       toast({ title: "Pengaturan AI disimpan ke server." });
     } catch (err: any) {
       toast({
@@ -3296,6 +3308,23 @@ export function AdminPanel() {
                   ObscuraWorks memakai header <code className="bg-muted px-1 rounded">X-API-Key</code> dan endpoint <code className="bg-muted px-1 rounded">/v2/ai/generate</code>.
                 </p>
               </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Limit AI Biasa / Hari</label>
+                  <input type="number" min="0" value={draftAIChatLimit} onChange={(e) => setDraftAIChatLimit(e.target.value)}
+                    placeholder="20"
+                    className="w-full px-3 py-2 text-sm border border-input rounded-xl bg-background focus:outline-none focus:ring-2 focus:ring-ring font-mono" />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Limit AI Companion / Hari</label>
+                  <input type="number" min="0" value={draftAICompanionLimit} onChange={(e) => setDraftAICompanionLimit(e.target.value)}
+                    placeholder="10"
+                    className="w-full px-3 py-2 text-sm border border-input rounded-xl bg-background focus:outline-none focus:ring-2 focus:ring-ring font-mono" />
+                </div>
+              </div>
+              <p className="text-[11px] text-muted-foreground">
+                Limit dihitung per user per hari. Isi <code className="bg-muted px-1 rounded">0</code> kalau mau unlimited.
+              </p>
               <Button size="sm" onClick={handleSaveKeys} className="w-full sm:w-auto">Simpan Pengaturan</Button>
             </div>
             
@@ -3315,7 +3344,7 @@ export function AdminPanel() {
               </div>
               <div className="flex gap-2">
                 <Button size="sm" variant="outline" onClick={fetchCompanionModels} className="text-[10px] h-8">Refresh</Button>
-                <Button size="sm" onClick={() => { setShowCompanionForm(true); setCompanionEditId(null); setCompanionFormName(""); setCompanionFormModelId(""); setCompanionFormDesc(""); setCompanionFormColor("#6366f1"); setCompanionFormEnabled(true); }} className="text-[10px] h-8 bg-violet-600 hover:bg-violet-500">
+                <Button size="sm" onClick={() => { setShowCompanionForm(true); setCompanionEditId(null); setCompanionFormName(""); setCompanionFormModelId(""); setCompanionFormDesc(""); setCompanionFormColor("#6366f1"); setCompanionFormEnabled(true); setCompanionFormReleased(false); setCompanionFormAccess("pro"); }} className="text-[10px] h-8 bg-violet-600 hover:bg-violet-500">
                   <Plus className="h-3.5 w-3.5 mr-1" /> Tambah
                 </Button>
               </div>
@@ -3337,12 +3366,24 @@ export function AdminPanel() {
                       <p className="text-sm font-bold truncate">{m.name}</p>
                       <p className="text-[10px] font-mono text-muted-foreground truncate">{m.modelId}</p>
                       {m.description && <p className="text-[10px] text-muted-foreground truncate">{m.description}</p>}
+                      <div className="mt-1 flex flex-wrap gap-1">
+                        {m.isReleased && <span className="text-[8px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded bg-blue-100 text-blue-700 border border-blue-200">Rilis Publik</span>}
+                        <span className={`text-[8px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded border ${
+                          m.accessLevel === "dev"
+                            ? "bg-amber-100 text-amber-700 border-amber-200"
+                            : m.accessLevel === "free"
+                              ? "bg-emerald-100 text-emerald-700 border-emerald-200"
+                              : "bg-violet-100 text-violet-700 border-violet-200"
+                        }`}>
+                          {m.accessLevel === "dev" ? "Dev/Admin" : m.accessLevel === "free" ? "Global Gratis" : "Global AI Pro"}
+                        </span>
+                      </div>
                     </div>
                     <div className="flex items-center gap-2 flex-shrink-0">
                       <button onClick={() => handleToggleCompanionModel(m)} className={`text-[9px] font-black uppercase tracking-wider px-2 py-1 rounded-lg border transition-all ${m.isEnabled ? "bg-emerald-100 text-emerald-700 border-emerald-200" : "bg-muted text-muted-foreground border-border"}`}>
                         {m.isEnabled ? "Aktif" : "Nonaktif"}
                       </button>
-                      <button onClick={() => { setCompanionEditId(m.id); setCompanionFormName(m.name); setCompanionFormModelId(m.modelId); setCompanionFormDesc(m.description || ""); setCompanionFormColor(m.color || "#6366f1"); setCompanionFormEnabled(m.isEnabled ?? true); setShowCompanionForm(true); }} className="p-1.5 hover:bg-muted rounded-lg transition-colors text-muted-foreground hover:text-foreground">
+                      <button onClick={() => { setCompanionEditId(m.id); setCompanionFormName(m.name); setCompanionFormModelId(m.modelId); setCompanionFormDesc(m.description || ""); setCompanionFormColor(m.color || "#6366f1"); setCompanionFormEnabled(m.isEnabled ?? true); setCompanionFormReleased(!!m.isReleased); setCompanionFormAccess(m.accessLevel === "free" ? "free" : m.accessLevel === "dev" ? "dev" : "pro"); setShowCompanionForm(true); }} className="p-1.5 hover:bg-muted rounded-lg transition-colors text-muted-foreground hover:text-foreground">
                         <Edit2 className="h-3.5 w-3.5" />
                       </button>
                       <button onClick={() => handleDeleteCompanionModel(m.id)} className="p-1.5 hover:bg-red-100 rounded-lg transition-colors text-muted-foreground hover:text-red-600">
@@ -3383,6 +3424,27 @@ export function AdminPanel() {
                       {companionFormEnabled ? <ToggleRight className="h-4 w-4" /> : <ToggleLeft className="h-4 w-4" />}
                       {companionFormEnabled ? "Aktif" : "Nonaktif"}
                     </button>
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Rilis ke AI Chat & Companion</label>
+                    <button onClick={() => setCompanionFormReleased((v: boolean) => !v)} className={`flex items-center gap-2 w-full px-3 py-2 rounded-xl border text-sm font-semibold transition-all ${companionFormReleased ? "bg-blue-50 border-blue-200 text-blue-700" : "bg-muted border-border text-muted-foreground"}`}>
+                      {companionFormReleased ? <ToggleRight className="h-4 w-4" /> : <ToggleLeft className="h-4 w-4" />}
+                      {companionFormReleased ? "Dirilis" : "Private"}
+                    </button>
+                  </div>
+                  <div className="space-y-1 sm:col-span-2">
+                    <label className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Rilis untuk siapa?</label>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                      <button onClick={() => setCompanionFormAccess("free")} className={`px-3 py-2 rounded-xl border text-xs font-bold transition-all ${companionFormAccess === "free" ? "bg-emerald-600 text-white border-emerald-500" : "bg-background text-muted-foreground border-input"}`}>
+                        Global Gratis
+                      </button>
+                      <button onClick={() => setCompanionFormAccess("pro")} className={`px-3 py-2 rounded-xl border text-xs font-bold transition-all ${companionFormAccess === "pro" ? "bg-violet-600 text-white border-violet-500" : "bg-background text-muted-foreground border-input"}`}>
+                        Global AI Pro
+                      </button>
+                      <button onClick={() => setCompanionFormAccess("dev")} className={`px-3 py-2 rounded-xl border text-xs font-bold transition-all ${companionFormAccess === "dev" ? "bg-amber-600 text-white border-amber-500" : "bg-background text-muted-foreground border-input"}`}>
+                        Model Dev/Admin
+                      </button>
+                    </div>
                   </div>
                 </div>
                 <div className="flex gap-2 pt-1">

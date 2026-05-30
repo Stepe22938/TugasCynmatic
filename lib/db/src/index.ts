@@ -16,11 +16,47 @@ const connectionString = process.env.DATABASE_URL.replace(/^mysql:\/\//, "mysql2
 export const pool = mysql.createPool({
   uri: connectionString,
   waitForConnections: true,
-  connectionLimit: 10,
+  connectionLimit: 4,
+  maxIdle: 4,
+  idleTimeout: 30000,
   queueLimit: 0,
   connectTimeout: 10000,      // 10s connection timeout
   enableKeepAlive: true,
   keepAliveInitialDelay: 0,
+});
+
+const isTransientDbError = (error: any) =>
+  ["ECONNRESET", "PROTOCOL_CONNECTION_LOST", "ETIMEDOUT", "EPIPE"].includes(String(error?.code || ""));
+
+const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+async function runDbOperationWithRetry<T>(operation: () => Promise<T>, label: string): Promise<T> {
+  let lastError: any;
+  for (let attempt = 1; attempt <= 4; attempt += 1) {
+    try {
+      return await operation();
+    } catch (error: any) {
+      lastError = error;
+      if (!isTransientDbError(error) || attempt === 4) throw error;
+      console.warn(`⚠️  MariaDB transient error (${error.code}) on ${label}, retry ${attempt}/3...`);
+      await wait(120 * attempt);
+    }
+  }
+  throw lastError;
+}
+
+const rawExecute = pool.execute.bind(pool);
+(pool as any).execute = async (...args: any[]) => {
+  return runDbOperationWithRetry(() => rawExecute(...args as [any, any]), "execute");
+};
+
+const rawQuery = pool.query.bind(pool);
+(pool as any).query = async (...args: any[]) => {
+  return runDbOperationWithRetry(() => rawQuery(...args as [any, any]), "query");
+};
+
+(pool as any).on?.("error", (error: any) => {
+  console.warn(`⚠️  MariaDB pool emitted error: ${error?.code || error?.message || error}`);
 });
 
 // Test connection on startup and log result & run self-healing schema checks
@@ -54,12 +90,25 @@ pool.getConnection()
           id INT PRIMARY KEY AUTO_INCREMENT
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
       `);
+      const userMembershipColumns = [
+        { name: "isAISubscriber", type: "TINYINT(1) DEFAULT 0" },
+        { name: "aiSubscriptionExpiry", type: "TIMESTAMP NULL DEFAULT NULL" },
+      ];
+      for (const col of userMembershipColumns) {
+        const [hasCol]: any = await conn.execute(`SHOW COLUMNS FROM users LIKE '${col.name}'`);
+        if (hasCol.length === 0) {
+          await conn.execute(`ALTER TABLE users ADD COLUMN ${col.name} ${col.type}`);
+        }
+      }
+
       const companionModelColumns = [
         "ALTER TABLE ai_companion_models ADD COLUMN IF NOT EXISTS name VARCHAR(100) NOT NULL",
         "ALTER TABLE ai_companion_models ADD COLUMN IF NOT EXISTS modelId VARCHAR(255) NOT NULL",
         "ALTER TABLE ai_companion_models ADD COLUMN IF NOT EXISTS description TEXT NULL",
         "ALTER TABLE ai_companion_models ADD COLUMN IF NOT EXISTS color VARCHAR(30) DEFAULT '#6366f1'",
         "ALTER TABLE ai_companion_models ADD COLUMN IF NOT EXISTS isEnabled TINYINT(1) DEFAULT 1",
+        "ALTER TABLE ai_companion_models ADD COLUMN IF NOT EXISTS isReleased TINYINT(1) DEFAULT 0",
+        "ALTER TABLE ai_companion_models ADD COLUMN IF NOT EXISTS accessLevel VARCHAR(20) DEFAULT 'pro'",
         "ALTER TABLE ai_companion_models ADD COLUMN IF NOT EXISTS sortOrder INT DEFAULT 0",
         "ALTER TABLE ai_companion_models ADD COLUMN IF NOT EXISTS createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP",
       ];
@@ -222,6 +271,32 @@ pool.getConnection()
       `);
       console.log("   → Collab requests table is fully verified!");
 
+      console.log("📡 Running self-healing schema check on friend groups tables...");
+      await conn.execute(`
+        CREATE TABLE IF NOT EXISTS friend_groups (
+          id VARCHAR(255) PRIMARY KEY,
+          name VARCHAR(255) NOT NULL,
+          ownerId VARCHAR(255) NOT NULL,
+          memberIds JSON NOT NULL,
+          createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+          INDEX idx_friend_groups_owner (ownerId)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+      `);
+      await conn.execute(`
+        CREATE TABLE IF NOT EXISTS group_messages (
+          id VARCHAR(255) PRIMARY KEY,
+          groupId VARCHAR(255) NOT NULL,
+          senderId VARCHAR(255) NOT NULL,
+          text TEXT NULL,
+          mediaUrl VARCHAR(500) NULL,
+          mediaType VARCHAR(20) NULL,
+          createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          INDEX idx_group_messages_group_created (groupId, createdAt)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+      `);
+      console.log("   → Friend groups tables are fully verified!");
+
       // ─── SELF-HEALING AI SETTINGS TABLE ──────────────────────────────────
       console.log("📡 Running self-healing schema check on ai_settings table...");
       await conn.execute(`
@@ -231,7 +306,9 @@ pool.getConnection()
           openrouterKey TEXT NULL,
           openrouterModel VARCHAR(255) NULL,
           obscuraKey TEXT NULL,
-          obscuraModel VARCHAR(255) NULL
+          obscuraModel VARCHAR(255) NULL,
+          aiChatDailyLimit INT DEFAULT 20,
+          aiCompanionDailyLimit INT DEFAULT 10
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
       `);
 
@@ -241,6 +318,8 @@ pool.getConnection()
         { name: "aiProvider", type: "VARCHAR(50) DEFAULT 'openrouter'" },
         { name: "obscuraKey", type: "TEXT NULL" },
         { name: "obscuraModel", type: "VARCHAR(255) NULL" },
+        { name: "aiChatDailyLimit", type: "INT DEFAULT 20" },
+        { name: "aiCompanionDailyLimit", type: "INT DEFAULT 10" },
       ];
       for (const col of aiSettingsColumns) {
         const [hasCol]: any = await conn.execute(`SHOW COLUMNS FROM ai_settings LIKE '${col.name}'`);
@@ -248,6 +327,69 @@ pool.getConnection()
           await conn.execute(`ALTER TABLE ai_settings ADD COLUMN ${col.name} ${col.type}`);
         }
       }
+
+      await conn.execute(`
+        CREATE TABLE IF NOT EXISTS ai_usage_limits (
+          id VARCHAR(255) PRIMARY KEY,
+          userId VARCHAR(255) NOT NULL,
+          scope VARCHAR(50) NOT NULL,
+          usageDate VARCHAR(20) NOT NULL,
+          usedCount INT DEFAULT 0,
+          estimatedTokens INT DEFAULT 0,
+          updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+          INDEX idx_ai_usage_user_scope_date (userId, scope, usageDate)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+      `);
+      const [hasEstimatedTokens]: any = await conn.execute("SHOW COLUMNS FROM ai_usage_limits LIKE 'estimatedTokens'");
+      if (hasEstimatedTokens.length === 0) {
+        await conn.execute("ALTER TABLE ai_usage_limits ADD COLUMN estimatedTokens INT DEFAULT 0 AFTER usedCount");
+      }
+
+      await conn.execute(`
+        CREATE TABLE IF NOT EXISTS ai_chat_sessions (
+          id VARCHAR(255) PRIMARY KEY,
+          userId VARCHAR(255) NOT NULL,
+          title VARCHAR(255) NOT NULL,
+          messages JSON NOT NULL,
+          createdAtMs BIGINT NOT NULL,
+          updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+          INDEX idx_ai_chat_sessions_user_updated (userId, updatedAt)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+      `);
+
+      await conn.execute(`
+        CREATE TABLE IF NOT EXISTS ai_companion_sessions (
+          id VARCHAR(255) PRIMARY KEY,
+          userId VARCHAR(255) NOT NULL,
+          title VARCHAR(255) NOT NULL,
+          messages JSON NOT NULL,
+          createdAtMs BIGINT NOT NULL,
+          updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+          INDEX idx_ai_companion_sessions_user_updated (userId, updatedAt)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+      `);
+
+      await conn.execute(`
+        CREATE TABLE IF NOT EXISTS ai_subscription_plans (
+          id VARCHAR(255) PRIMARY KEY,
+          price INT NOT NULL DEFAULT 15000,
+          durations JSON NOT NULL,
+          updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+      `);
+
+      await conn.execute(`
+        INSERT IGNORE INTO ai_subscription_plans (id, price, durations) VALUES (
+          'global',
+          15000,
+          JSON_ARRAY(
+            JSON_OBJECT('label', '1 Bulan', 'months', 1),
+            JSON_OBJECT('label', '3 Bulan', 'months', 3),
+            JSON_OBJECT('label', '6 Bulan', 'months', 6),
+            JSON_OBJECT('label', '1 Tahun', 'months', 12)
+          )
+        )
+      `);
 
       await conn.execute(`
         CREATE TABLE IF NOT EXISTS ai_analysis_history (
@@ -341,6 +483,49 @@ pool.getConnection()
       console.log("   → ai_companion_models table is fully verified!");
 
       console.log("✅ Users, Products, Android Packages, NFTs, Vouchers, Orders, Collab Requests, AI Settings, Gacha Rewards & AI Companion Models table schemas are fully verified & up to date.");
+      console.log("📡 Running self-healing schema check on AI characters tables...");
+      await conn.execute(`
+        CREATE TABLE IF NOT EXISTS ai_characters (
+          id VARCHAR(255) PRIMARY KEY,
+          ownerId VARCHAR(255) NOT NULL,
+          name VARCHAR(100) NOT NULL,
+          tagline VARCHAR(180) NULL,
+          avatar VARCHAR(500) NULL,
+          personality TEXT NOT NULL,
+          greeting TEXT NULL,
+          visibility VARCHAR(20) DEFAULT 'private',
+          createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+          INDEX idx_ai_characters_owner_visibility (ownerId, visibility)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+      `);
+      await conn.execute(`
+        CREATE TABLE IF NOT EXISTS ai_character_sessions (
+          id VARCHAR(255) PRIMARY KEY,
+          characterId VARCHAR(255) NOT NULL,
+          userId VARCHAR(255) NOT NULL,
+          title VARCHAR(255) NOT NULL,
+          messages JSON NOT NULL,
+          createdAtMs BIGINT NOT NULL,
+          updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+          INDEX idx_ai_character_sessions_user_updated (userId, updatedAt),
+          INDEX idx_ai_character_sessions_character (characterId)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+      `);
+      console.log("   → AI characters tables are fully verified!");
+
+      console.log("📡 Running self-healing schema check on ai_knowledge table...");
+      await conn.execute(`
+        CREATE TABLE IF NOT EXISTS ai_knowledge (
+          id VARCHAR(255) PRIMARY KEY,
+          keyword VARCHAR(255) NOT NULL UNIQUE,
+          content TEXT NOT NULL,
+          createdBy VARCHAR(255) NOT NULL,
+          createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+      `);
+      console.log("   → ai_knowledge table is fully verified!");
     } catch (schemaErr: any) {
       console.warn("⚠️  Self-healing schema migration check failed (non-blocking):", schemaErr.message);
     } finally {

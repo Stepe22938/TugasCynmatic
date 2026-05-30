@@ -27,6 +27,17 @@ if (!envLoaded) {
   console.warn("⚠️ No .env file found, relying on system environment variables");
 }
 
+process.on("unhandledRejection", (reason) => {
+  console.error("Unhandled promise rejection:", reason);
+});
+
+process.on("uncaughtException", (error: any) => {
+  console.error("Uncaught exception:", error);
+  if (error?.code === "EADDRINUSE") {
+    process.exit(1);
+  }
+});
+
 // Dynamic import AFTER env is loaded so DATABASE_URL is available
 const { default: app } = await import("./app.js");
 const { logger } = await import("./lib/logger.js");

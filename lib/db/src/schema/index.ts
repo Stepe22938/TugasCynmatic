@@ -43,6 +43,9 @@ export const users = mysqlTable("users", {
   // MyCrypto membership
   isMyCryptoMember: boolean("isMyCryptoMember").default(false),
   myCryptoExpiry: timestamp("myCryptoExpiry"),
+  // AI subscription
+  isAISubscriber: boolean("isAISubscriber").default(false),
+  aiSubscriptionExpiry: timestamp("aiSubscriptionExpiry"),
   // Profile
   bio: text("bio"),
   theme: varchar("theme", { length: 255 }).default("from-primary to-orange-600"),
@@ -254,6 +257,25 @@ export const messages = mysqlTable("messages", {
   createdAt: timestamp("createdAt").defaultNow(),
 });
 
+export const friendGroups = mysqlTable("friend_groups", {
+  id: varchar("id", { length: 255 }).primaryKey(),
+  name: varchar("name", { length: 255 }).notNull(),
+  ownerId: varchar("ownerId", { length: 255 }).notNull(),
+  memberIds: json("memberIds").notNull(),
+  createdAt: timestamp("createdAt").defaultNow(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow(),
+});
+
+export const groupMessages = mysqlTable("group_messages", {
+  id: varchar("id", { length: 255 }).primaryKey(),
+  groupId: varchar("groupId", { length: 255 }).notNull(),
+  senderId: varchar("senderId", { length: 255 }).notNull(),
+  text: text("text"),
+  mediaUrl: varchar("mediaUrl", { length: 500 }),
+  mediaType: varchar("mediaType", { length: 20 }),
+  createdAt: timestamp("createdAt").defaultNow(),
+});
+
 // ============================================================
 // COLLABORATION REQUESTS TABLE
 // ============================================================
@@ -288,6 +310,43 @@ export const aiSettings = mysqlTable("ai_settings", {
   openrouterModel: varchar("openrouterModel", { length: 255 }),
   obscuraKey: text("obscuraKey"),
   obscuraModel: varchar("obscuraModel", { length: 255 }),
+  aiChatDailyLimit: int("aiChatDailyLimit").default(20),
+  aiCompanionDailyLimit: int("aiCompanionDailyLimit").default(10),
+});
+
+export const aiUsageLimits = mysqlTable("ai_usage_limits", {
+  id: varchar("id", { length: 255 }).primaryKey(),
+  userId: varchar("userId", { length: 255 }).notNull(),
+  scope: varchar("scope", { length: 50 }).notNull(),
+  usageDate: varchar("usageDate", { length: 20 }).notNull(),
+  usedCount: int("usedCount").default(0),
+  estimatedTokens: int("estimatedTokens").default(0),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow(),
+});
+
+export const aiChatSessions = mysqlTable("ai_chat_sessions", {
+  id: varchar("id", { length: 255 }).primaryKey(),
+  userId: varchar("userId", { length: 255 }).notNull(),
+  title: varchar("title", { length: 255 }).notNull(),
+  messages: json("messages").notNull(),
+  createdAtMs: bigint("createdAtMs", { mode: "number" }).notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow(),
+});
+
+export const aiCompanionSessions = mysqlTable("ai_companion_sessions", {
+  id: varchar("id", { length: 255 }).primaryKey(),
+  userId: varchar("userId", { length: 255 }).notNull(),
+  title: varchar("title", { length: 255 }).notNull(),
+  messages: json("messages").notNull(),
+  createdAtMs: bigint("createdAtMs", { mode: "number" }).notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow(),
+});
+
+export const aiSubscriptionPlans = mysqlTable("ai_subscription_plans", {
+  id: varchar("id", { length: 255 }).primaryKey(),
+  price: int("price").default(15000).notNull(),
+  durations: json("durations").notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow(),
 });
 
 // ============================================================
@@ -333,6 +392,44 @@ export const aiCompanionModels = mysqlTable("ai_companion_models", {
   description: text("description"),                        // Short description shown in UI
   color: varchar("color", { length: 30 }).default("#6366f1"), // Accent hex color for the card
   isEnabled: boolean("isEnabled").default(true),
+  isReleased: boolean("isReleased").default(false),
+  accessLevel: varchar("accessLevel", { length: 20 }).default("pro"),
   sortOrder: int("sortOrder").default(0),
   createdAt: timestamp("createdAt").defaultNow(),
 });
+
+export const aiCharacters = mysqlTable("ai_characters", {
+  id: varchar("id", { length: 255 }).primaryKey(),
+  ownerId: varchar("ownerId", { length: 255 }).notNull(),
+  name: varchar("name", { length: 100 }).notNull(),
+  tagline: varchar("tagline", { length: 180 }),
+  avatar: varchar("avatar", { length: 500 }),
+  personality: text("personality").notNull(),
+  greeting: text("greeting"),
+  visibility: varchar("visibility", { length: 20 }).default("private"),
+  createdAt: timestamp("createdAt").defaultNow(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow(),
+});
+
+export const aiCharacterSessions = mysqlTable("ai_character_sessions", {
+  id: varchar("id", { length: 255 }).primaryKey(),
+  characterId: varchar("characterId", { length: 255 }).notNull(),
+  userId: varchar("userId", { length: 255 }).notNull(),
+  title: varchar("title", { length: 255 }).notNull(),
+  messages: json("messages").notNull(),
+  createdAtMs: bigint("createdAtMs", { mode: "number" }).notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow(),
+});
+
+// ============================================================
+// AI KNOWLEDGE TABLE — Backing dynamic AI learning
+// ============================================================
+export const aiKnowledge = mysqlTable("ai_knowledge", {
+  id: varchar("id", { length: 255 }).primaryKey(),
+  keyword: varchar("keyword", { length: 255 }).notNull().unique(),
+  content: text("content").notNull(),
+  createdBy: varchar("createdBy", { length: 255 }).notNull(),
+  createdAt: timestamp("createdAt").defaultNow(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow(),
+});
+

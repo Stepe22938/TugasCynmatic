@@ -40,7 +40,7 @@ export function LoginPage() {
   useEffect(() => {
     const checkDB = async () => {
       try {
-        const res = await fetch("http://localhost:3000/api/db");
+        const res = await fetch("/api/db");
         if (res.ok) setDbStatus('connected');
         else setDbStatus('error');
       } catch {

@@ -8,11 +8,12 @@ import { useLocation } from "wouter";
 import {
   Bot, Send, Loader2, Sparkles, Plus, Trash2,
   MessageSquare, Crown, Clock, Copy, Check,
-  ChevronLeft, Zap, AlertCircle, X, Cpu, RotateCcw,
+  ChevronLeft, ChevronDown, Zap, AlertCircle, X, Cpu, RotateCcw,
   BarChart3, Search, Download
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { useAISettings } from "../contexts/AISettingsContext";
+import { useMyAI } from "../contexts/MyAIContext";
 import { Button } from "../components/ui/button";
 import { useToast } from "../hooks/use-toast";
 import { motion, AnimatePresence } from "framer-motion";
@@ -26,6 +27,8 @@ interface CompanionModel {
   description: string | null;
   color: string;
   isEnabled: boolean;
+  isReleased?: boolean;
+  accessLevel?: "free" | "pro" | "dev";
   sortOrder: number;
 }
 
@@ -262,6 +265,7 @@ function ModelResponseCard({
 export function AICompanionPage() {
   const { user } = useAuth();
   const { isAIEnabled, aiProvider, openrouterKey, openrouterModel, obscuraKey, obscuraModel } = useAISettings();
+  const { isAISubscriber } = useMyAI();
   const [, setLocation] = useLocation();
   const { toast } = useToast();
 
@@ -276,37 +280,74 @@ export function AICompanionPage() {
     } catch { return []; }
   });
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
+  const [sessionsHydrated, setSessionsHydrated] = useState(false);
 
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [pendingResponses, setPendingResponses] = useState<ModelResponse[]>([]);
   const [showSidebar, setShowSidebar] = useState(true);
   const [researchMode, setResearchMode] = useState(false);
+  const [showModelDropdown, setShowModelDropdown] = useState(false);
   const [, setTimerTick] = useState(0);
 
   const scrollRef = useRef<HTMLDivElement>(null);
+  const modelPickerRef = useRef<HTMLDivElement>(null);
 
   // Fetch available models
   useEffect(() => {
+    setLoadingModels(true);
     fetch("/api/ai/companion-models")
       .then(r => r.json())
       .then((data: CompanionModel[]) => {
-        const enabled = data.filter(m => m.isEnabled);
-        setAvailableModels(enabled);
-        // Default: select first 2 enabled
-        setSelectedModelIds(enabled.slice(0, 2).map(m => m.modelId));
+        const accessible = data
+          .filter(m => m.isEnabled)
+          .filter(m => user?.role === "admin" || m.isReleased)
+          .filter(m => {
+            if (user?.role === "admin") return true;
+            if (m.accessLevel === "dev") return false;
+            if (m.accessLevel === "pro") return isAISubscriber;
+            return true;
+          });
+        setAvailableModels(accessible);
+        setSelectedModelIds([]);
         setLoadingModels(false);
       })
       .catch(err => {
         console.error("Failed to load companion models:", err);
         setLoadingModels(false);
       });
-  }, []);
+  }, [user?.role, isAISubscriber]);
+
+  useEffect(() => {
+    if (!user?.id) return;
+    setSessionsHydrated(false);
+    fetch(`/api/ai/companion-sessions?userId=${encodeURIComponent(user.id)}`)
+      .then(res => res.ok ? res.json() : [])
+      .then((serverSessions: CompanionSession[]) => {
+        if (Array.isArray(serverSessions) && serverSessions.length > 0) {
+          setSessions(serverSessions);
+          setActiveSessionId(prev => prev && serverSessions.some(s => s.id === prev) ? prev : serverSessions[0]?.id || null);
+        }
+      })
+      .catch(() => {})
+      .finally(() => setSessionsHydrated(true));
+  }, [user?.id]);
 
   // Persist sessions
   useEffect(() => {
     localStorage.setItem("ai_companion_sessions", JSON.stringify(sessions));
-  }, [sessions]);
+    if (!user?.id || !sessionsHydrated || sessions.length === 0) return;
+    const timeout = window.setTimeout(() => {
+      sessions.forEach(session => {
+        fetch("/api/ai/companion-sessions", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ userId: user.id, session }),
+        }).catch(() => {});
+      });
+    }, 400);
+    return () => window.clearTimeout(timeout);
+  }, [sessions, user?.id, sessionsHydrated]);
 
   // Auto scroll
   useEffect(() => {
@@ -322,6 +363,17 @@ export function AICompanionPage() {
     }, 250);
     return () => clearInterval(interval);
   }, [loading]);
+
+  useEffect(() => {
+    const handleOutsideClick = (event: MouseEvent) => {
+      if (!modelPickerRef.current?.contains(event.target as Node)) {
+        setShowModelDropdown(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleOutsideClick);
+    return () => document.removeEventListener("mousedown", handleOutsideClick);
+  }, []);
 
   const activeSession = sessions.find(s => s.id === activeSessionId);
 
@@ -341,6 +393,11 @@ export function AICompanionPage() {
     e.stopPropagation();
     setSessions(prev => prev.filter(s => s.id !== id));
     if (activeSessionId === id) { setActiveSessionId(null); setPendingResponses([]); }
+    if (user?.id) {
+      fetch(`/api/ai/companion-sessions/${encodeURIComponent(id)}?userId=${encodeURIComponent(user.id)}`, {
+        method: "DELETE",
+      }).catch(() => {});
+    }
   };
 
   const toggleModel = (modelId: string) => {
@@ -429,7 +486,8 @@ export function AICompanionPage() {
             obscuraKey,
             obscuraModel,
             aiProvider,
-            researchMode
+            researchMode,
+            userId: user?.id
           }),
         });
       } catch (err: any) {
@@ -556,10 +614,38 @@ export function AICompanionPage() {
 
   if (!user) return null;
 
+  if (!loadingModels && !isAISubscriber && user.role !== "admin" && availableModels.length === 0) {
+    return (
+      <div className="min-h-[calc(100vh-5rem)] bg-[#050506] text-white flex items-center justify-center p-6">
+        <div className="max-w-xl w-full rounded-[2rem] border border-white/8 bg-white/[0.03] p-8 text-center shadow-2xl">
+          <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-2xl border border-violet-400/20 bg-violet-500/10">
+            <Sparkles className="h-8 w-8 text-violet-200" />
+          </div>
+          <h1 className="text-3xl font-black tracking-tight">AI Companion belum punya model publik</h1>
+          <p className="mt-3 text-sm font-semibold leading-relaxed text-white/40">
+            Belum ada model Global Gratis yang dirilis. Subscribe AI Pro atau minta admin rilis model publik.
+          </p>
+          <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-center">
+            <Button onClick={() => setLocation("/ai-subscribe")} className="rounded-xl bg-violet-500 hover:bg-violet-400">
+              Subscribe AI Pro
+            </Button>
+            <Button variant="outline" onClick={() => setLocation("/aichat")} className="rounded-xl border-white/10 bg-white/5 text-white hover:bg-white/10">
+              Kembali ke AI Chat
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   const isNewSession = !activeSessionId || !activeSession || activeSession.messages.length === 0;
 
   const getModelByModelId = (modelId: string) =>
     availableModels.find(m => m.modelId === modelId);
+
+  const selectedModelNames = selectedModelIds
+    .map(modelId => getModelByModelId(modelId)?.name ?? modelId)
+    .join(", ");
 
   // Compute winner badges for the most recent batch
   const computeWinners = (responses: ModelResponse[]) => {
@@ -663,56 +749,6 @@ export function AICompanionPage() {
             {selectedModelIds.length} model aktif
           </div>
         </header>
-
-        {/* Model Selector Chips */}
-        <div className="flex-shrink-0 px-5 py-3 border-b border-white/[0.04] bg-[#07070a]">
-          {loadingModels ? (
-            <div className="flex gap-2">
-              {[1,2,3,4].map(i => (
-                <div key={i} className="h-8 w-28 rounded-xl bg-white/[0.04] animate-pulse" />
-              ))}
-            </div>
-          ) : (
-            <div className="flex flex-wrap gap-2 items-center">
-              <span className="text-[8px] font-black uppercase tracking-widest text-white/25 mr-1">Model:</span>
-              <button
-                onClick={() => setResearchMode(v => !v)}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[9px] font-bold border transition-all ${
-                  researchMode
-                    ? "bg-cyan-500/15 border-cyan-400/35 text-cyan-200"
-                    : "border-white/5 text-white/35 hover:text-white/60 hover:border-white/10"
-                }`}
-                title="Aktifkan web research OpenRouter untuk pertanyaan baru/niche"
-              >
-                <Search className="w-3 h-3" />
-                Research
-                {researchMode && <Check className="w-2.5 h-2.5" />}
-              </button>
-              {availableModels.map(model => {
-                const isSelected = selectedModelIds.includes(model.modelId);
-                return (
-                  <button
-                    key={model.id}
-                    onClick={() => toggleModel(model.modelId)}
-                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[9px] font-bold border transition-all ${
-                      isSelected
-                        ? "border-white/20 text-white shadow-sm"
-                        : "border-white/5 text-white/30 hover:text-white/50 hover:border-white/10"
-                    }`}
-                    style={isSelected ? { backgroundColor: `${model.color}18`, borderColor: `${model.color}35`, color: model.color } : {}}
-                  >
-                    <div
-                      className="w-2 h-2 rounded-full flex-shrink-0"
-                      style={{ backgroundColor: isSelected ? model.color : "rgba(255,255,255,0.1)" }}
-                    />
-                    {model.name}
-                    {isSelected && <Check className="w-2.5 h-2.5" />}
-                  </button>
-                );
-              })}
-            </div>
-          )}
-        </div>
 
         {/* Messages Scroll Area */}
         <div ref={scrollRef} className="flex-1 overflow-y-auto py-6 px-5 scroll-smooth">
@@ -852,7 +888,105 @@ export function AICompanionPage() {
 
         {/* Input Area */}
         <div className="flex-shrink-0 p-5 border-t border-white/[0.05] bg-[#050506]">
-          <div className="max-w-5xl mx-auto relative bg-white/[0.02] border border-white/[0.08] rounded-2xl focus-within:border-violet-500/30 focus-within:shadow-[0_4px_30px_rgba(139,92,246,0.06)] transition-all duration-300 p-2 pr-14">
+          <div className="max-w-5xl mx-auto relative bg-white/[0.02] border border-white/[0.08] rounded-2xl focus-within:border-violet-500/30 focus-within:shadow-[0_4px_30px_rgba(139,92,246,0.06)] transition-all duration-300 p-3 pr-14">
+            <div ref={modelPickerRef} className="relative border-b border-white/[0.04] pb-2 mb-1">
+              <div className="flex items-center gap-2 overflow-hidden">
+                <button
+                  onClick={() => setShowModelDropdown(v => !v)}
+                  disabled={loadingModels}
+                  className={`flex flex-shrink-0 items-center gap-2 rounded-lg border px-3 py-1.5 text-[9px] font-black uppercase tracking-wider transition-all ${
+                    showModelDropdown
+                      ? "bg-violet-500/15 border-violet-400/35 text-violet-200"
+                      : "border-white/5 text-white/55 hover:text-white/80 hover:border-white/12"
+                  } disabled:cursor-not-allowed disabled:opacity-50`}
+                >
+                  <Cpu className="w-3 h-3" />
+                  Pilih AI
+                  <span className="rounded-full bg-white/[0.08] px-1.5 py-0.5 text-[8px] text-white/70">
+                    {selectedModelIds.length}
+                  </span>
+                  <ChevronDown className={`w-3 h-3 transition-transform ${showModelDropdown ? "rotate-180" : ""}`} />
+                </button>
+
+                <button
+                  onClick={() => setResearchMode(v => !v)}
+                  className={`flex flex-shrink-0 items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-[9px] font-bold transition-all ${
+                    researchMode
+                      ? "bg-cyan-500/15 border-cyan-400/35 text-cyan-200"
+                      : "border-white/5 text-white/35 hover:text-white/60 hover:border-white/10"
+                  }`}
+                  title="Aktifkan web research OpenRouter untuk pertanyaan baru/niche"
+                >
+                  <Search className="w-3 h-3" />
+                  Research
+                  {researchMode && <Check className="w-2.5 h-2.5" />}
+                </button>
+
+                <p className="min-w-0 flex-1 truncate text-[10px] font-semibold text-white/30">
+                  {loadingModels ? "Memuat model..." : selectedModelNames || "Belum ada model dipilih"}
+                </p>
+              </div>
+
+              <AnimatePresence>
+                {showModelDropdown && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 8, scale: 0.98 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: 8, scale: 0.98 }}
+                    transition={{ duration: 0.14 }}
+                    className="absolute left-0 right-0 bottom-full z-50 mb-2 overflow-hidden rounded-2xl border border-white/[0.09] bg-[#0b0b0f] shadow-2xl shadow-black/45"
+                  >
+                    <div className="flex items-center justify-between border-b border-white/[0.05] px-4 py-3">
+                      <div>
+                        <p className="text-[10px] font-black uppercase tracking-widest text-white/70">Pilih model AI</p>
+                        <p className="mt-0.5 text-[9px] font-semibold text-white/28">Centang maksimal 4 model buat dibandingin.</p>
+                      </div>
+                      <span className="rounded-full border border-violet-400/25 bg-violet-500/10 px-2.5 py-1 text-[9px] font-black text-violet-200">
+                        {selectedModelIds.length}/4
+                      </span>
+                    </div>
+
+                    <div className="max-h-72 overflow-y-auto p-2">
+                      {loadingModels ? (
+                        [1,2,3,4].map(i => (
+                          <div key={i} className="mb-1 h-10 rounded-xl bg-white/[0.04] animate-pulse" />
+                        ))
+                      ) : (
+                        availableModels.map(model => {
+                          const isSelected = selectedModelIds.includes(model.modelId);
+                          return (
+                            <button
+                              key={model.id}
+                              onClick={() => toggleModel(model.modelId)}
+                              className={`mb-1 flex w-full items-center gap-3 rounded-xl border px-3 py-2.5 text-left transition-all ${
+                                isSelected
+                                  ? "border-white/14 bg-white/[0.04]"
+                                  : "border-transparent hover:border-white/[0.06] hover:bg-white/[0.025]"
+                              }`}
+                            >
+                              <span
+                                className={`flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-md border ${
+                                  isSelected ? "border-transparent" : "border-white/10 bg-white/[0.03]"
+                                }`}
+                                style={isSelected ? { backgroundColor: model.color } : {}}
+                              >
+                                {isSelected && <Check className="h-3.5 w-3.5 text-white" />}
+                              </span>
+                              <span className="min-w-0 flex-1">
+                                <span className="block truncate text-[11px] font-black text-white/85">{model.name}</span>
+                                <span className="mt-0.5 block truncate text-[9px] font-mono text-white/25">{model.modelId}</span>
+                              </span>
+                              <span className="h-2 w-2 flex-shrink-0 rounded-full" style={{ backgroundColor: model.color }} />
+                            </button>
+                          );
+                        })
+                      )}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+
             <textarea
               value={input}
               onChange={e => setInput(e.target.value)}
@@ -861,7 +995,7 @@ export function AICompanionPage() {
               }}
               placeholder={isAIEnabled ? `Kirim ke ${selectedModelIds.length} model${researchMode ? " + research" : ""}...` : "AI Service Offline"}
               disabled={!isAIEnabled || loading}
-              className="w-full bg-transparent border-0 px-4 py-3 text-sm focus:outline-none focus:ring-0 placeholder:text-white/20 resize-none min-h-[48px] max-h-48 text-white disabled:opacity-50"
+              className="w-full bg-transparent border-0 px-3 py-3 text-sm focus:outline-none focus:ring-0 placeholder:text-white/20 resize-none min-h-[48px] max-h-48 text-white disabled:opacity-50"
               rows={1}
             />
             <button

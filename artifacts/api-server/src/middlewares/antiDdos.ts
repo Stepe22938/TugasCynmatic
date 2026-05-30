@@ -9,7 +9,7 @@ type Bucket = {
 };
 
 const WINDOW_MS = Number(process.env["ANTI_DDOS_WINDOW_MS"] || 60_000);
-const MAX_REQUESTS = Number(process.env["ANTI_DDOS_MAX_REQUESTS"] || 180);
+const MAX_REQUESTS = Number(process.env["ANTI_DDOS_MAX_REQUESTS"] || 500);
 const BLOCK_MS = Number(process.env["ANTI_DDOS_BLOCK_MS"] || 5 * 60_000);
 const CLEANUP_MS = 10 * 60_000;
 const MAX_BODY_BYTES = Number(process.env["ANTI_DDOS_MAX_BODY_BYTES"] || 2_000_000);
@@ -67,8 +67,37 @@ export function securityHeaders(_req: Request, res: Response, next: NextFunction
 export function antiDdos(req: Request, res: Response, next: NextFunction) {
   if (req.method === "OPTIONS") return next();
 
-  const now = Date.now();
   const ip = getClientIp(req);
+
+  // Bypass rate limiting for local / loopback / development IPs
+  if (
+    ip === "127.0.0.1" ||
+    ip === "::1" ||
+    ip === "::ffff:127.0.0.1" ||
+    ip === "localhost" ||
+    ip.startsWith("192.168.") ||
+    ip.startsWith("10.") ||
+    ip.startsWith("172.16.") ||
+    ip.startsWith("172.17.") ||
+    ip.startsWith("172.18.") ||
+    ip.startsWith("172.19.") ||
+    ip.startsWith("172.20.") ||
+    ip.startsWith("172.21.") ||
+    ip.startsWith("172.22.") ||
+    ip.startsWith("172.23.") ||
+    ip.startsWith("172.24.") ||
+    ip.startsWith("172.25.") ||
+    ip.startsWith("172.26.") ||
+    ip.startsWith("172.27.") ||
+    ip.startsWith("172.28.") ||
+    ip.startsWith("172.29.") ||
+    ip.startsWith("172.30.") ||
+    ip.startsWith("172.31.")
+  ) {
+    return next();
+  }
+
+  const now = Date.now();
   const bucket = buckets.get(ip) || {
     count: 0,
     blockedUntil: 0,

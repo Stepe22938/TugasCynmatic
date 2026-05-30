@@ -146,6 +146,8 @@ router.post("/sync", async (req, res) => {
       sultanExpiry: u.sultanExpiry ? new Date(u.sultanExpiry) : null,
       isMyCryptoMember: !!u.isMyCryptoMember,
       myCryptoExpiry: u.myCryptoExpiry ? new Date(u.myCryptoExpiry) : null,
+      isAISubscriber: !!u.isAISubscriber,
+      aiSubscriptionExpiry: u.aiSubscriptionExpiry ? new Date(u.aiSubscriptionExpiry) : null,
       bio: u.bio,
       theme: u.theme,
       youtubeId: u.youtubeId,
@@ -368,7 +370,7 @@ router.post("/reset-all", async (req, res) => {
         referralCode: "CYN-ADMIN", referredBy: null,
         bio: "Administrator Cynmatic", theme: "from-yellow-600 to-amber-900",
         youtubeId: null, useAnimation: false, profileLayout: "premium" as const, avatar: null,
-        isMyCryptoMember: false, myCryptoExpiry: null,
+        isMyCryptoMember: false, myCryptoExpiry: null, isAISubscriber: false, aiSubscriptionExpiry: null,
         sultanBadgeColor: null, sultanGlowEffect: false, sultanCustomTag: null, isSultan: false, sultanExpiry: null,
       },
       {
@@ -382,7 +384,7 @@ router.post("/reset-all", async (req, res) => {
         referralCode: "CYN-SELLER", referredBy: null,
         bio: "Official Cynmatic Seller", theme: "from-green-600 to-teal-900",
         youtubeId: null, useAnimation: false, profileLayout: "premium" as const, avatar: null,
-        isMyCryptoMember: false, myCryptoExpiry: null,
+        isMyCryptoMember: false, myCryptoExpiry: null, isAISubscriber: false, aiSubscriptionExpiry: null,
         sultanBadgeColor: null, sultanGlowEffect: false, sultanCustomTag: null, isSultan: false, sultanExpiry: null,
       },
       {
@@ -396,7 +398,7 @@ router.post("/reset-all", async (req, res) => {
         referralCode: "CYN-KURIR", referredBy: null,
         bio: "Kurir resmi Cynmatic", theme: "from-blue-600 to-indigo-900",
         youtubeId: null, useAnimation: false, profileLayout: "premium" as const, avatar: null,
-        isMyCryptoMember: false, myCryptoExpiry: null,
+        isMyCryptoMember: false, myCryptoExpiry: null, isAISubscriber: false, aiSubscriptionExpiry: null,
         sultanBadgeColor: null, sultanGlowEffect: false, sultanCustomTag: null, isSultan: false, sultanExpiry: null,
       },
       {
@@ -410,7 +412,7 @@ router.post("/reset-all", async (req, res) => {
         referralCode: "CYN-TESTUS", referredBy: null,
         bio: "Member Cynmatic", theme: "from-violet-600 to-indigo-900",
         youtubeId: null, useAnimation: false, profileLayout: "premium" as const, avatar: null,
-        isMyCryptoMember: false, myCryptoExpiry: null,
+        isMyCryptoMember: false, myCryptoExpiry: null, isAISubscriber: false, aiSubscriptionExpiry: null,
         sultanBadgeColor: null, sultanGlowEffect: false, sultanCustomTag: null, isSultan: false, sultanExpiry: null,
       },
     ];

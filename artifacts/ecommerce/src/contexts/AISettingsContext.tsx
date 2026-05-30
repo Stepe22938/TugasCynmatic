@@ -10,6 +10,8 @@ interface AISettings {
   openrouterModel: string;
   obscuraKey: string;
   obscuraModel: string;
+  aiChatDailyLimit: number;
+  aiCompanionDailyLimit: number;
 }
 
 interface AISettingsContextValue extends AISettings {
@@ -18,6 +20,8 @@ interface AISettingsContextValue extends AISettings {
   setOpenrouterModel: (m: string) => void;
   setObscuraKey: (k: string) => void;
   setObscuraModel: (m: string) => void;
+  setAIChatDailyLimit: (n: number) => void;
+  setAICompanionDailyLimit: (n: number) => void;
   isAIEnabled: boolean;
 }
 
@@ -34,17 +38,19 @@ function load(): AISettings {
         openrouterModel: parsed.openrouterModel || "",
         obscuraKey: parsed.obscuraKey || "",
         obscuraModel: parsed.obscuraModel || "",
+        aiChatDailyLimit: Number.isFinite(Number(parsed.aiChatDailyLimit)) ? Math.max(0, Math.floor(Number(parsed.aiChatDailyLimit))) : 20,
+        aiCompanionDailyLimit: Number.isFinite(Number(parsed.aiCompanionDailyLimit)) ? Math.max(0, Math.floor(Number(parsed.aiCompanionDailyLimit))) : 10,
       };
     }
     // migrate from v1
     const v1 = localStorage.getItem("ai_settings_v1");
     if (v1) {
       const parsed = JSON.parse(v1) as Omit<AISettings, "openrouterModel">;
-      return { ...parsed, aiProvider: "openrouter", openrouterModel: "", obscuraKey: "", obscuraModel: "" };
+      return { ...parsed, aiProvider: "openrouter", openrouterModel: "", obscuraKey: "", obscuraModel: "", aiChatDailyLimit: 20, aiCompanionDailyLimit: 10 };
     }
   } catch {
   }
-  return { aiProvider: "openrouter", openrouterKey: "", openrouterModel: "", obscuraKey: "", obscuraModel: "" };
+  return { aiProvider: "openrouter", openrouterKey: "", openrouterModel: "", obscuraKey: "", obscuraModel: "", aiChatDailyLimit: 20, aiCompanionDailyLimit: 10 };
 }
 
 function save(s: AISettings) {
@@ -72,6 +78,8 @@ export function AISettingsProvider({ children }: { children: React.ReactNode }) 
               openrouterModel: data.openrouterModel || "",
               obscuraKey: data.obscuraKey || "",
               obscuraModel: data.obscuraModel || "",
+              aiChatDailyLimit: Number.isFinite(Number(data.aiChatDailyLimit)) ? Math.max(0, Math.floor(Number(data.aiChatDailyLimit))) : 20,
+              aiCompanionDailyLimit: Number.isFinite(Number(data.aiCompanionDailyLimit)) ? Math.max(0, Math.floor(Number(data.aiCompanionDailyLimit))) : 10,
             };
             setSettings(next);
             save(next);
@@ -109,6 +117,8 @@ export function AISettingsProvider({ children }: { children: React.ReactNode }) 
     setOpenrouterModel: (m) => update({ openrouterModel: m }),
     setObscuraKey: (k) => update({ obscuraKey: k }),
     setObscuraModel: (m) => update({ obscuraModel: m }),
+    setAIChatDailyLimit: (n) => update({ aiChatDailyLimit: Math.max(0, Math.floor(Number(n) || 0)) }),
+    setAICompanionDailyLimit: (n) => update({ aiCompanionDailyLimit: Math.max(0, Math.floor(Number(n) || 0)) }),
   };
 
   return <AISettingsContext.Provider value={value}>{children}</AISettingsContext.Provider>;

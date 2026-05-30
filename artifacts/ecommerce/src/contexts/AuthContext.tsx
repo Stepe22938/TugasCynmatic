@@ -38,6 +38,8 @@ export interface User {
   sultanCustomTag?: string;
   isMyCryptoMember?: boolean;
   myCryptoExpiry?: string;
+  isAISubscriber?: boolean;
+  aiSubscriptionExpiry?: string;
   isSultan?: boolean;
   sultanExpiry?: string;
   bio?: string;
@@ -129,6 +131,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       points: Number(rest.points || 0),
       isSultan: rest.isSultan === true || (rest as any).isSultan === 1 || String(rest.isSultan) === "1" || String(rest.isSultan) === "true",
       isMyCryptoMember: rest.isMyCryptoMember === true || (rest as any).isMyCryptoMember === 1 || String(rest.isMyCryptoMember) === "1" || String(rest.isMyCryptoMember) === "true",
+      isAISubscriber: rest.isAISubscriber === true || (rest as any).isAISubscriber === 1 || String(rest.isAISubscriber) === "1" || String(rest.isAISubscriber) === "true",
       friends: ensureArray(rest.friends),
       friendRequests: ensureArray(rest.friendRequests),
       sentRequests: ensureArray(rest.sentRequests),
@@ -239,6 +242,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             balanceBtc: String(source.balanceBtc ?? u.balanceBtc ?? "1.42"),
             balanceEth: String(source.balanceEth ?? u.balanceEth ?? "8.50"),
             balanceUsdt: String(source.balanceUsdt ?? u.balanceUsdt ?? "500.00"),
+            isAISubscriber: source.isAISubscriber === true || source.isAISubscriber === 1 || String(source.isAISubscriber) === "1" || String(source.isAISubscriber) === "true",
+            aiSubscriptionExpiry: source.aiSubscriptionExpiry ?? u.aiSubscriptionExpiry,
           };
         });
 
@@ -291,6 +296,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               balanceBtc: String(freshUser.balanceBtc ?? "1.42"),
               balanceEth: String(freshUser.balanceEth ?? "8.50"),
               balanceUsdt: String(freshUser.balanceUsdt ?? "500.00"),
+              isAISubscriber: freshUser.isAISubscriber === true || freshUser.isAISubscriber === 1 || String(freshUser.isAISubscriber) === "1" || String(freshUser.isAISubscriber) === "true",
+              aiSubscriptionExpiry: freshUser.aiSubscriptionExpiry,
               walletTransactions: deepParseArray(freshUser.walletTransactions),
               purchaseHistory: deepParseArray(freshUser.purchaseHistory),
               activityLog: deepParseArray(freshUser.activityLog),
@@ -544,7 +551,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const logout = () => {
+    // Clear session identity
     localStorage.removeItem(SESSION_KEY);
+    // Clear AI chat sessions so next user starts fresh (prevents session bleed between users)
+    localStorage.removeItem("ai_chat_sessions");
     setUser(null);
   };
 
@@ -764,6 +774,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           balanceBtc: String(freshUser.balanceBtc ?? "1.42"),
           balanceEth: String(freshUser.balanceEth ?? "8.50"),
           balanceUsdt: String(freshUser.balanceUsdt ?? "500.00"),
+          isAISubscriber: freshUser.isAISubscriber === true || freshUser.isAISubscriber === 1 || String(freshUser.isAISubscriber) === "1" || String(freshUser.isAISubscriber) === "true",
+          aiSubscriptionExpiry: freshUser.aiSubscriptionExpiry,
           walletTransactions: deepParse(freshUser.walletTransactions),
           purchaseHistory: deepParse(freshUser.purchaseHistory),
           activityLog: deepParse(freshUser.activityLog),

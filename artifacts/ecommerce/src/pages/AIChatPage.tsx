@@ -8,10 +8,11 @@ import { useLocation } from "wouter";
 import { 
   Plus, MessageSquare, Trash2, Send, Bot, User, 
   ChevronLeft, Loader2, Sparkles, Sidebar as SidebarIcon,
-  Menu, X, TrendingUp, Gamepad2, ChevronRight
+  Menu, X, TrendingUp, Gamepad2, ChevronRight, BarChart3
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { useMyCrypto } from "../contexts/MyCryptoContext";
+import { useMyAI } from "../contexts/MyAIContext";
 import { CryptoBadge } from "../components/CryptoBadge";
 import { useAISettings } from "../contexts/AISettingsContext";
 import { Button } from "../components/ui/button";
@@ -56,6 +57,8 @@ interface Message {
   role: "user" | "assistant" | "system";
   content: string;
   id: string;
+  imageUrl?: string;
+  modelName?: string;
 }
 
 interface ChatSession {
@@ -65,24 +68,162 @@ interface ChatSession {
   createdAt: number;
 }
 
+interface ChatModel {
+  id: string;
+  name: string;
+  modelId: string;
+  description?: string | null;
+  color?: string;
+  isEnabled?: boolean;
+  isReleased?: boolean;
+  accessLevel?: "free" | "pro" | "dev";
+}
+
+function DownloadImageButton({ imageUrl }: { imageUrl: string }) {
+  const handleDownload = async () => {
+    const link = document.createElement("a");
+    link.download = `tokoarthur-ai-${Date.now()}.png`;
+    if (imageUrl.startsWith("data:")) {
+      link.href = imageUrl;
+    } else {
+      const response = await fetch(imageUrl);
+      const blob = await response.blob();
+      link.href = URL.createObjectURL(blob);
+    }
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    if (!imageUrl.startsWith("data:")) URL.revokeObjectURL(link.href);
+  };
+
+  return (
+    <button
+      type="button"
+      onClick={handleDownload}
+      className="mt-3 rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-[10px] font-black uppercase tracking-widest text-white/70 transition hover:border-white/25 hover:bg-white/[0.08]"
+    >
+      Download Gambar
+    </button>
+  );
+}
+
+async function readJsonResponse(response: Response) {
+  const text = await response.text();
+  if (!text.trim()) return {};
+  try {
+    return JSON.parse(text);
+  } catch {
+    return { error: text };
+  }
+}
+
+const trimForLocalCache = (value: string, max = 5000) =>
+  value.length > max ? `${value.slice(0, max)}...` : value;
+
+const sanitizeSessionsForLocalCache = (items: ChatSession[], maxSessions = 25, maxMessages = 18) =>
+  items.slice(0, maxSessions).map((session) => {
+    const systemMessages = session.messages.filter((message) => message.role === "system").slice(0, 1);
+    const visibleMessages = session.messages.filter((message) => message.role !== "system").slice(-maxMessages);
+    return {
+      ...session,
+      title: trimForLocalCache(session.title, 120),
+      messages: [...systemMessages, ...visibleMessages].map((message) => ({
+        ...message,
+        content: trimForLocalCache(message.content),
+        imageUrl: message.imageUrl?.startsWith("data:") ? undefined : message.imageUrl,
+      })),
+    };
+  });
+
+const saveSessionsToLocalCache = (items: ChatSession[], userId?: string) => {
+  const key = userId ? `ai_chat_sessions_${userId}` : "ai_chat_sessions";
+  try {
+    localStorage.setItem(key, JSON.stringify(sanitizeSessionsForLocalCache(items)));
+  } catch {
+    try {
+      localStorage.removeItem(key);
+      localStorage.setItem(key, JSON.stringify(sanitizeSessionsForLocalCache(items, 8, 8)));
+    } catch {
+      localStorage.removeItem(key);
+    }
+  }
+};
+
+const loadSessionsFromLocalCache = (userId?: string): ChatSession[] => {
+  const key = userId ? `ai_chat_sessions_${userId}` : "ai_chat_sessions";
+  try {
+    const saved = localStorage.getItem(key);
+    return saved ? JSON.parse(saved) : [];
+  } catch {
+    return [];
+  }
+};
+
 export function AIChatPage() {
   const { user } = useAuth();
   const { isCryptoMember } = useMyCrypto();
+  const { isAISubscriber } = useMyAI();
   const { isAIEnabled, aiProvider, openrouterKey, openrouterModel, obscuraKey, obscuraModel } = useAISettings();
   const [, setLocation] = useLocation();
   const { toast } = useToast();
 
-  const [sessions, setSessions] = useState<ChatSession[]>(() => {
-    const saved = localStorage.getItem("ai_chat_sessions");
-    return saved ? JSON.parse(saved) : [];
-  });
+  // Start with empty sessions — will be loaded from user-scoped cache after user is known
+  const [sessions, setSessions] = useState<ChatSession[]>([]);
 
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [chatModels, setChatModels] = useState<ChatModel[]>([]);
+  const [loadingChatModels, setLoadingChatModels] = useState(true);
+  const [selectedChatModelId, setSelectedChatModelId] = useState("");
+  const [sessionsHydrated, setSessionsHydrated] = useState(false);
   
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  // ─── CYBER SLASH COMMANDS AUTOCONFIG ──────────────────────────────────────
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [suggestions, setSuggestions] = useState<{ cmd: string; desc: string; template: string }[]>([]);
+  const [selectedSuggestionIndex, setSelectedSuggestionIndex] = useState(0);
+
+  useEffect(() => {
+    if (input.startsWith("/")) {
+      const typed = input.toLowerCase();
+      const allCmds = [
+        { cmd: "/help", desc: "Tampilkan panduan perintah siber TokoArthur.", template: "/help" },
+        { cmd: "/profile", desc: "Tampilkan resume detail profil akun Anda.", template: "/profile" },
+        { cmd: "/wallet", desc: "Tampilkan informasi saldo wallet & transaksi.", template: "/wallet" },
+        { cmd: "/koin", desc: "Tampilkan koin toko & status keanggotaan Sultan VIP.", template: "/koin" },
+        { cmd: "/crypto", desc: "Tampilkan detail portofolio aset crypto (BTC/ETH/USDT).", template: "/crypto" },
+        { cmd: "/orders", desc: "Tampilkan 3 transaksi pembelian terakhir Anda.", template: "/orders" },
+      ];
+
+      if (user?.role === "admin") {
+        allCmds.push(
+          { cmd: "/admin", desc: "Ajarkan AI fakta baru (Format: /admin [key] = [val])", template: "/admin " },
+          { cmd: "/learn", desc: "Ajarkan AI fakta baru (Format: /learn [key] = [val])", template: "/learn " },
+          { cmd: "/giftkoin", desc: "Kirim koin gratis (Format: /giftkoin [user] [koin])", template: "/giftkoin " },
+          { cmd: "/giftsaldo", desc: "Kirim saldo gratis (Format: /giftsaldo [user] [saldo])", template: "/giftsaldo " },
+          { cmd: "/ban", desc: "Blokir akses pengguna (Format: /ban [user] [alasan])", template: "/ban " },
+          { cmd: "/unban", desc: "Pulihkan akses pengguna (Format: /unban [user])", template: "/unban " },
+          { cmd: "/clearmemory", desc: "Reset semua memori fakta pembelajaran AI.", template: "/clearmemory" }
+        );
+      }
+
+      const filtered = allCmds.filter(c => c.cmd.startsWith(typed.split(" ")[0]));
+      setSuggestions(filtered);
+      setShowSuggestions(filtered.length > 0);
+      setSelectedSuggestionIndex(0);
+    } else {
+      setShowSuggestions(false);
+      setSuggestions([]);
+    }
+  }, [input, user?.role]);
+
+
+  const openAIUsage = () => {
+    window.dispatchEvent(new CustomEvent("tokoarthur:open-ai-usage"));
+  };
 
   // Auto scroll to bottom
   useEffect(() => {
@@ -91,20 +232,114 @@ export function AIChatPage() {
     }
   }, [sessions, activeSessionId, loading]);
 
-  // Persist sessions
+  // Load sessions when user ID changes — ensures each user has their own isolated session history
   useEffect(() => {
-    localStorage.setItem("ai_chat_sessions", JSON.stringify(sessions));
-  }, [sessions]);
+    if (!user?.id) {
+      setSessions([]);
+      setActiveSessionId(null);
+      return;
+    }
+    // First: load from user-scoped localStorage cache immediately for fast UI
+    const cached = loadSessionsFromLocalCache(user.id);
+    if (cached.length > 0) {
+      setSessions(cached);
+      setActiveSessionId(cached[0]?.id || null);
+    } else {
+      setSessions([]);
+      setActiveSessionId(null);
+    }
+    // Then: hydrate from server (authoritative source)
+    setSessionsHydrated(false);
+    fetch(`/api/ai/chat-sessions?userId=${encodeURIComponent(user.id)}`)
+      .then(res => res.ok ? res.json() : [])
+      .then((serverSessions: ChatSession[]) => {
+        if (Array.isArray(serverSessions) && serverSessions.length > 0) {
+          setSessions(serverSessions);
+          setActiveSessionId(prev => prev && serverSessions.some(s => s.id === prev) ? prev : serverSessions[0]?.id || null);
+        }
+      })
+      .catch(() => {})
+      .finally(() => setSessionsHydrated(true));
+  }, [user?.id]);
+
+  // Persist sessions to user-scoped localStorage and server
+  useEffect(() => {
+    saveSessionsToLocalCache(sessions, user?.id);
+    if (!user?.id || !sessionsHydrated || sessions.length === 0) return;
+    const timeout = window.setTimeout(() => {
+      sessions.forEach(session => {
+        fetch("/api/ai/chat-sessions", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ userId: user.id, session }),
+        }).catch(() => {});
+      });
+    }, 400);
+    return () => window.clearTimeout(timeout);
+  }, [sessions, user?.id, sessionsHydrated]);
+
+  useEffect(() => {
+    setLoadingChatModels(true);
+    fetch("/api/ai/companion-models")
+      .then(res => res.ok ? res.json() : [])
+      .then((models: ChatModel[]) => {
+        const released = (Array.isArray(models) ? models : [])
+          .filter(model => model.isEnabled && model.isReleased)
+          .filter(model => {
+            if (user?.role === "admin") return true;
+            if (model.accessLevel === "dev") return false;
+            if (model.accessLevel === "pro") return isAISubscriber;
+            return true;
+          });
+        setChatModels(released);
+        setSelectedChatModelId(prev => released.some(model => model.modelId === prev) ? prev : released[0]?.modelId || "");
+      })
+      .catch(() => setChatModels([]))
+      .finally(() => setLoadingChatModels(false));
+  }, [user?.role, isAISubscriber]);
 
   const activeSession = sessions.find(s => s.id === activeSessionId);
+  const selectedChatModel = chatModels.find(model => model.modelId === selectedChatModelId);
+  const selectedAgentName = selectedChatModel?.name || (user?.role === "admin" ? (aiProvider === "obscura" ? obscuraModel : openrouterModel) : "Pilih Agent");
+  const selectedAgentAccessLabel = selectedChatModel?.accessLevel === "dev"
+    ? "Dev/Admin"
+    : selectedChatModel?.accessLevel === "pro"
+      ? "AI Pro"
+      : selectedChatModel
+        ? "Global"
+        : "Default";
+  const selectedAgentAccessClass = selectedChatModel?.accessLevel === "dev"
+    ? "border-amber-400/20 bg-amber-500/10 text-amber-200"
+    : selectedChatModel?.accessLevel === "pro"
+      ? "border-violet-400/20 bg-violet-500/10 text-violet-200"
+      : "border-emerald-400/20 bg-emerald-500/10 text-emerald-200";
+  const getDisplayModelName = (message?: Message) => {
+    const modelName = message?.modelName || selectedAgentName || selectedChatModelId;
+    return modelName && modelName !== "Pilih Agent" ? modelName : "AI";
+  };
+  const formatAssistantName = (message?: Message) =>
+    `TokoArthur - ${getDisplayModelName(message)}`;
+
+  useEffect(() => {
+    const fallbackModel = getDisplayModelName();
+    if (!activeSessionId || fallbackModel === "AI") return;
+    setSessions(prev => prev.map(session => {
+      if (session.id !== activeSessionId) return session;
+      let changed = false;
+      const messages = session.messages.map(message => {
+        if (message.role !== "assistant" || message.modelName) return message;
+        changed = true;
+        return { ...message, modelName: fallbackModel };
+      });
+      return changed ? { ...session, messages } : session;
+    }));
+  }, [activeSessionId, selectedAgentName, selectedChatModelId]);
 
   const startNewChat = () => {
     const newSession: ChatSession = {
       id: Date.now().toString(),
       title: "Chat Baru",
-      messages: [
-        { role: "system", content: "Kamu adalah asisten AI (TokoArthur AI) yang ramah dan membantu untuk platform e-commerce TokoArthur. Jawablah dalam bahasa Indonesia yang natural. PENTING: Format nomor pesanan/invoice di TokoArthur selalu berawalan 'TKO-' (contoh: #TKO-16190 atau TKO-12345). Jika user memberikan kode 'TKO-', anggap itu sebagai nomor pesanan yang valid dan bantu cek statusnya.", id: "sys-1" }
-      ],
+      messages: [],
       createdAt: Date.now()
     };
     setSessions([newSession, ...sessions]);
@@ -116,19 +351,30 @@ export function AIChatPage() {
     const next = sessions.filter(s => s.id !== id);
     setSessions(next);
     if (activeSessionId === id) setActiveSessionId(null);
+    if (user?.id) {
+      fetch(`/api/ai/chat-sessions/${encodeURIComponent(id)}?userId=${encodeURIComponent(user.id)}`, {
+        method: "DELETE",
+      }).catch(() => {});
+    }
   };
 
   const handleSend = async () => {
     if (!input.trim() || loading || !isAIEnabled) return;
+    if (!selectedChatModelId && user?.role !== "admin") {
+      toast({
+        title: "Pilih model AI dulu",
+        description: isAISubscriber ? "Belum ada model AI Chat yang dirilis." : "Belum ada model gratis. Subscribe AI Pro atau minta admin rilis model Global Gratis.",
+        variant: "destructive"
+      });
+      return;
+    }
 
     let currentSession = activeSession;
     if (!currentSession) {
       const newSession: ChatSession = {
         id: Date.now().toString(),
         title: input.slice(0, 30) + (input.length > 30 ? "..." : ""),
-        messages: [
-          { role: "system", content: "Kamu adalah asisten AI (TokoArthur AI) yang ramah dan membantu untuk platform e-commerce TokoArthur. Jawablah dalam bahasa Indonesia yang natural. PENTING: Format nomor pesanan/invoice di TokoArthur selalu berawalan 'TKO-' (contoh: #TKO-16190 atau TKO-12345). Jika user memberikan kode 'TKO-', anggap itu sebagai nomor pesanan yang valid dan bantu cek statusnya.", id: "sys-1" }
-        ],
+        messages: [], // Backend builds system prompt dynamically
         createdAt: Date.now()
       };
       setSessions([newSession, ...sessions]);
@@ -138,10 +384,11 @@ export function AIChatPage() {
 
     const userMsg: Message = { role: "user", content: input.trim(), id: Date.now().toString() };
     const updatedMessages = [...currentSession.messages, userMsg];
+    const replyModelName = selectedChatModel?.name || selectedAgentName || selectedChatModelId || "AI";
     
-    // Update local state first for instant feedback
+    // Update local state first for instant feedback (Fixed: correctly check if messages filter system is 0 to update title on first user msg)
     setSessions(prev => prev.map(s => 
-      s.id === currentSession?.id ? { ...s, messages: updatedMessages, title: s.messages.length === 1 ? userMsg.content.slice(0, 30) : s.title } : s
+      s.id === currentSession?.id ? { ...s, messages: updatedMessages, title: s.messages.filter(m => m.role !== "system").length === 0 ? userMsg.content.slice(0, 30) + (userMsg.content.length > 30 ? "..." : "") : s.title } : s
     ));
     
     setInput("");
@@ -156,19 +403,23 @@ export function AIChatPage() {
           apiKey: openrouterKey,
           obscuraKey,
           aiProvider,
-          model: aiProvider === "obscura" ? obscuraModel : openrouterModel
+          model: selectedChatModelId || (user?.role === "admin" ? (aiProvider === "obscura" ? obscuraModel : openrouterModel) : ""),
+          userId: user?.id
         })
       });
 
+      const aiMsgRaw = await readJsonResponse(res);
+
       if (!res.ok) {
-        const err = await res.json();
+        const err = aiMsgRaw;
         throw new Error(err.error || "Gagal menghubungi AI");
       }
 
-      const aiMsgRaw = await res.json();
       const aiMsg: Message = {
         role: "assistant",
-        content: aiMsgRaw.content,
+        content: aiMsgRaw.content || "",
+        imageUrl: aiMsgRaw.imageUrl,
+        modelName: replyModelName,
         id: (Date.now() + 1).toString()
       };
 
@@ -188,15 +439,21 @@ export function AIChatPage() {
 
   const handleQuickPrompt = async (promptText: string) => {
     if (loading || !isAIEnabled) return;
+    if (!selectedChatModelId && user?.role !== "admin") {
+      toast({
+        title: "Pilih model AI dulu",
+        description: isAISubscriber ? "Belum ada model AI Chat yang dirilis." : "Belum ada model gratis. Subscribe AI Pro atau minta admin rilis model Global Gratis.",
+        variant: "destructive"
+      });
+      return;
+    }
 
     let currentSession = activeSession;
     if (!currentSession) {
       const newSession: ChatSession = {
         id: Date.now().toString(),
         title: promptText.slice(0, 30) + (promptText.length > 30 ? "..." : ""),
-        messages: [
-          { role: "system", content: "Kamu adalah asisten AI (TokoArthur AI) yang ramah dan membantu untuk platform e-commerce TokoArthur. Jawablah dalam bahasa Indonesia yang natural. PENTING: Format nomor pesanan/invoice di TokoArthur selalu berawalan 'TKO-' (contoh: #TKO-16190 atau TKO-12345). Jika user memberikan kode 'TKO-', anggap itu sebagai nomor pesanan yang valid dan bantu cek statusnya.", id: "sys-1" }
-        ],
+        messages: [],
         createdAt: Date.now()
       };
       setSessions(prev => [newSession, ...prev]);
@@ -206,9 +463,11 @@ export function AIChatPage() {
 
     const userMsg: Message = { role: "user", content: promptText, id: Date.now().toString() };
     const updatedMessages = [...currentSession.messages, userMsg];
+    const replyModelName = selectedChatModel?.name || selectedAgentName || selectedChatModelId || "AI";
     
+    // (Fixed: correctly check if messages filter system is 0 to update title on first user msg)
     setSessions(prev => prev.map(s => 
-      s.id === currentSession?.id ? { ...s, messages: updatedMessages, title: s.messages.length === 1 ? userMsg.content.slice(0, 30) : s.title } : s
+      s.id === currentSession?.id ? { ...s, messages: updatedMessages, title: s.messages.filter(m => m.role !== "system").length === 0 ? userMsg.content.slice(0, 30) + (userMsg.content.length > 30 ? "..." : "") : s.title } : s
     ));
     
     setLoading(true);
@@ -222,19 +481,23 @@ export function AIChatPage() {
           apiKey: openrouterKey,
           obscuraKey,
           aiProvider,
-          model: aiProvider === "obscura" ? obscuraModel : openrouterModel
+          model: selectedChatModelId || (user?.role === "admin" ? (aiProvider === "obscura" ? obscuraModel : openrouterModel) : ""),
+          userId: user?.id
         })
       });
 
+      const aiMsgRaw = await readJsonResponse(res);
+
       if (!res.ok) {
-        const err = await res.json();
+        const err = aiMsgRaw;
         throw new Error(err.error || "Gagal menghubungi AI");
       }
 
-      const aiMsgRaw = await res.json();
       const aiMsg: Message = {
         role: "assistant",
-        content: aiMsgRaw.content,
+        content: aiMsgRaw.content || "",
+        imageUrl: aiMsgRaw.imageUrl,
+        modelName: replyModelName,
         id: (Date.now() + 1).toString()
       };
 
@@ -253,6 +516,30 @@ export function AIChatPage() {
   };
 
   if (!user) return null;
+
+  if (!loadingChatModels && !isAISubscriber && user.role !== "admin" && chatModels.length === 0) {
+    return (
+      <div className="min-h-[calc(100vh-5rem)] bg-zinc-950 text-white flex items-center justify-center p-6">
+        <div className="max-w-xl w-full rounded-[2rem] border border-white/8 bg-white/[0.03] p-8 text-center shadow-2xl">
+          <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-2xl border border-violet-400/20 bg-violet-500/10">
+            <Sparkles className="h-8 w-8 text-violet-200" />
+          </div>
+          <h1 className="text-3xl font-black tracking-tight">AI Pro belum aktif</h1>
+          <p className="mt-3 text-sm font-semibold leading-relaxed text-white/40">
+            Subscribe dulu pakai saldo MyWallet buat membuka AI Chat dan AI Companion.
+          </p>
+          <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-center">
+            <Button onClick={() => setLocation("/ai-subscribe")} className="rounded-xl bg-violet-500 hover:bg-violet-400">
+              Subscribe AI Pro
+            </Button>
+            <Button variant="outline" onClick={() => setLocation("/mydompet")} className="rounded-xl border-white/10 bg-white/5 text-white hover:bg-white/10">
+              Cek MyWallet
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   // Conditions to show the gorgeous Welcome screen:
   // 1. No active session is selected
@@ -307,6 +594,42 @@ export function AIChatPage() {
               <TrendingUp className="h-4 w-4 text-blue-400/80" /> Crypto Analysis
             </Button>
           )}
+
+          <Button
+            onClick={() => setLocation("/ai-companion")}
+            variant="outline"
+            className="w-full justify-start gap-2 border-violet-500/15 bg-violet-500/5 text-violet-300 hover:bg-violet-500/10 hover:border-violet-400/35 font-bold uppercase tracking-wider text-[10px] h-12 rounded-xl transition-all duration-300 mt-2"
+          >
+            <Sparkles className="h-4 w-4 text-violet-300/90" /> AI Companion
+          </Button>
+
+          <Button
+            onClick={() => setLocation("/characters")}
+            variant="outline"
+            className="w-full justify-start gap-2 border-fuchsia-500/15 bg-fuchsia-500/5 text-fuchsia-300 hover:bg-fuchsia-500/10 hover:border-fuchsia-400/35 font-bold uppercase tracking-wider text-[10px] h-12 rounded-xl transition-all duration-300 mt-2"
+          >
+            <Bot className="h-4 w-4 text-fuchsia-300/90" /> Character AI
+          </Button>
+
+          <Button
+            onClick={openAIUsage}
+            variant="outline"
+            className="w-full justify-start gap-2 border-cyan-500/15 bg-cyan-500/5 text-cyan-300 hover:bg-cyan-500/10 hover:border-cyan-400/35 font-bold uppercase tracking-wider text-[10px] h-12 rounded-xl transition-all duration-300 mt-2"
+          >
+            <BarChart3 className="h-4 w-4 text-cyan-300/90" /> AI Usage
+          </Button>
+
+          <Button
+            onClick={() => setLocation("/ai-subscribe")}
+            variant="outline"
+            className={`w-full justify-start gap-2 font-bold uppercase tracking-wider text-[10px] h-12 rounded-xl transition-all duration-300 mt-2 ${
+              isAISubscriber
+                ? "border-emerald-500/15 bg-emerald-500/5 text-emerald-300 hover:bg-emerald-500/10 hover:border-emerald-400/35"
+                : "border-amber-500/15 bg-amber-500/5 text-amber-300 hover:bg-amber-500/10 hover:border-amber-400/35"
+            }`}
+          >
+            <Bot className="h-4 w-4" /> {isAISubscriber ? "AI Pro Aktif" : "Subscribe AI Pro"}
+          </Button>
         </div>
         
         <div className="flex-1 overflow-y-auto p-3 space-y-1">
@@ -360,12 +683,14 @@ export function AIChatPage() {
               <div className="w-9 h-9 rounded-xl bg-white/[0.04] border border-white/10 flex items-center justify-center shadow-md">
                 <Bot className="h-5 w-5 text-white/80" />
               </div>
-              <div>
+              <div className="min-w-0">
                 <h2 className="font-bold text-sm tracking-tight text-white flex items-center gap-2">
-                  TokoArthur AI 
+                  <span className="max-w-[320px] truncate">TokoArthur</span>
                   <span className="text-[9px] font-medium bg-white/10 text-white/80 px-2 py-0.5 rounded-full uppercase tracking-wider border border-white/5">Beta</span>
                 </h2>
-                <p className="text-[8px] font-semibold text-white/40 uppercase tracking-widest mt-0.5">Official AI Companion</p>
+                <p className="text-[8px] font-semibold text-violet-200/80 uppercase tracking-widest mt-0.5">
+                  Model: {getDisplayModelName()}
+                </p>
               </div>
             </div>
           </div>
@@ -378,8 +703,9 @@ export function AIChatPage() {
               <Sparkles className="h-3.5 w-3.5" />
               Battle Arena
             </button>
-            <div className="text-[9px] font-semibold uppercase tracking-widest text-white/60 bg-white/5 border border-white/10 px-3 py-1.5 rounded-xl shadow-lg">
-              {openrouterModel || "GPT-4o Mini"}
+            <div className="hidden sm:flex items-center gap-2 bg-white/5 border border-white/10 text-white/70 text-[9px] font-black uppercase tracking-wider px-3 py-1.5 rounded-xl shadow-lg">
+              <Bot className="h-3.5 w-3.5 text-white/45" />
+              <span className="max-w-[160px] truncate">{selectedAgentName}</span>
             </div>
           </div>
         </header>
@@ -444,6 +770,13 @@ export function AIChatPage() {
                       icon={Sparkles} 
                       color="from-violet-600/10 to-purple-900/10 border-violet-500/10 hover:border-violet-500/30" 
                     />
+                    <PremiumCard
+                      href="/characters"
+                      title="Character AI"
+                      subtitle="Persona Chat"
+                      icon={Bot}
+                      color="from-fuchsia-600/10 to-rose-900/10 border-fuchsia-500/10 hover:border-fuchsia-500/30"
+                    />
                 </div>
               </div>
             ) : (
@@ -465,13 +798,34 @@ export function AIChatPage() {
                   <div className={`flex-1 space-y-2 overflow-hidden ${msg.role === "user" ? "max-w-[80%] flex-initial bg-amber-500/[0.03] border border-amber-500/15 rounded-2xl p-5 shadow-lg" : ""}`}>
                     <div className="flex items-center gap-2">
                       <p className={`text-[9px] font-bold uppercase tracking-widest opacity-50 ${msg.role === "assistant" ? "text-white/60" : "text-white/40"}`}>
-                        {msg.role === "assistant" ? "TokoArthur AI" : "Anda"}
+                        {msg.role === "assistant" ? formatAssistantName(msg) : "Anda"}
                       </p>
+                      {msg.role === "assistant" && (
+                        <span className="rounded-lg border border-violet-400/25 bg-violet-500/15 px-2 py-0.5 text-[8px] font-black uppercase tracking-widest text-violet-100">
+                          {getDisplayModelName(msg)}
+                        </span>
+                      )}
                       {msg.role === "user" && isCryptoMember && <CryptoBadge className="scale-75 origin-left" />}
                     </div>
-                    <div className={`text-sm leading-relaxed whitespace-pre-wrap break-words ${msg.role === "user" ? "text-white/90" : "text-white/80"}`}>
-                      {msg.content}
-                    </div>
+                    {msg.imageUrl ? (
+                      <div className="space-y-3">
+                        <img
+                          src={msg.imageUrl}
+                          alt="Hasil gambar TokoArthur AI"
+                          className="max-h-[520px] w-full max-w-2xl rounded-2xl border border-white/10 bg-black/30 object-contain shadow-2xl"
+                        />
+                        {msg.content && (
+                          <div className="text-sm leading-relaxed whitespace-pre-wrap break-words text-white/70">
+                            {msg.content}
+                          </div>
+                        )}
+                        <DownloadImageButton imageUrl={msg.imageUrl} />
+                      </div>
+                    ) : (
+                      <div className="text-sm leading-relaxed whitespace-pre-wrap break-words ${msg.role === 'user' ? 'text-white/90' : 'text-white/80'}">
+                        {msg.content}
+                      </div>
+                    )}
                   </div>
 
                   {msg.role === "user" && (
@@ -489,7 +843,9 @@ export function AIChatPage() {
                   <Bot className="h-4.5 w-4.5" />
                 </div>
                 <div className="flex-1 space-y-3">
-                  <p className="text-[9px] font-bold uppercase tracking-widest text-white/30">TokoArthur AI</p>
+                  <p className="text-[9px] font-bold uppercase tracking-widest text-white/30">
+                    TokoArthur ({selectedAgentName || "AI"})
+                  </p>
                   <div className="flex items-center gap-1.5 py-1">
                     <div className="w-1.5 h-1.5 bg-white/40 rounded-full animate-bounce" style={{ animationDelay: "0ms" }} />
                     <div className="w-1.5 h-1.5 bg-white/40 rounded-full animate-bounce" style={{ animationDelay: "200ms" }} />
@@ -504,28 +860,112 @@ export function AIChatPage() {
         {/* Input Area */}
         <div className="p-6 border-t border-white/5 bg-zinc-950">
           <div className="max-w-3xl mx-auto relative bg-white/[0.02] border border-white/10 rounded-2xl focus-within:border-white/30 focus-within:shadow-[0_4px_30px_rgba(255,255,255,0.03)] transition-all duration-300 p-2 pr-14">
+            <div className="mb-1 flex flex-wrap items-center gap-2 border-b border-white/5 px-2 pb-2 sm:flex-nowrap">
+              <div className="flex flex-shrink-0 items-center gap-1.5 text-[9px] font-black uppercase tracking-widest text-violet-200">
+                <Sparkles className="h-3.5 w-3.5" />
+                Switch Agent
+              </div>
+              <select
+                value={selectedChatModelId}
+                onChange={(event) => setSelectedChatModelId(event.target.value)}
+                disabled={loadingChatModels}
+                className="min-w-[180px] flex-1 rounded-xl border border-white/10 bg-zinc-950/90 px-3 py-2 text-[11px] font-bold text-white/85 shadow-inner outline-none transition-all focus:border-violet-300/40 focus:ring-2 focus:ring-violet-500/20 disabled:cursor-wait disabled:opacity-50"
+              >
+                {user.role === "admin" && <option value="">{openrouterModel || obscuraModel || "Default AI"}</option>}
+                {loadingChatModels && <option value="">Loading agent...</option>}
+                {!loadingChatModels && user.role !== "admin" && chatModels.length === 0 && <option value="">Belum ada model rilis</option>}
+                {chatModels.map(model => (
+                  <option key={model.id} value={model.modelId}>
+                    {model.accessLevel === "dev" ? "[DEV] " : model.accessLevel === "pro" ? "[AI PRO] " : "[GLOBAL] "}{model.name}
+                  </option>
+                ))}
+              </select>
+              <span className="flex-shrink-0 rounded-lg border px-2.5 py-1 text-[8px] font-black uppercase tracking-widest ${selectedAgentAccessClass}">
+                {selectedAgentAccessLabel}
+              </span>
+              {!isAISubscriber && user.role !== "admin" && (
+                <button
+                  type="button"
+                  onClick={() => setLocation("/ai-subscribe")}
+                  className="flex-shrink-0 rounded-lg border border-amber-400/20 bg-amber-500/10 px-2.5 py-1 text-[8px] font-black uppercase tracking-widest text-amber-200 transition hover:bg-amber-500/15"
+                >
+                  Unlock Pro
+                </button>
+              )}
+            </div>
+            
+            {showSuggestions && suggestions.length > 0 && (
+              <div className="absolute left-0 bottom-[calc(100%+0.75rem)] w-full max-w-xl bg-zinc-950/95 border border-white/10 rounded-2xl shadow-[0_8px_32px_rgba(0,0,0,0.8)] backdrop-blur-xl z-50 overflow-hidden animate-in slide-in-from-bottom-2 fade-in duration-200">
+                <div className="px-4 py-2.5 border-b border-white/5 bg-white/[0.02] flex items-center justify-between">
+                  <span className="text-[9px] font-black uppercase tracking-widest text-[#D4AF37] flex items-center gap-1.5 animate-pulse">
+                    <Sparkles className="w-3.5 h-3.5 text-[#D4AF37]" /> TokoArthur Cyber Command
+                  </span>
+                  <span className="text-[8px] font-bold text-white/30 uppercase">
+                    Use <kbd className="bg-white/10 px-1 rounded text-white/60">Tab</kbd> / <kbd className="bg-white/10 px-1 rounded text-white/60">↑\d</kbd> / Click
+                  </span>
+                </div>
+                <div className="max-h-56 overflow-y-auto divide-y divide-white/5">
+                  {suggestions.map((item, idx) => (
+                    <div
+                      key={item.cmd}
+                      onClick={() => {
+                        setInput(item.template);
+                        setShowSuggestions(false);
+                      }}
+                      onMouseEnter={() => setSelectedSuggestionIndex(idx)}
+                      className="px-5 py-3.5 cursor-pointer transition-all duration-150 flex items-center justify-between text-xs ${idx === selectedSuggestionIndex ? 'bg-white/[0.04] text-white font-bold' : 'text-white/60 hover:text-white hover:bg-white/[0.01]'}"
+                    >
+                      <div className="flex items-center gap-3">
+                        <span className="font-mono text-xs ${idx === selectedSuggestionIndex ? 'text-[#D4AF37]' : 'text-violet-300'}">
+                          {item.cmd}
+                        </span>
+                        <span className="text-white/40 text-[10px] truncate max-w-[280px]">
+                          {item.desc}
+                        </span>
+                      </div>
+                      <span className="text-[8px] font-black uppercase tracking-widest text-white/20">
+                        {item.cmd.startsWith("/admin") || item.cmd.startsWith("/learn") || item.cmd.startsWith("/gift") || item.cmd.startsWith("/ban") || item.cmd.startsWith("/unban") || item.cmd.startsWith("/clear") ? "ADMIN" : "USER"}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             <textarea
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => {
-                if (e.key === "Enter" && !e.shiftKey) {
-                  e.preventDefault();
-                  handleSend();
+                if (showSuggestions && suggestions.length > 0) {
+                  if (e.key === "ArrowDown") {
+                    e.preventDefault();
+                    setSelectedSuggestionIndex(prev => (prev + 1) % suggestions.length);
+                  } else if (e.key === "ArrowUp") {
+                    e.preventDefault();
+                    setSelectedSuggestionIndex(prev => (prev - 1 + suggestions.length) % suggestions.length);
+                  } else if (e.key === "Tab" || e.key === "Enter") {
+                    e.preventDefault();
+                    setInput(suggestions[selectedSuggestionIndex].template);
+                    setShowSuggestions(false);
+                  } else if (e.key === "Escape") {
+                    e.preventDefault();
+                    setShowSuggestions(false);
+                  }
+                } else {
+                  if (e.key === "Enter" && !e.shiftKey) {
+                    e.preventDefault();
+                    handleSend();
+                  }
                 }
               }}
-              placeholder="Kirim pesan ke TokoArthur AI..."
+              placeholder="Kirim pesan ke ${selectedAgentName || 'AI'}..."
               className="w-full bg-transparent border-0 px-4 py-3 text-sm focus:outline-none focus:ring-0 placeholder:text-white/20 resize-none min-h-[48px] max-h-48 text-white"
               rows={1}
             />
             <button
               onClick={handleSend}
               disabled={!input.trim() || loading || !isAIEnabled}
-              className={`
-                absolute right-3 bottom-3 w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-300 shadow-lg
-                ${input.trim() && !loading && isAIEnabled 
-                  ? "bg-white text-black scale-100 shadow-white/10 cursor-pointer hover:bg-neutral-200" 
-                  : "bg-white/5 text-white/20 scale-95 opacity-50 cursor-not-allowed"}
-              `}
+              className="absolute right-3 bottom-3 w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-300 shadow-lg ${input.trim() && !loading && isAIEnabled ? 'bg-white text-black scale-100 shadow-white/10 cursor-pointer hover:bg-neutral-200' : 'bg-white/5 text-white/20 scale-95 opacity-50 cursor-not-allowed'}"
             >
               {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : <Send className="h-5 w-5" />}
             </button>
@@ -533,13 +973,13 @@ export function AIChatPage() {
             {!isAIEnabled && (
               <div className="absolute inset-0 bg-background/80 backdrop-blur-[2px] flex items-center justify-center rounded-2xl border border-dashed border-red-500/10">
                 <p className="text-[9px] font-bold text-red-400 uppercase tracking-widest bg-red-500/5 border border-red-500/10 px-4 py-2 rounded-xl">
-                  AI Service Temporarily Offline
+                  AI Service Offline
                 </p>
               </div>
             )}
           </div>
           <p className="text-[9px] font-semibold text-center text-white/20 mt-3 uppercase tracking-wider">
-            TokoArthur AI dapat membuat kesalahan. Harap validasi informasi penting.
+            TokoArthur model {getDisplayModelName()} dapat membuat kesalahan. Harap validasi informasi penting.
           </p>
         </div>
       </main>
@@ -552,11 +992,7 @@ export function AIChatPage() {
         />
       )}
       {/* Mobile Sidebar */}
-      <aside className={`
-        fixed inset-y-0 left-0 w-72 bg-zinc-950 z-40 transform transition-transform duration-300 border-r border-white/5
-        ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}
-        md:hidden flex flex-col
-      `}>
+      <aside className="fixed inset-y-0 left-0 w-72 bg-zinc-950 z-40 transform transition-transform duration-300 border-r border-white/5 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} md:hidden flex flex-col">
         <div className="p-4 border-b border-white/5 flex items-center justify-between">
           <h2 className="font-bold text-xs uppercase tracking-widest text-white/80">Riwayat Chat</h2>
           <Button variant="ghost" size="icon" className="text-white/50" onClick={() => setSidebarOpen(false)}>
@@ -567,13 +1003,41 @@ export function AIChatPage() {
           <Button onClick={startNewChat} className="w-full gap-2 border-white/10 bg-white/5 text-white/90 hover:bg-white/10 font-bold uppercase tracking-wider text-[10px] h-12 rounded-xl">
             <Plus className="h-4 w-4" /> Chat Baru
           </Button>
+          <Button
+            onClick={() => { setLocation("/ai-companion"); setSidebarOpen(false); }}
+            variant="outline"
+            className="mt-2 w-full justify-start gap-2 border-violet-500/15 bg-violet-500/5 text-violet-300 hover:bg-violet-500/10 hover:border-violet-400/35 font-bold uppercase tracking-wider text-[10px] h-12 rounded-xl"
+          >
+            <Sparkles className="h-4 w-4" /> AI Companion
+          </Button>
+          <Button
+            onClick={() => { setLocation("/characters"); setSidebarOpen(false); }}
+            variant="outline"
+            className="mt-2 w-full justify-start gap-2 border-fuchsia-500/15 bg-fuchsia-500/5 text-fuchsia-300 hover:bg-fuchsia-500/10 hover:border-fuchsia-400/35 font-bold uppercase tracking-wider text-[10px] h-12 rounded-xl"
+          >
+            <Bot className="h-4 w-4" /> Character AI
+          </Button>
+          <Button
+            onClick={() => { openAIUsage(); setSidebarOpen(false); }}
+            variant="outline"
+            className="mt-2 w-full justify-start gap-2 border-cyan-500/15 bg-cyan-500/5 text-cyan-300 hover:bg-cyan-500/10 hover:border-cyan-400/35 font-bold uppercase tracking-wider text-[10px] h-12 rounded-xl"
+          >
+            <BarChart3 className="h-4 w-4" /> AI Usage
+          </Button>
+          <Button
+            onClick={() => { setLocation("/ai-subscribe"); setSidebarOpen(false); }}
+            variant="outline"
+            className="mt-2 w-full justify-start gap-2 font-bold uppercase tracking-wider text-[10px] h-12 rounded-xl ${isAISubscriber ? 'border-emerald-500/15 bg-emerald-500/5 text-emerald-300 hover:bg-emerald-500/10 hover:border-emerald-400/35' : 'border-amber-500/15 bg-amber-500/5 text-amber-300 hover:bg-amber-500/10 hover:border-amber-400/35'}"
+          >
+            <Bot className="h-4 w-4" /> {isAISubscriber ? "AI Pro Aktif" : "Subscribe AI Pro"}
+          </Button>
         </div>
         <div className="flex-1 overflow-y-auto p-2 space-y-1">
           {sessions.map(s => (
             <div 
               key={s.id}
               onClick={() => { setActiveSessionId(s.id); setSidebarOpen(false); }}
-              className={`p-3 rounded-xl cursor-pointer text-xs ${activeSessionId === s.id ? "bg-white/10 text-white font-bold border-white/10" : "hover:bg-secondary text-white/70"}`}
+              className="p-3 rounded-xl cursor-pointer text-xs ${activeSessionId === s.id ? 'bg-white/10 text-white font-bold border-white/10' : 'hover:bg-secondary text-white/70'}"
             >
               {s.title}
             </div>

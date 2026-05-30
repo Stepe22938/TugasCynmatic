@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { db } from "@workspace/db";
+import { db, pool } from "@workspace/db";
 import { messages } from "@workspace/db/schema";
 import { eq, or, and } from "drizzle-orm";
 import multer from "multer";
@@ -8,6 +8,28 @@ import fs from "node:fs";
 import crypto from "node:crypto";
 
 const router = Router();
+
+const parseMemberIds = (value: unknown): string[] => {
+  if (Array.isArray(value)) return value.map(String).filter(Boolean);
+  if (typeof value === "string") {
+    try {
+      const parsed = JSON.parse(value);
+      return Array.isArray(parsed) ? parsed.map(String).filter(Boolean) : [];
+    } catch {
+      return [];
+    }
+  }
+  return [];
+};
+
+const normalizeGroup = (row: any) => ({
+  id: String(row.id),
+  name: String(row.name || "Grup"),
+  ownerId: String(row.ownerId),
+  memberIds: parseMemberIds(row.memberIds),
+  createdAt: row.createdAt,
+  updatedAt: row.updatedAt,
+});
 
 // ─── MULTER CONFIG — Secure File Upload ─────────────────────────────────────
 const UPLOAD_DIR = path.resolve(process.cwd(), "uploads", "chat");
@@ -54,6 +76,148 @@ const upload = multer({
 });
 
 // ─── GET MESSAGES BETWEEN TWO USERS ─────────────────────────────────────────
+// ─── FRIEND GROUPS ─────────────────────────────────────────────────────────
+router.get("/groups/:userId", async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const [rows] = await pool.execute<any[]>(
+      "SELECT * FROM friend_groups WHERE JSON_CONTAINS(memberIds, ?) ORDER BY updatedAt DESC",
+      [JSON.stringify(userId)]
+    );
+    res.json(rows.map(normalizeGroup));
+  } catch (error: any) {
+    console.error("[GROUPS GET] Error:", error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+router.post("/groups", async (req, res) => {
+  try {
+    const name = String(req.body?.name || "").trim();
+    const ownerId = String(req.body?.ownerId || "").trim();
+    const rawMembers = Array.isArray(req.body?.memberIds) ? req.body.memberIds.map(String) : [];
+    if (!name || !ownerId) return res.status(400).json({ error: "Nama grup dan ownerId wajib diisi" });
+
+    const memberIds = Array.from(new Set([ownerId, ...rawMembers.filter(Boolean)]));
+    if (memberIds.length < 2) return res.status(400).json({ error: "Pilih minimal 1 teman untuk membuat grup" });
+
+    const id = `grp-${Date.now()}-${crypto.randomBytes(4).toString("hex")}`;
+    await pool.execute("INSERT INTO friend_groups (id, name, ownerId, memberIds) VALUES (?, ?, ?, ?)", [
+      id,
+      name.slice(0, 255),
+      ownerId,
+      JSON.stringify(memberIds),
+    ]);
+    const [rows] = await pool.execute<any[]>("SELECT * FROM friend_groups WHERE id = ? LIMIT 1", [id]);
+    res.json({ success: true, group: normalizeGroup(rows[0]) });
+  } catch (error: any) {
+    console.error("[GROUPS CREATE] Error:", error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+router.post("/groups/:groupId/members", async (req, res) => {
+  try {
+    const { groupId } = req.params;
+    const actorId = String(req.body?.userId || "").trim();
+    const addMemberIds = Array.isArray(req.body?.memberIds) ? req.body.memberIds.map(String).filter(Boolean) : [];
+    const [rows] = await pool.execute<any[]>("SELECT * FROM friend_groups WHERE id = ? LIMIT 1", [groupId]);
+    if (!rows.length) return res.status(404).json({ error: "Grup tidak ditemukan" });
+
+    const group = normalizeGroup(rows[0]);
+    if (!group.memberIds.includes(actorId)) return res.status(403).json({ error: "Kamu bukan member grup ini" });
+
+    const nextMembers = Array.from(new Set([...group.memberIds, ...addMemberIds]));
+    await pool.execute("UPDATE friend_groups SET memberIds = ?, updatedAt = CURRENT_TIMESTAMP WHERE id = ?", [
+      JSON.stringify(nextMembers),
+      groupId,
+    ]);
+    const [updated] = await pool.execute<any[]>("SELECT * FROM friend_groups WHERE id = ? LIMIT 1", [groupId]);
+    res.json({ success: true, group: normalizeGroup(updated[0]) });
+  } catch (error: any) {
+    console.error("[GROUPS ADD MEMBERS] Error:", error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+router.post("/groups/:groupId/leave", async (req, res) => {
+  try {
+    const { groupId } = req.params;
+    const userId = String(req.body?.userId || "").trim();
+    const [rows] = await pool.execute<any[]>("SELECT * FROM friend_groups WHERE id = ? LIMIT 1", [groupId]);
+    if (!rows.length) return res.status(404).json({ error: "Grup tidak ditemukan" });
+
+    const group = normalizeGroup(rows[0]);
+    const nextMembers = group.memberIds.filter(id => id !== userId);
+    if (nextMembers.length === 0) {
+      await pool.execute("DELETE FROM group_messages WHERE groupId = ?", [groupId]);
+      await pool.execute("DELETE FROM friend_groups WHERE id = ?", [groupId]);
+      return res.json({ success: true, deleted: true });
+    }
+
+    const nextOwnerId = group.ownerId === userId ? nextMembers[0] : group.ownerId;
+    await pool.execute("UPDATE friend_groups SET ownerId = ?, memberIds = ?, updatedAt = CURRENT_TIMESTAMP WHERE id = ?", [
+      nextOwnerId,
+      JSON.stringify(nextMembers),
+      groupId,
+    ]);
+    res.json({ success: true });
+  } catch (error: any) {
+    console.error("[GROUPS LEAVE] Error:", error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+router.get("/groups/:groupId/messages", async (req, res) => {
+  try {
+    const { groupId } = req.params;
+    const userId = String(req.query.userId || "").trim();
+    const [groups] = await pool.execute<any[]>("SELECT * FROM friend_groups WHERE id = ? LIMIT 1", [groupId]);
+    if (!groups.length) return res.status(404).json({ error: "Grup tidak ditemukan" });
+    const group = normalizeGroup(groups[0]);
+    if (!group.memberIds.includes(userId)) return res.status(403).json({ error: "Kamu bukan member grup ini" });
+
+    const [rows] = await pool.execute<any[]>("SELECT * FROM group_messages WHERE groupId = ? ORDER BY createdAt ASC", [groupId]);
+    res.json(rows);
+  } catch (error: any) {
+    console.error("[GROUP MESSAGES GET] Error:", error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+router.post("/groups/:groupId/send", async (req, res) => {
+  try {
+    const { groupId } = req.params;
+    const senderId = String(req.body?.senderId || "").trim();
+    const text = String(req.body?.text || "").trim();
+    const mediaUrl = req.body?.mediaUrl || null;
+    const mediaType = req.body?.mediaType || null;
+    if (!senderId) return res.status(400).json({ error: "senderId diperlukan" });
+    if (!text && !mediaUrl) return res.status(400).json({ error: "Pesan tidak boleh kosong" });
+
+    const [groups] = await pool.execute<any[]>("SELECT * FROM friend_groups WHERE id = ? LIMIT 1", [groupId]);
+    if (!groups.length) return res.status(404).json({ error: "Grup tidak ditemukan" });
+    const group = normalizeGroup(groups[0]);
+    if (!group.memberIds.includes(senderId)) return res.status(403).json({ error: "Kamu bukan member grup ini" });
+
+    const id = `gmsg-${Date.now()}-${crypto.randomBytes(4).toString("hex")}`;
+    await pool.execute("INSERT INTO group_messages (id, groupId, senderId, text, mediaUrl, mediaType) VALUES (?, ?, ?, ?, ?, ?)", [
+      id,
+      groupId,
+      senderId,
+      text || null,
+      mediaUrl,
+      mediaType,
+    ]);
+    await pool.execute("UPDATE friend_groups SET updatedAt = CURRENT_TIMESTAMP WHERE id = ?", [groupId]);
+    const [rows] = await pool.execute<any[]>("SELECT * FROM group_messages WHERE id = ? LIMIT 1", [id]);
+    res.json({ success: true, message: rows[0] });
+  } catch (error: any) {
+    console.error("[GROUP MESSAGES SEND] Error:", error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // GET /api/messages/:userId/:otherId
 router.get("/:userId/:otherId", async (req, res) => {
   try {
